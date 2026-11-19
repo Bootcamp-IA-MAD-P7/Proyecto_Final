@@ -1,0 +1,46 @@
+# Configuración de OpenSpec (AGENTS §4). Las claves van en inglés y el contenido, en español.
+schema: spec-driven
+
+# Las skills de OpenSpec se guardan en el repositorio (.agents/skills/), con la versión fijada en ci.yml.
+skillsScope: project
+
+context: |
+  La documentación del proyecto es la fuente de verdad; WORKFLOW.md tiene el flujo y el mapa de documentación.
+  Intención de producto: docs/PRD.md (IDs OBJ-n, RF-n, RNF-n, RD-n y DEC-nn).
+  Dirección técnica: docs/ARCHITECTURE.md, docs/ADR/ y docs/CONTRACTS/.
+  Escribe los artefactos en español y deja en inglés las palabras clave de formato que valida el CLI. El código, los identificadores y los nombres de archivo van siempre en inglés.
+  Antes que crear algo nuevo, usa la arquitectura, los patrones, los contratos y las decisiones que ya existen.
+
+rules:
+  proposal:
+    - "Un cambio cubre una funcionalidad: un bloque coherente de una épica con varias historias, no una sola historia (WORKFLOW §5). Un bug o una mejora sueltos pueden ser un cambio de una sola historia."
+    - "Enlaza la épica de GitHub (#E) y los IDs de los requisitos que implementa la funcionalidad."
+    - "Limita el alcance a la funcionalidad: si necesita más de unas cinco historias o capacidades sin relación, propón repartirla en varios cambios."
+    - "Enumera la documentación, los contratos y los ADR que afecta."
+  specs:
+    - "Describe comportamiento y resultados observables, no detalles de implementación."
+    - "Cita los IDs (RF, RNF, RD) que implementa cada requisito de la spec."
+    - "Enlaza los contratos de docs/CONTRACTS/ en lugar de copiar sus campos."
+    - "No inventes requisitos: un cambio sin impacto en el comportamiento no tiene delta de specs."
+  design:
+    - "Sigue docs/ARCHITECTURE.md y los ADR aceptados."
+    - "Identifica los componentes, límites y contratos afectados, y señala las decisiones que piden un ADR nuevo."
+    - "No rediseñes partes del sistema ajenas al cambio."
+  tasks:
+    - "Una sección por historia, con el trabajo por capas de WORKFLOW §5: primero el contrato, después una sección por capa y al final la de integración. Cada sección deja su capa funcionando y cabe en un PR."
+    - "La sección de integración es la última y depende de todas las demás; su PR es el que archiva el cambio."
+    - "Encabezado de cada sección: `## N. <título de la historia> (<capa>)`. Al crear la historia en GitHub se añade ` · #<issue>`."
+    - "Cada sección empieza con sus criterios de aceptación y sus dependencias (`**Depende de:** 1, 2` o `**Depende de:** —`), seguidos de sus tareas."
+    - "Tareas pequeñas, concretas y comprobables. Incluye tests cuando el comportamiento o el riesgo lo justifiquen, y la actualización de la documentación afectada."
+
+operations:
+  apply:
+    guidance:
+      - "Implementa solo las tareas de la sección de la historia en curso; las demás secciones son de otras historias y otras ramas."
+      - "No cambies en silencio los requisitos ni el diseño aprobados: propón un update y di a qué otras historias afecta."
+      - "tasks.md es la fuente de verdad del avance."
+      - "Al terminar, lanza el subagente reviewer con el contexto limpio, corrige sus hallazgos dentro del alcance y sigue sin pausa hasta el PR a dev (skills story y pull-requests)."
+  archive:
+    guidance:
+      - "Archiva solo en el PR de la sección de integración, tras su revisión (Parada 3) y con todas las secciones de tasks.md hechas. Si las specs no están sincronizadas, haz sync antes; después archiva sin volver a preguntar (skill pull-requests)."
+      - "El commit del archive solo contiene el archivo del cambio. No desactives la validación del archive."

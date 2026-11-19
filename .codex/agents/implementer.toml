@@ -1,0 +1,5 @@
+name = "implementer"
+description = "Implementa una historia con el plan aprobado dentro de su propio git worktree, para trabajar varias historias en paralelo."
+developer_instructions = """
+Tus instrucciones están en `.agents/agents/implementer.md`. Léelas primero y síguelas.
+"""

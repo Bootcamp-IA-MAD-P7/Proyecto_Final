@@ -1,0 +1,24 @@
+// Permisos de OpenCode en este repositorio (AGENTS §3): la IA no mergea, no publica en main, no fuerza
+// un push ni publica tags o releases, y pide confirmación antes de un push a dev, que solo se hace en la
+// definición inicial. Es un freno para la IA, no una barrera: la protección real son las reglas de las
+// ramas en GitHub (CONTRIBUTING §3). Gana la última regla que coincide.
+// Formato de permisos de OpenCode 1, que OpenCode 2 también acepta.
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "bash": {
+      "git push * dev *": "ask",
+      "git push *:dev*": "ask",
+      "git push * main *": "deny",
+      "git push *:main*": "deny",
+      "git push *--force*": "deny",
+      "git push -f*": "deny",
+      "git push * -f*": "deny",
+      "git push *--tags*": "deny",
+      "git push * v*": "deny",
+      "gh pr merge *": "deny",
+      "gh api *pulls/*/merge*": "deny",
+      "gh release create *": "deny"
+    }
+  }
+}

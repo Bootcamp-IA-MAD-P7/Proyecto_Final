@@ -1,0 +1,99 @@
+# Checks for every PR (CONTRIBUTING §8): conventions, OpenSpec, the expected version and the services.
+# The required checks of the branch rulesets (.github/rulesets/) use these job names.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+env:
+  # OpenSpec version pinned on purpose: bump it in its own PR, never use @latest (CONTRIBUTING §8).
+  OPENSPEC_VERSION: "2.1.0"
+
+jobs:
+  # Branch name, commits and Refs/Closes of a story PR (CONTRIBUTING §3, §5 and §7).
+  conventions:
+    name: Convenciones
+    if: github.base_ref == 'dev'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - env:
+          BRANCH: ${{ github.head_ref }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          source .github/scripts/conventions.sh
+          failed=0
+
+          if ! check_branch "$BRANCH"; then
+            echo "::error::Branch '$BRANCH' must follow <type>/<issue>-<description> (CONTRIBUTING §3)."
+            failed=1
+          fi
+
+          while IFS= read -r subject; do
+            if ! check_subject "$subject"; then
+              echo "::error::Commit '$subject' does not follow Conventional Commits (CONTRIBUTING §5)."
+              failed=1
+            fi
+          done < <(git log --no-merges --format='%s' "$BASE..$HEAD")
+
+          issue=$(sed -nE 's#^[a-z]+/([0-9]+)-.*#\1#p' <<< "$BRANCH")
+          if [ -n "$issue" ] && ! grep -qE "(Refs|Closes) #$issue\b" <<< "$BODY"; then
+            echo "::error::The PR body must include 'Refs #$issue' or 'Closes #$issue' (CONTRIBUTING §7)."
+            failed=1
+          fi
+
+          exit "$failed"
+
+  openspec:
+    name: OpenSpec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm install -g "@fission-ai/openspec@$OPENSPEC_VERSION"
+      - run: openspec validate --all --no-interactive
+
+  # Comments on the PR the beta tag that merging will create, and why (CONTRIBUTING §9).
+  version:
+    name: Versión prevista
+    if: github.base_ref == 'dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          source .github/scripts/version.sh
+          next_beta
+          if [ -n "$tag" ]; then
+            body="**Versión prevista al mergear:** \`$tag\`"$'\n\n'"Motivo: $reason"
+          else
+            body="**Versión prevista al mergear:** sin tag; no hay commits \`feat\`, \`fix\`, \`perf\` ni incompatibles."
+          fi
+          gh pr comment "$PR" --edit-last --create-if-none --body "$body"
+
+  # Lint and tests of every service in its dev image, and its production build, with the Makefile
+  # (make ci). It passes without doing anything until the walking skeleton adds the first service.
+  services:
+    name: Servicios
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make ci

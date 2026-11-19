@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Rejects local commits that do not follow Conventional Commits (CONTRIBUTING §5).
+# Enabled once per clone with `make setup` (git config core.hooksPath .githooks).
+set -euo pipefail
+
+source "$(git rev-parse --show-toplevel)/.github/scripts/conventions.sh"
+
+subject=$(head -n 1 "$1")
+if ! check_subject "$subject"; then
+  echo "Commit rejected: \"$subject\"" >&2
+  echo "Format: type(scope): description  (English, lowercase, no trailing period)" >&2
+  echo "Types: feat, fix, refactor, docs, test, chore, perf, ci, build. See CONTRIBUTING §5." >&2
+  exit 1
+fi

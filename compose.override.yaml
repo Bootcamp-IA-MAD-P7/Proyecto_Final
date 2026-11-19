@@ -1,0 +1,15 @@
+# Development overrides, merged automatically by `docker compose up` (CONTRIBUTING §10).
+# Typical content: the `dev` build target, source code mounted for hot reload and ports published on localhost.
+
+services: {}
+# Example:
+#  backend:
+#    build:
+#      target: dev
+#    volumes:
+#      - ./backend:/app
+#    ports:
+#      - "${BACKEND_PORT:-8000}:8000"
+#  db:
+#    ports:
+#      - "${DB_PORT:-5432}:5432"

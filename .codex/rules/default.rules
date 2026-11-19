@@ -1,0 +1,47 @@
+# Permisos de Codex en este repositorio (AGENTS §3): la IA no mergea, no publica en main, no fuerza un push
+# ni publica tags o releases, y pide confirmación antes de un push a dev, que solo se hace en la definición
+# inicial. Codex solo carga estas reglas si marcas el proyecto como de confianza. Las reglas comparan el
+# principio del comando, así que son un freno para la IA, no una barrera: la protección real son las reglas
+# de las ramas en GitHub (CONTRIBUTING §3).
+
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "forbidden",
+    justification = "Solo la persona mergea los PRs (AGENTS §3).",
+)
+
+prefix_rule(
+    pattern = ["gh", "release", "create"],
+    decision = "forbidden",
+    justification = "Las releases las crea el CI al mergear en main (AGENTS §3).",
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["--force", "--force-with-lease", "-f", "--tags"]],
+    decision = "forbidden",
+    justification = "Sin force push ni tags a mano: los tags los crea el CI (AGENTS §3).",
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["origin", "-u", "--set-upstream"], ["--force", "--force-with-lease", "-f", "--tags", "main"]],
+    decision = "forbidden",
+    justification = "Nada de push a main, force push ni tags a mano (AGENTS §3).",
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["-u", "--set-upstream"], "origin", ["--force", "--force-with-lease", "-f", "--tags", "main"]],
+    decision = "forbidden",
+    justification = "Nada de push a main, force push ni tags a mano (AGENTS §3).",
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["origin", "-u", "--set-upstream"], "dev"],
+    decision = "prompt",
+    justification = "Solo el commit de la definición inicial se publica directamente en dev (WORKFLOW §4).",
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["-u", "--set-upstream"], "origin", "dev"],
+    decision = "prompt",
+    justification = "Solo el commit de la definición inicial se publica directamente en dev (WORKFLOW §4).",
+)
