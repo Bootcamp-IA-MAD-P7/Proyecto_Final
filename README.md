@@ -1,12 +1,10 @@
-<!-- Plantilla: sustituye los textos entre corchetes. Si acabas de crear el repositorio, sigue setup/README.md y borra este comentario al terminar. -->
+# CoTeach-AI
 
-# [Nombre del proyecto]
-
-[Qué es y para quién, en una o dos frases.] Más contexto en [`docs/PRD.md`](docs/PRD.md).
+CoTeach-AI es un servicio de inteligencia artificial para CoTeach que procesa grabaciones de clases de idiomas y genera transcripciones, identificación de participantes y análisis pedagógicos para profesores y alumnos. Más contexto en [`docs/PRD.md`](docs/PRD.md).
 
 ## Estado
 
-El trabajo se sigue en [GitHub Issues](https://github.com/[owner]/[repo]/issues) y las versiones se publican en [Releases](https://github.com/[owner]/[repo]/releases).
+El trabajo se sigue en [GitHub Issues](https://github.com/mariaherrerosanchez/CoTeach-AI/issues) y las versiones se publican en [Releases](https://github.com/mariaherrerosanchez/CoTeach-AI/releases).
 
 ## Puesta en marcha
 
@@ -96,4 +94,4 @@ make help    # todos los comandos
 
 ## Licencia
 
-[Licencia, o «Sin licencia definida».]
+Sin licencia definida.
