@@ -6,11 +6,11 @@ Fuentes: [briefing](references/BRIEFING_COTEACH.md), [respuestas de Lay](referen
 
 ## 1. Visión general
 
-Proponer un backend modular Python, con API y procesos de trabajo separados, compartiendo PostgreSQL y almacenamiento privado. Una interfaz Streamlit consume exclusivamente la API. Un único trabajador de inferencia procesa inicialmente una clase cada vez, por etapas, para limitar memoria. Un proceso ligero independiente publica resultados vencidos y elimina audios aunque la GPU esté ocupada.
+Proponer un backend modular Python, con API y procesos de trabajo separados, compartiendo PostgreSQL y almacenamiento privado. Un cliente web React con TypeScript y Vite consume exclusivamente la API REST de FastAPI. Un único trabajador de inferencia procesa inicialmente una clase cada vez, por etapas, para limitar memoria. Un proceso ligero independiente publica resultados vencidos y elimina audios aunque la GPU esté ocupada.
 
 ```mermaid
 flowchart LR
-    C[CoTeach / interfaz Streamlit] --> A[API FastAPI]
+    C[CoTeach / cliente web React] --> A[API REST FastAPI]
     A --> D[(PostgreSQL)]
     A --> S[(Audio privado)]
     W[Trabajador de inferencia] --> D
@@ -33,7 +33,7 @@ RF-01 a RF-05 incluyen revisión y publicación. RF-06 (resumen individual grupa
 |---|---|---|---|
 | API y dominio | Python 3.11, FastAPI, Pydantic 2; validación y OpenAPI, sin inferencia dentro de peticiones HTTP | Candidata | [ADR-0001](ADR/0001-modular-backend.md) |
 | Persistencia | PostgreSQL 17, SQLAlchemy 2, Alembic; mismo motor en desarrollo y producción | Candidata | [ADR-0002](ADR/0002-durable-jobs.md) |
-| Interfaz de demostración | Streamlit; rapidez de entrega, edición sencilla; autorización siempre en API | Candidata | ADR-0001 |
+| Interfaz de demostración | React, TypeScript y Vite; cliente web separado, tipos alineados con el contrato y autorización siempre en FastAPI | Candidata | ADR-0001 |
 | Audio | FFmpeg para normalización; faster-whisper con Whisper small multilingüe como primera evaluación | Candidata | [ADR-0003](ADR/0003-private-inference.md) |
 | Diarización | pyannote.audio con speaker-diarization-community-1; evaluar errores y acceso a pesos | Candidata | ADR-0003 |
 | Análisis | Qwen3-8B cuantizado mediante llama.cpp, modo sin razonamiento extendido, salida JSON validada | Candidata | ADR-0003 |
@@ -49,7 +49,7 @@ Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prue
 | api | Recepción, autorización por clase, validación, consulta, edición y aprobación | Clases, permisos, revisiones y resultados publicados | PostgreSQL, almacenamiento | Candidata |
 | worker | Normalizar, transcribir, diarizar, combinar intervenciones, analizar | Artefactos por etapa y metadatos de ejecución | Cola PostgreSQL, audio, modelos | Candidata |
 | maintenance | Publicar vencidos, recuperar trabajos abandonados, purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Candidata |
-| demo | Vistas docente/alumnado y seguimiento de trabajos | Solo estado de sesión; nunca copia autoritativa de resultados | API | Candidata |
+| frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Candidata |
 
 API, worker y maintenance comparten paquete de dominio y migraciones; no son microservicios independientes. La IA se encapsula en adaptadores para sustituir modelos sin cambiar la API pública. Ningún modelo decide permisos ni ejecuta instrucciones contenidas en el audio.
 
@@ -70,9 +70,10 @@ backend/                 # Makefile, Dockerfile dev/prod, .env.example
   app/storage/
   migrations/
   tests/
-demo/                    # Makefile, Dockerfile dev/prod, .env.example
-  app/
+frontend/                # React + TypeScript + Vite; Makefile, Dockerfile dev/prod, .env.example
+  src/
   tests/
+  package.json
 docs/CONTRACTS/           # contratos por aprobar en fase 2
 docs/ADR/
 openspec/
@@ -111,8 +112,8 @@ OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silencio
 
 | Productor → consumidor | Interfaz propuesta | Contenido y reglas |
 |---|---|---|
-| CoTeach/demo → API | POST /v1/classes, multipart, Idempotency-Key | audio, external_class_id, participantes con id/rol/nombre opcional, consentimiento referenciado; respuesta 202 con class_id/job_id |
-| API → demo/CoTeach | GET /v1/jobs/{id} | state, stage, attempt, error.code, retryable; autorizado por clase |
+| CoTeach/frontend → API | POST /v1/classes, multipart, Idempotency-Key | audio, external_class_id, participantes con id/rol/nombre opcional, consentimiento referenciado; respuesta 202 con class_id/job_id |
+| API → frontend/CoTeach | GET /v1/jobs/{id} | state, stage, attempt, error.code, retryable; autorizado por clase |
 | API → docente/alumnado | GET /v1/classes/{id}/result | schema_version, result_version, transcript, analysis, publication; docente ve borrador, alumno solo publicado |
 | Docente → API | PATCH /v1/classes/{id}/review; POST .../approve | cambios y versión esperada; conflicto 409 si cambió; roles contrastados con identidad autenticada |
 | Worker → dominio | Resultado de etapa validado | job_id, lease_token, stage, model_revision, payload, warnings |
@@ -141,11 +142,11 @@ Sin APIs públicas de inferencia por defecto. Descarga de pesos separada de ejec
 
 ## 7. Entorno local y operación
 
-Windows 11 + Git Bash permanece válido para Make, CLI, API e interfaz. Python 3.11 y FFmpeg para ejecución nativa; PostgreSQL en Docker o instalación equivalente. Dependencias GPU requieren drivers y versiones compatibles de CUDA/cuDNN/PyTorch/CTranslate2, a probar y fijar conjuntamente.
+Windows 11 + Git Bash permanece válido para Make, CLI, API e interfaz. Python 3.11 y FFmpeg sirven al backend; Node.js y npm sirven al frontend React/Vite, con versiones por fijar tras comprobar compatibilidad. PostgreSQL se ejecuta en Docker o instalación equivalente. Dependencias GPU requieren drivers y versiones compatibles de CUDA/cuDNN/PyTorch/CTranslate2, a probar y fijar conjuntamente.
 
 Advertencia técnica concreta: [Docker Desktop ofrece GPU en Windows mediante backend WSL2](https://docs.docker.com/desktop/features/gpu/). Esto no obliga a mover el checkout ni usar una terminal WSL, pero sí requiere ese backend para GPU en contenedores. Si se evita WSL2 totalmente, evaluar worker GPU nativo Windows o servidor Linux privado; CPU permanece como alternativa de pruebas. No se ha verificado compatibilidad del equipo real.
 
-Puertos candidatos: API 8000, demo 8501, PostgreSQL 5432 solo en localhost/red privada; producción expone únicamente TLS por proxy. Los comandos serán objetivos Makefile según CONTRIBUTING; no se añaden en esta fase.
+Puertos candidatos: API 8000, servidor de desarrollo Vite 5173 y PostgreSQL 5432 solo en localhost/red privada; producción expone únicamente TLS por proxy y sirve el artefacto estático del frontend. Si frontend y API usan orígenes distintos en desarrollo, la política CORS se restringirá a los orígenes configurados. Los comandos serán objetivos Makefile según CONTRIBUTING; no se añaden en esta fase.
 
 | Modalidad | Ventajas | Límites y costes | Uso propuesto |
 |---|---|---|---|
@@ -163,6 +164,7 @@ Medir segundos de cómputo por minuto de audio, pico RAM/VRAM, tamaño de artefa
 - Unitarias: permisos, estados, validación, asignación manual de hablantes, edición y vencimientos con reloj controlado.
 - Integración sobre PostgreSQL real: leases y recuperación, idempotencia, carreras aprobación/publicación, errores de almacenamiento, purga incluso con trabajos activos y reinicio tras vencimiento.
 - Contratos: API y adaptadores con payloads sintéticos; respuestas malformadas de IA se rechazan. Tratar texto transcrito como datos, con pruebas de instrucciones maliciosas dentro del audio.
+- Frontend: comprobación de tipos, pruebas de componentes y del cliente REST, construcción Vite de producción y aislamiento del estado entre identidades.
 - E2E: docente carga audio, consulta progreso, corrige y aprueba; alumno autorizado ve publicado; otro alumno no accede. Ruta sin revisión publica al vencer el reloj simulado. Ruta in_review pendiente de decisión no se da por validada.
 - Evaluación IA separada del CI habitual: corpus autorizado y simulado, sin audio real en repositorio ni artefactos públicos. Cubrir silencio, ruido, solapamientos, nombres, idiomas y cambios de idioma. Anotar transcripción/hablantes de referencia y contenidos pedagógicos esperados con Lay.
 - Medir WER/CER según idioma, DER para diarización, atribución de hablante y revisión humana de errores, omisiones y afirmaciones inventadas. Umbrales y lenguas de aceptación pendientes; un JSON válido no prueba calidad pedagógica.
@@ -176,7 +178,7 @@ Medir segundos de cómputo por minuto de audio, pico RAM/VRAM, tamaño de artefa
 | Pruebas | dev | Tras integración con CI verde, despliegue manual documentado inicialmente | Candidata |
 | Producción | main | Tras promoción aprobada, despliegue manual de la versión publicada | Candidata |
 
-Ambos entornos deben existir desde el walking skeleton según WORKFLOW; usar datos sintéticos hasta resolver consentimiento y acceso. Compose por entorno, bases/volúmenes/secretos separados. Servidor y dominios pendientes de acuerdo; no asumir GPU en el servidor actual de Odoo. Inferencia inicialmente junto al almacenamiento; mover worker a GPU privada solo con conectividad privada y limpieza de copias definida. Sin Kubernetes, broker adicional, vector DB ni entrenamiento propio para diciembre.
+Ambos entornos deben existir desde el walking skeleton según WORKFLOW; usar datos sintéticos hasta resolver consentimiento y acceso. Compose por entorno, bases/volúmenes/secretos separados. El frontend se construye como artefacto estático y accede únicamente a la API REST publicada; no contiene secretos ni decide permisos. Servidor y dominios pendientes de acuerdo; no asumir GPU en el servidor actual de Odoo. Inferencia inicialmente junto al almacenamiento; mover worker a GPU privada solo con conectividad privada y limpieza de copias definida. Sin Kubernetes, broker adicional, vector DB ni entrenamiento propio para diciembre.
 
 Guardar imágenes y migraciones compatibles; respaldar DB antes de migrar y ensayar restauración. CoTeach recibirá instrucciones de operación, purga, recuperación y actualización de modelos con evaluación previa.
 

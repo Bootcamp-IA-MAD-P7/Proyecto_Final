@@ -11,16 +11,16 @@ Tres personas necesitan desarrollar en paralelo un servicio independiente y una 
 
 ## Decisión
 
-Proponer Python 3.11, FastAPI/Pydantic, un paquete de dominio compartido por API/worker/maintenance y Streamlit como cliente de API. Mantener revisión y autorización en servidor. Definir primero OpenAPI y ejemplos sintéticos en fase 2, permitiendo mocks independientes. No ejecutar inferencia pesada en BackgroundTasks de la API.
+Proponer Python 3.11, FastAPI/Pydantic y un paquete de dominio compartido por API/worker/maintenance. Proponer React con TypeScript y Vite como cliente web separado, que consume exclusivamente los endpoints REST versionados de FastAPI. Mantener revisión, autorización y reglas de negocio en el servidor. Definir primero OpenAPI y ejemplos sintéticos en fase 2, permitiendo dobles independientes. No ejecutar inferencia pesada en BackgroundTasks de la API.
 
 La propuesta requiere aprobación humana antes de pasar a Aceptado. El detalle operativo está en [ARCHITECTURE](../ARCHITECTURE.md).
 
 ## Alternativas consideradas
 
 - Microservicios por modelo: despliegues y contratos innecesarios para tres personas.
-- Todo dentro de Streamlit: acopla integración, permisos e inferencia a la demostración.
-- SPA con frontend separado: válida, pero añade otra cadena de herramientas; reconsiderar al evolucionar la interfaz.
+- Un cliente de demostración Python acoplado: acelera una primera pantalla, pero limita la evolución de la experiencia y no comparte el tipado del contrato con un cliente web TypeScript.
+- Todo dentro de FastAPI con plantillas: reduce herramientas, pero acopla la interfaz al backend y dificulta el trabajo paralelo por capas.
 
 ## Consecuencias
 
-Reduce integración y permite repartir API, IA e interfaz. El dominio compartido obliga a coordinar migraciones; Streamlit limita UX compleja. Falta validar experiencia del equipo y dependencias. FastAPI recomienda separar computación pesada de tareas ligeras en segundo plano: https://fastapi.tiangolo.com/tutorial/background-tasks/.
+Separa claramente frontend y backend y permite repartir API, IA e interfaz. React, TypeScript y Vite añaden una cadena Node, construcción y pruebas propias; el contrato REST debe impedir divergencias entre ambos lados. El dominio compartido obliga a coordinar migraciones. Falta validar experiencia del equipo, versiones y dependencias. FastAPI recomienda separar computación pesada de tareas ligeras en segundo plano: https://fastapi.tiangolo.com/tutorial/background-tasks/.

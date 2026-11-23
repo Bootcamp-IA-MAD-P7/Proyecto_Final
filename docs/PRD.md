@@ -289,7 +289,7 @@ El producto no requiere entregar la transcripción ni el repaso durante la clase
 | DEC-03 | El audio original se conservará 14 días y se purgará automáticamente. | Lay fija dos semanas de conservación. | Aceptada |
 | DEC-04 | Para diciembre, el flujo Base incluye RF-01 a RF-05; RF-06 y RF-07 se trasladan a una segunda fase. | Alcance aprobado para concentrar la demostración en el flujo completo de audio a resultados estructurados y publicación. | Aceptada |
 | DEC-05 | Para el MVP se propone un plazo configurable de revisión de 24 horas; antes del plazo el profesorado puede aprobar la compartición y, al vencerlo sin revisión, el resultado se publica al alumnado autorizado. | Materializa el alcance aprobado de RF-05 sin fijar el plazo en el código. Requiere validación de Lay. | Propuesta |
-| DEC-06 | La interfaz visual de demostración se decidirá separadamente del servicio y de su contrato de API. | Lay acepta una presentación visual, pero no debe condicionar la arquitectura del servicio. | Propuesta |
+| DEC-06 | La interfaz visual de demostración será un cliente web separado del servicio y consumirá su API versionada; la tecnología concreta pertenece a la arquitectura. | Lay acepta una presentación visual, pero esta no debe condicionar el contrato ni trasladar autorización o reglas de negocio fuera del servicio. | Propuesta |
 
 ## 14. Preguntas abiertas
 
