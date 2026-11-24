@@ -111,7 +111,9 @@ Proponer máximo tres intentos con espera creciente para errores transitorios; e
 
 OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silenciosamente. Resultados de etapa se guardan con versión y hash de entrada, para evitar repetir audio ya procesado. Idempotencia de carga por emisor y clave; misma clave con contenido diferente devuelve conflicto. Purga/cancelación invalida resultados tardíos. Maintenance independiente permite cumplir vencimientos durante inferencias largas.
 
-### Interfaces candidatas, aún no contratos aprobados
+### Interfaces entre componentes
+
+El contrato normativo es [API de CoTeach AI](CONTRACTS/coteach-ai-api.md) (v0.1.0, Propuesto), con `backend/openapi.json` como artefacto ejecutable. La tabla y el esquema siguientes son el diseño preliminar del que partió; si difieren, manda el contrato.
 
 | Productor → consumidor | Interfaz propuesta | Contenido y reglas |
 |---|---|---|
@@ -123,7 +125,7 @@ OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silencio
 
 Esquema propuesto de transcript: segments con id, start_ms, end_ms, speaker_id, text; speakers con id y participant_id nullable. Analysis contiene general_summary y items con category/content; categorías del RF-03. Referencias internas a segmentos para evaluación no constituyen navegación temporal RF-07. Publication contiene status, published_at, mode y versión publicada. Fechas UTC ISO 8601; errores sin textos de audio ni secretos. Límites de duración, formato y tamaño deben acordarse antes de estabilizar recepción.
 
-Estas tablas son diseño preliminar. La primera historia de contrato trasladará su definición normativa a OpenAPI/JSON Schema en [CONTRACTS](CONTRACTS/README.md), con ejemplos sintéticos, versionado y compatibilidad; después ARCHITECTURE enlazará allí sin duplicar campos. No se crean contratos ejecutables durante esta propuesta.
+La interfaz interna Worker → dominio no es un contrato publicado: vive en el paquete `backend` como las interfaces `JobStore` e `InferencePipeline` ([diseño de add-walking-skeleton](../openspec/changes/add-walking-skeleton/design.md#interfaces-internas)).
 
 ## 6. Datos, configuración y secretos
 
@@ -189,7 +191,7 @@ Guardar imágenes y migraciones compatibles; respaldar DB antes de migrar y ensa
 ## 10. Decisiones y contratos
 
 - Decisiones técnicas: [índice de ADR](ADR/README.md).
-- Interfaces estables: [índice de contratos](CONTRACTS/README.md). Todavía no hay ninguno; el primero llega con la primera funcionalidad que conecte dos componentes.
+- Interfaces estables: [índice de contratos](CONTRACTS/README.md). El primero es la [API de CoTeach AI](CONTRACTS/coteach-ai-api.md).
 
 Fuentes técnicas consultadas: [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [pyannote Community-1](https://huggingface.co/pyannote/speaker-diarization-community-1), [Qwen3-8B](https://huggingface.co/Qwen/Qwen3-8B), [llama.cpp](https://github.com/ggml-org/llama.cpp), [FastAPI y trabajos pesados](https://fastapi.tiangolo.com/tutorial/background-tasks/), [PostgreSQL SELECT y SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html). Capacidades upstream no equivalen a pruebas realizadas en CoTeach.
 
