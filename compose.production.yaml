@@ -6,5 +6,11 @@ services:
     build:
       target: prod
     restart: unless-stopped
+    environment:
+      # Off in production; set AUTH_DEV_ISSUER=true in .env only for a local demo (spec api-access).
+      AUTH_DEV_ISSUER: ${AUTH_DEV_ISSUER:-false}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+
+  db:
+    restart: unless-stopped

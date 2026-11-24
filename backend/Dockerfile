@@ -22,8 +22,10 @@ CMD ["make", "dev"]
 
 # Production: only the application code, run by an unprivileged user.
 FROM base AS prod
+COPY alembic.ini ./
+COPY migrations ./migrations
 COPY app ./app
 RUN useradd --create-home --uid 10001 app
 USER app
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "python -m app.db.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
