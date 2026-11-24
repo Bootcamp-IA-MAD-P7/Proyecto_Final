@@ -17,4 +17,4 @@ Archivo `nombre-del-contrato.md`, creado a partir de [`_template.md`](_template.
 
 | Contrato | Productor → consumidores | Versión | Estado |
 |---|---|---|---|
-| — | — | — | — |
+| [API de CoTeach AI](coteach-ai-api.md) | backend → frontend, CoTeach | 0.1.0 | Propuesto |
