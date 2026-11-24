@@ -42,7 +42,7 @@ Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está 
 
 ### Estado en el walking skeleton
 
-En v0.1 las rutas están declaradas pero no todas tienen comportamiento. Mientras una ruta no esté implementada responde 501 con el código temporal `not_implemented`, que no forma parte del contrato. `GET /health` ya responde. Lo que se implementa en cada historia está en [tasks.md](../../openspec/changes/add-walking-skeleton/tasks.md): `/ready`, recepción, consulta del trabajo y del resultado en la sección 2; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La idempotencia y los límites de tamaño y formato del audio (409, 413 y 415) se declaran ya y llegan en E2.
+En v0.1 todas las rutas responden ([tasks.md](../../openspec/changes/add-walking-skeleton/tasks.md), sección 2): recepción, consulta del trabajo y del resultado leen y escriben en PostgreSQL; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La recepción todavía no guarda el audio, que llega en E2. La idempotencia y los límites de tamaño y formato del audio (409, 413 y 415) se declaran ya y llegan en E2.
 
 ## Compatibilidad
 

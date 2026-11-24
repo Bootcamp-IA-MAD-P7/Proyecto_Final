@@ -31,12 +31,12 @@ Plan de la funcionalidad `add-walking-skeleton` (E1, épica #1). Una sección po
 
 **Depende de:** 1
 
-- [ ] 2.1 Añadir `GET /health` y `GET /ready` con la comprobación de la base de datos, con tests.
-- [ ] 2.2 Añadir `db` (PostgreSQL 17 con healthcheck y volumen) a Compose, SQLAlchemy 2 y Alembic con la migración inicial de clases, participantes, trabajos y resultados.
-- [ ] 2.3 Implementar `JobStore` sobre PostgreSQL: reclamar con `FOR UPDATE SKIP LOCKED` y devolver a la cola los trabajos en curso, con tests contra PostgreSQL.
-- [ ] 2.4 Validar tokens firmados (firma, caducidad y audiencia) y añadir el emisor de pruebas `POST /dev/token` para los usuarios sintéticos configurados, activo solo con `AUTH_DEV_ISSUER=true`.
-- [ ] 2.5 Implementar las rutas `/v1` según el diseño, con el acceso por clase resuelto desde los participantes y CORS limitado a `FRONTEND_ORIGIN`; tests de los escenarios de `api-access` y `class-processing`.
-- [ ] 2.6 Completar las variables en `backend/.env.example` y `.env.example` y regenerar `backend/openapi.json` si cambia, sin cambiar el contrato fuera de un `update` aprobado.
+- [x] 2.1 Añadir `GET /health` y `GET /ready` con la comprobación de la base de datos, con tests.
+- [x] 2.2 Añadir `db` (PostgreSQL 17 con healthcheck y volumen) a Compose, SQLAlchemy 2 y Alembic con la migración inicial de clases, participantes, trabajos y resultados.
+- [x] 2.3 Implementar `JobStore` sobre PostgreSQL: reclamar con `FOR UPDATE SKIP LOCKED` y devolver a la cola los trabajos en curso, con tests contra PostgreSQL.
+- [x] 2.4 Validar tokens firmados (firma, caducidad y audiencia) y añadir el emisor de pruebas `POST /dev/token` para los usuarios sintéticos configurados, activo solo con `AUTH_DEV_ISSUER=true`.
+- [x] 2.5 Implementar las rutas `/v1` según el diseño, con el acceso por clase resuelto desde los participantes y CORS limitado a `FRONTEND_ORIGIN`; tests de los escenarios de `api-access` y `class-processing`.
+- [x] 2.6 Completar las variables en `backend/.env.example` y `.env.example` y regenerar `backend/openapi.json` si cambia, sin cambiar el contrato fuera de un `update` aprobado.
 
 ## 3. Worker y mantenimiento con procesamiento simulado (procesamiento) · #36
 
