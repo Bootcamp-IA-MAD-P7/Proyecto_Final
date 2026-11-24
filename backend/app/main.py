@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import Engine
 
-from app.api.errors import install_error_handling
+from app.api.auth import dev_router
+from app.api.errors import REQUEST_ID_HEADER, install_error_handling
 from app.api.routes import operation_router, router
 from app.contract import CONTRACT_VERSION
+from app.db import make_engine
+from app.jobs import JobStore, PostgresJobStore
+from app.settings import Settings
 
 DESCRIPTION = """\
 Contract between the CoTeach AI service and its consumers (the web and CoTeach).
@@ -15,11 +21,35 @@ are in docs/CONTRACTS/coteach-ai-api.md.
 """
 
 
-def create_app() -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    store: JobStore | None = None,
+    engine: Engine | None = None,
+) -> FastAPI:
+    """Build the api. Without a store or an engine they come from DATABASE_URL, if set."""
+    settings = settings or Settings.from_env()
+    if engine is None and settings.database_url:
+        engine = make_engine(settings.database_url)
+    if store is None and engine is not None:
+        store = PostgresJobStore(engine)
+
     app = FastAPI(title="CoTeach AI API", version=CONTRACT_VERSION, description=DESCRIPTION)
+    app.state.settings = settings
+    app.state.engine = engine
+    app.state.store = store
     install_error_handling(app)
+    if settings.frontend_origin:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[settings.frontend_origin],
+            allow_methods=["GET", "POST", "PATCH"],
+            allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
+            expose_headers=[REQUEST_ID_HEADER],
+        )
     app.include_router(operation_router)
     app.include_router(router)
+    if settings.auth_dev_issuer:
+        app.include_router(dev_router)
     return app
 
 

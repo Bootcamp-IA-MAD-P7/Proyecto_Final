@@ -1,3 +1,5 @@
+"""Behaviour shared by every JobStore: in memory and on PostgreSQL (ADR-0002)."""
+
 import pytest
 
 from app.contract import ClassMetadata, JobError, JobErrorCode, JobStage, JobState, Result
@@ -6,14 +8,21 @@ from app.jobs import (
     InvalidJobTransitionError,
     JobNotFoundError,
     JobStore,
+    PostgresJobStore,
 )
 from tests.conftest import load_fixture
 
 
-@pytest.fixture
-def store() -> InMemoryJobStore:
+@pytest.fixture(params=["memory", "postgres"])
+def store(request) -> JobStore:
     counter = iter(range(1, 1000))
-    return InMemoryJobStore(new_id=lambda prefix: f"{prefix}-{next(counter):02d}")
+
+    def new_id(prefix: str) -> str:
+        return f"{prefix}-{next(counter):02d}"
+
+    if request.param == "memory":
+        return InMemoryJobStore(new_id=new_id)
+    return PostgresJobStore(request.getfixturevalue("pg"), new_id=new_id)
 
 
 @pytest.fixture

@@ -14,11 +14,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
+from uuid import uuid4
 
 from app.contract import ClassMetadata, Job, JobError, JobStage, JobState, Result
 
 IN_PROGRESS_STATES = frozenset(JobState(stage.value) for stage in JobStage)
 """States of a job that a worker is processing: one per stage."""
+
+STAGE_ORDER = list(JobStage)
+
+
+def new_id(prefix: str) -> str:
+    """Opaque identifier of a class or a job."""
+    return f"{prefix}-{uuid4().hex}"
 
 
 @dataclass(frozen=True)

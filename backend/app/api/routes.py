@@ -1,40 +1,58 @@
 """Routes of the contract v0.1 under /v1.
 
-They declare inputs, outputs and errors of the contract. Until section 2 of add-walking-skeleton
-gives them behaviour, every route validates its input and answers 501.
+They declare inputs, outputs and errors of the contract and answer from the JobStore. Access to
+each class is resolved on the server (spec api-access). Review and approval answer the contract
+examples without saving anything until E5.
 """
 
 from __future__ import annotations
 
+import json
+from functools import cache
+from pathlib import Path as FilePath
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, File, Form, Header, Path, UploadFile, status
-from fastapi.security import HTTPBearer
+from fastapi import APIRouter, Depends, File, Form, Header, Path, Request, UploadFile, status
+from fastapi.responses import JSONResponse
 from pydantic import Json
 
-from app.api.errors import not_implemented
+from app.api.access import can_see, can_submit, teaches
+from app.api.auth import CurrentPrincipal, get_principal
+from app.api.errors import ApiError
+from app.auth.principal import Principal
 from app.contract import (
     ApprovalResponse,
     ApproveRequest,
     ClassAccepted,
     ClassMetadata,
+    DependencyStatus,
+    ErrorCode,
     ErrorResponse,
     Health,
     Identifier,
     Job,
+    JobState,
+    PublicationStatus,
     Readiness,
     Result,
     ReviewRequest,
 )
+from app.db import database_available
+from app.jobs import JobStore, StoredClass
 
-bearer = HTTPBearer(
-    auto_error=False,
-    scheme_name="bearerToken",
-    description="Signed token of the identity issuer. The role comes from it, never from the body.",
-)
-"""Declares the credential in the contract. Section 2 validates it (spec api-access)."""
+EXAMPLES = FilePath(__file__).resolve().parents[1] / "contract" / "examples"
 
-router = APIRouter(prefix="/v1", dependencies=[Depends(bearer)])
+
+def get_store(request: Request) -> JobStore:
+    store = request.app.state.store
+    if store is None:
+        raise ApiError(503, ErrorCode.SERVICE_UNAVAILABLE)
+    return store
+
+
+Store = Annotated[JobStore, Depends(get_store)]
+
+router = APIRouter(prefix="/v1", dependencies=[Depends(get_principal)])
 operation_router = APIRouter(tags=["operation"])
 """Health and readiness: no credential and no class data (spec service-operation)."""
 
@@ -87,8 +105,15 @@ def submit_class(
             description="Same key and content return the same class; same key, other content: 409",
         ),
     ] = None,
+    *,
+    principal: CurrentPrincipal,
+    store: Store,
 ) -> ClassAccepted:
-    raise not_implemented()
+    # The audio is received and validated in E2; the walking skeleton does not keep it.
+    if not can_submit(principal):
+        raise ApiError(403, ErrorCode.FORBIDDEN)
+    stored = store.create_class(metadata, submitted_by=principal.subject)
+    return ClassAccepted(class_id=stored.class_id, job_id=stored.job_id, state=JobState.QUEUED)
 
 
 @router.get(
@@ -98,8 +123,12 @@ def submit_class(
     summary="State and stage of a processing job",
     responses=_errors(),
 )
-def get_job(job_id: JobId) -> Job:
-    raise not_implemented()
+def get_job(job_id: JobId, principal: CurrentPrincipal, store: Store) -> Job:
+    job = store.get_job(job_id)
+    if job is None:
+        raise _not_available()
+    _visible_class(store, principal, job.class_id)
+    return job
 
 
 @router.get(
@@ -113,8 +142,17 @@ def get_job(job_id: JobId) -> Job:
     ),
     responses=_errors(409),
 )
-def get_class_result(class_id: ClassId) -> Result:
-    raise not_implemented()
+def get_class_result(class_id: ClassId, principal: CurrentPrincipal, store: Store) -> Result:
+    stored = _visible_class(store, principal, class_id)
+    result = store.get_result(class_id)
+    if not teaches(principal, stored):
+        # Students only see the published version; a draft does not exist for them.
+        if result is None or result.publication.status != PublicationStatus.PUBLISHED:
+            raise _not_available()
+        return result
+    if result is None:
+        raise ApiError(409, ErrorCode.RESULT_NOT_READY)
+    return result
 
 
 @router.patch(
@@ -129,8 +167,11 @@ def get_class_result(class_id: ClassId) -> Result:
     ),
     responses=_errors(403, 409),
 )
-def review_class_result(class_id: ClassId, request: ReviewRequest) -> Result:
-    raise not_implemented()
+def review_class_result(
+    class_id: ClassId, request: ReviewRequest, principal: CurrentPrincipal, store: Store
+) -> Result:
+    _reviewable_class(store, principal, class_id)
+    return Result.model_validate({**_example("result-reviewed.json"), "class_id": class_id})
 
 
 @router.post(
@@ -141,8 +182,12 @@ def review_class_result(class_id: ClassId, request: ReviewRequest) -> Result:
     description="409 `result_version_conflict` when expected_result_version is stale.",
     responses=_errors(403, 409),
 )
-def approve_class_result(class_id: ClassId, request: ApproveRequest) -> ApprovalResponse:
-    raise not_implemented()
+def approve_class_result(
+    class_id: ClassId, request: ApproveRequest, principal: CurrentPrincipal, store: Store
+) -> ApprovalResponse:
+    _reviewable_class(store, principal, class_id)
+    example = _example("approval-response.json")
+    return ApprovalResponse.model_validate({**example, "class_id": class_id})
 
 
 @operation_router.get(
@@ -167,5 +212,36 @@ def get_health() -> Health:
     ),
     responses={503: {"model": Readiness, "description": "A dependency is not available"}},
 )
-def get_readiness() -> Readiness:
-    raise not_implemented()
+def get_readiness(request: Request) -> JSONResponse:
+    ok = database_available(request.app.state.engine)
+    body = Readiness(
+        status="ready" if ok else "unavailable",
+        dependencies={"database": DependencyStatus.OK if ok else DependencyStatus.UNAVAILABLE},
+    )
+    return JSONResponse(body.model_dump(mode="json"), status_code=200 if ok else 503)
+
+
+def _not_available() -> ApiError:
+    return ApiError(404, ErrorCode.RESOURCE_NOT_AVAILABLE)
+
+
+def _visible_class(store: JobStore, principal: Principal, class_id: str) -> StoredClass:
+    """The class if the caller can see it; unknown and foreign classes answer the same 404."""
+    stored = store.get_class(class_id)
+    if stored is None or not can_see(principal, stored):
+        raise _not_available()
+    return stored
+
+
+def _reviewable_class(store: JobStore, principal: Principal, class_id: str) -> StoredClass:
+    stored = _visible_class(store, principal, class_id)
+    if not teaches(principal, stored):
+        raise ApiError(403, ErrorCode.FORBIDDEN)
+    if store.get_result(class_id) is None:
+        raise ApiError(409, ErrorCode.RESULT_NOT_READY)
+    return stored
+
+
+@cache
+def _example(name: str) -> dict[str, Any]:
+    return json.loads((EXAMPLES / name).read_text(encoding="utf-8"))

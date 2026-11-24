@@ -13,8 +13,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.contract import DEFAULT_MESSAGES, RETRYABLE_CODES, ErrorCode, metadata_error_code
 
 REQUEST_ID_HEADER = "X-Request-ID"
-NOT_IMPLEMENTED = "not_implemented"
-"""Code of the 501 answered by routes not built yet. Temporary, so not part of the contract."""
 
 
 class ApiError(Exception):
@@ -33,10 +31,6 @@ class ApiError(Exception):
         known = ErrorCode(code) if code in ErrorCode.__members__.values() else None
         self.message = message or (DEFAULT_MESSAGES[known] if known else "Error")
         self.retryable = retryable if retryable is not None else known in RETRYABLE_CODES
-
-
-def not_implemented() -> ApiError:
-    return ApiError(501, NOT_IMPLEMENTED, "Operación todavía no disponible", retryable=False)
 
 
 def error_response(request: Request, error: ApiError) -> JSONResponse:
