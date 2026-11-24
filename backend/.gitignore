@@ -1,0 +1,5 @@
+# Python caches and local environments of the backend
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
