@@ -1,6 +1,8 @@
 # Ejemplos sintéticos
 
-Propuesta ilustrativa 0.1.0, sin credenciales ni datos personales reales. Las partes JSON son ejemplos, no sustituyen el futuro esquema normativo. Archivo de audio simulado, no incluido. Referencia: [diseño](design.md).
+Ejemplos del contrato 0.1.0, sin credenciales ni datos personales reales. La sección 1 de [tasks.md](tasks.md) los convierte en fixtures JSON validados contra los modelos; desde entonces, el contrato registrado en `docs/CONTRACTS/` y `backend/openapi.json` mandan sobre este archivo. Archivo de audio simulado, no incluido. Referencia: [diseño](design.md).
+
+Todas las peticiones a `/v1` llevan `Authorization: Bearer <token>`. En local, el token lo emite el emisor de pruebas para un usuario sintético; no se incluye ninguno aquí.
 
 ## Recepción
 
@@ -10,7 +12,7 @@ POST /v1/classes, multipart con audio=synthetic-class.mp3 y metadata:
 {"external_class_id":"demo-class-01","participant_count":2,"participants":[{"participant_id":"demo-teacher","role":"teacher","display_name":"Docente de prueba"},{"participant_id":"demo-student","role":"student","display_name":"Estudiante de prueba"}],"consent_reference":"synthetic-fixture-01"}
 ```
 
-Cabecera Idempotency-Key: demo-upload-01. La credencial de demostración debe obtenerse por un canal autorizado, no está incluida. Respuesta 202:
+Cabecera Idempotency-Key: demo-upload-01 (aceptada; su efecto llega en E2). Respuesta 202:
 
 ```json
 {"class_id":"class-demo-01","job_id":"job-demo-01","state":"queued"}
@@ -54,9 +56,11 @@ GET /v1/classes/class-demo-01/result → 200:
 }
 ```
 
-El vencimiento ilustra disponibilidad el 10 de diciembre a las 10:00 y plazo de 24 horas: ambos supuestos temporales siguen pendientes de Lay. El alumno no recibe este borrador: obtiene 404 resource_not_available.
+El vencimiento ilustra disponibilidad el 10 de diciembre a las 10:00 y un plazo de 24 horas: ambos supuestos siguen pendientes de Lay. El alumno no recibe este borrador: obtiene 404 resource_not_available.
 
 ## Corrección y aprobación
+
+En E1 estas dos rutas devuelven estos ejemplos sin guardar nada; su comportamiento llega en E5.
 
 PATCH /v1/classes/class-demo-01/review:
 
@@ -64,7 +68,7 @@ PATCH /v1/classes/class-demo-01/review:
 {"expected_result_version":1,"changes":{"analysis":{"general_summary":"Se han practicado saludos básicos.","items":[{"item_id":"item-01","category":"vocabulary","content":"Saludos básicos"}]}}}
 ```
 
-Propuesta: cada sección enviada reemplaza esa sección completa; las ausentes se conservan. Respuesta 200 con la nueva versión completa del resultado, result_version=2 y review.status=in_review. Sin aprobación no se presupone política al vencer.
+Propuesta: cada sección enviada reemplaza esa sección completa; las ausentes se conservan. Respuesta 200 con la nueva versión completa del resultado, result_version=2 y review.status=in_review.
 
 POST /v1/classes/class-demo-01/approve:
 
@@ -77,8 +81,6 @@ Respuesta 200:
 ```json
 {"class_id":"class-demo-01","publication":{"status":"published","result_version":2,"published_at":"2026-12-10T12:00:00Z","mode":"teacher_approved"}}
 ```
-
-Una clase distinta sin revisión se publica al vencimiento configurado con mode=automatic y la versión pendiente válida. Repetir la aprobación de la misma versión ya publicada devuelve su publicación existente; no crea otra.
 
 ## Errores
 
@@ -100,10 +102,10 @@ Una clase distinta sin revisión se publica al vencimiento configurado con mode=
 {"error":{"code":"unauthenticated","message":"Se requiere autenticación válida","retryable":false},"request_id":"request-demo-03"}
 ```
 
-422 al omitir consent_reference o enviar una referencia inválida según el contrato; no se acepta trabajo ni se inicia inferencia:
+422 al omitir consent_reference o enviar una referencia inválida según el contrato; no se acepta trabajo ni se inicia el procesamiento:
 
 ```json
 {"error":{"code":"invalid_consent_reference","message":"Se requiere una referencia de consentimiento válida","retryable":false},"request_id":"request-demo-04"}
 ```
 
-Otros casos de aceptación usan el mismo sobre: 404 resource_not_available, 403 forbidden, 409 idempotency_conflict, 409 result_not_ready, 413 audio_too_large, 415 unsupported_audio, 503 service_unavailable. Solo errores transitorios se marcan retryable=true; correcciones 409 requieren releer y resolver, no repetir ciegamente.
+Otros casos usan el mismo sobre: 404 resource_not_available, 403 forbidden, 409 idempotency_conflict, 409 result_not_ready, 413 audio_too_large, 415 unsupported_audio, 503 service_unavailable. Solo los errores transitorios llevan retryable=true; los 409 de corrección requieren releer y resolver, no repetir a ciegas.
