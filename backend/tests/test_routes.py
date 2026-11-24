@@ -178,8 +178,9 @@ def test_invalid_tokens_get_no_class_data(client, bad_token):
     assert accepted["class_id"] not in response.text
 
 
-def test_without_auth_secret_every_token_is_rejected(store):
-    client = TestClient(create_app(Settings(), store=store))
+@pytest.mark.parametrize("secret", [None, "short-secret"], ids=["missing", "too-short"])
+def test_without_a_valid_auth_secret_every_token_is_rejected(store, secret):
+    client = TestClient(create_app(Settings(auth_secret=secret), store=store))
 
     assert_error(client.get("/v1/jobs/job-demo-01", headers=TEACHER), 401, "unauthenticated")
 
@@ -259,13 +260,15 @@ def test_teacher_reads_the_draft_result(client, store):
     assert (body.schema_version, body.result_version) == ("0.1.0", 1)
 
 
-def test_class_submitted_by_the_service_is_read_by_its_teacher(client, store):
+def test_class_submitted_by_the_service_is_read_by_its_teacher_only(client, store):
     accepted = submitted(client, SERVICE)
     finish(store, accepted["class_id"])
+    path = f"/v1/classes/{accepted['class_id']}"
+    approve = load_fixture("valid/approve-request.json")
 
-    response = client.get(f"/v1/classes/{accepted['class_id']}/result", headers=TEACHER)
-
-    assert response.status_code == 200
+    assert client.get(f"{path}/result", headers=TEACHER).status_code == 200
+    assert_error(client.get(f"{path}/result", headers=SERVICE), 404, "resource_not_available")
+    assert_error(client.post(f"{path}/approve", json=approve, headers=SERVICE), 403, "forbidden")
 
 
 def test_student_participant_does_not_see_an_unpublished_result(client, store):

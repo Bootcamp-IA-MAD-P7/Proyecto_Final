@@ -63,11 +63,15 @@ dev_router = APIRouter(prefix="/dev", tags=["dev"], include_in_schema=False)
 def issue_dev_token(request: Request, body: DevTokenRequest) -> DevToken:
     settings = get_settings(request)
     role = settings.auth_dev_users.get(body.user)
-    if role is None or not settings.auth_secret:
+    if role is None:
         raise ApiError(404, ErrorCode.RESOURCE_NOT_AVAILABLE)
     principal = Principal(subject=body.user, role=role)
+    try:
+        access_token = issue_token(settings, principal)
+    except InvalidTokenError as error:
+        raise ApiError(404, ErrorCode.RESOURCE_NOT_AVAILABLE) from error
     return DevToken(
-        access_token=issue_token(settings, principal),
+        access_token=access_token,
         expires_in=settings.auth_dev_token_ttl_seconds,
         subject=principal.subject,
         role=principal.role.value,

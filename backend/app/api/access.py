@@ -22,14 +22,14 @@ def can_see(principal: Principal, stored: StoredClass) -> bool:
 
 
 def teaches(principal: Principal, stored: StoredClass) -> bool:
-    """Sees the draft and may review and approve: the submitter, or a teacher of the class.
+    """Sees the draft and may review and approve: a teacher who submitted or teaches the class.
 
-    Being a teacher needs both the teacher role in the token and in the participants list:
-    the role sent in the metadata never grants permissions on its own.
+    It needs the teacher role in the token: the role sent in the metadata never grants
+    permissions on its own, and the CoTeach service credential only creates the class.
     """
-    if principal.subject == stored.submitted_by:
-        return True
-    return principal.role == Role.TEACHER and any(
+    if principal.role != Role.TEACHER:
+        return False
+    return principal.subject == stored.submitted_by or any(
         participant.participant_id == principal.subject
         and participant.role == ParticipantRole.TEACHER
         for participant in stored.metadata.participants

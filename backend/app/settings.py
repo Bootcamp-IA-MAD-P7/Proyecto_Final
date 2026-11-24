@@ -28,7 +28,7 @@ class Settings:
     database_url: str | None = None
     """SQLAlchemy URL of PostgreSQL. Without it, /ready reports the database as unavailable."""
     auth_secret: str | None = None
-    """Key that signs and verifies tokens (HS256). Without it, every /v1 request answers 401."""
+    """Key of the tokens (HS256, 32+ characters). Without a valid one, /v1 always answers 401."""
     auth_audience: str = "coteach-ai-api"
     auth_issuer: str = "coteach-ai-dev-issuer"
     auth_dev_issuer: bool = False
