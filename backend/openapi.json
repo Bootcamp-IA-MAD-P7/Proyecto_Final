@@ -6,6 +6,60 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "operation"
+        ],
+        "summary": "The api process is alive",
+        "description": "Answers 200 while the process runs, even if a dependency is down.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "operation"
+        ],
+        "summary": "The dependencies of the api are available",
+        "description": "503 with the same body when a dependency, such as the database, is not available. Never includes credentials or connection strings.",
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/classes": {
       "post": {
         "summary": "Submit the audio and metadata of a class",
@@ -129,6 +183,16 @@
               }
             }
           },
+          "500": {
+            "description": "Unexpected error (`internal_error`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "503": {
             "description": "Transient unavailability (`service_unavailable`, retryable)",
             "content": {
@@ -160,8 +224,11 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "description": "Unknown or malformed ids answer 404",
               "title": "Job Id"
-            }
+            },
+            "description": "Unknown or malformed ids answer 404"
           }
         ],
         "responses": {
@@ -185,6 +252,16 @@
               }
             }
           },
+          "403": {
+            "description": "Operation not allowed on a class the caller can see (`forbidden`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Unknown resource or one the caller cannot see (`resource_not_available`)",
             "content": {
@@ -197,6 +274,16 @@
           },
           "422": {
             "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error (`internal_error`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -237,8 +324,11 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "description": "Unknown or malformed ids answer 404",
               "title": "Class Id"
-            }
+            },
+            "description": "Unknown or malformed ids answer 404"
           }
         ],
         "responses": {
@@ -254,6 +344,16 @@
           },
           "401": {
             "description": "Missing, expired or invalid credential (`unauthenticated`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation not allowed on a class the caller can see (`forbidden`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -284,6 +384,16 @@
           },
           "422": {
             "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error (`internal_error`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -324,8 +434,11 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "description": "Unknown or malformed ids answer 404",
               "title": "Class Id"
-            }
+            },
+            "description": "Unknown or malformed ids answer 404"
           }
         ],
         "requestBody": {
@@ -399,6 +512,16 @@
               }
             }
           },
+          "500": {
+            "description": "Unexpected error (`internal_error`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "503": {
             "description": "Transient unavailability (`service_unavailable`, retryable)",
             "content": {
@@ -431,8 +554,11 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "description": "Unknown or malformed ids answer 404",
               "title": "Class Id"
-            }
+            },
+            "description": "Unknown or malformed ids answer 404"
           }
         ],
         "requestBody": {
@@ -498,6 +624,16 @@
           },
           "422": {
             "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error (`internal_error`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -715,6 +851,14 @@
         "title": "ClassMetadata",
         "description": "Metadata sent with the audio of a class (`metadata` part of POST /v1/classes)."
       },
+      "DependencyStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "unavailable"
+        ],
+        "title": "DependencyStatus"
+      },
       "ErrorCode": {
         "type": "string",
         "enum": [
@@ -730,7 +874,8 @@
           "result_version_conflict",
           "audio_too_large",
           "unsupported_audio",
-          "service_unavailable"
+          "service_unavailable",
+          "internal_error"
         ],
         "title": "ErrorCode"
       },
@@ -780,6 +925,21 @@
         ],
         "title": "ErrorResponse",
         "description": "Body of every error response."
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "Health"
       },
       "Job": {
         "properties": {
@@ -1005,6 +1165,35 @@
           "published"
         ],
         "title": "PublicationStatus"
+      },
+      "Readiness": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "dependencies": {
+            "patternProperties": {
+              "^[a-z][a-z0-9_]*$": {
+                "$ref": "#/components/schemas/DependencyStatus"
+              }
+            },
+            "type": "object",
+            "title": "Dependencies"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "dependencies"
+        ],
+        "title": "Readiness",
+        "description": "Body of GET /ready, with 200 or 503. Names dependencies, never their connection details."
       },
       "Result": {
         "properties": {

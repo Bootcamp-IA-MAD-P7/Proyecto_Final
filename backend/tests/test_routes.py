@@ -3,8 +3,10 @@
 import json
 
 import pytest
+from fastapi.testclient import TestClient
 
-from app.contract import ErrorResponse
+from app.contract import ErrorResponse, Health
+from app.main import create_app
 from tests.conftest import load_fixture
 
 AUDIO = {"audio": ("synthetic-class.mp3", b"synthetic", "audio/mpeg")}
@@ -94,3 +96,32 @@ def test_invalid_review_changes(client):
 
 def test_unknown_route_uses_the_error_envelope(client):
     assert_error(client.get("/v1/unknown"), 404, "resource_not_available")
+
+
+@pytest.mark.parametrize("path", ["/v1/jobs/bad%20id", "/v1/jobs/" + "a" * 200])
+def test_malformed_ids_answer_like_unknown_resources(client, path):
+    assert_error(client.get(path), 404, "resource_not_available")
+
+
+def test_unexpected_errors_use_the_envelope_without_details():
+    app = create_app()
+
+    @app.get("/boom")
+    def boom():
+        raise RuntimeError("secret detail")
+
+    response = TestClient(app, raise_server_exceptions=False).get("/boom")
+
+    body = assert_error(response, 500, "internal_error")
+    assert "secret" not in json.dumps(body)
+
+
+def test_health_answers_without_credential(client):
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert Health.model_validate(response.json()).status == "ok"
+
+
+def test_readiness_is_declared_but_not_implemented_yet(client):
+    assert_error(client.get("/ready"), 501, "not_implemented")

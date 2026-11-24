@@ -44,11 +44,15 @@ def error_response(request: Request, error: ApiError) -> JSONResponse:
         "error": {"code": error.code, "message": error.message, "retryable": error.retryable},
         "request_id": request_id(request),
     }
-    return JSONResponse(body, status_code=error.status_code)
+    return JSONResponse(
+        body, status_code=error.status_code, headers={REQUEST_ID_HEADER: body["request_id"]}
+    )
 
 
 def request_id(request: Request) -> str:
-    return getattr(request.state, "request_id", None) or new_request_id()
+    if not getattr(request.state, "request_id", None):
+        request.state.request_id = new_request_id()
+    return request.state.request_id
 
 
 def new_request_id() -> str:
@@ -61,6 +65,11 @@ _STATUS_CODES = {
     404: ErrorCode.RESOURCE_NOT_AVAILABLE,
     503: ErrorCode.SERVICE_UNAVAILABLE,
 }
+
+
+def is_path_error(errors: list[dict[str, Any]]) -> bool:
+    """An identifier in the URL that cannot exist: answered like an unknown resource (404)."""
+    return any(error["loc"][:1] == ("path",) for error in errors)
 
 
 def validation_error_code(errors: list[dict[str, Any]]) -> ErrorCode:
@@ -80,7 +89,7 @@ def validation_error_code(errors: list[dict[str, Any]]) -> ErrorCode:
 def install_error_handling(app: FastAPI) -> None:
     @app.middleware("http")
     async def assign_request_id(request: Request, call_next):
-        request.state.request_id = new_request_id()
+        request_id(request)
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request.state.request_id
         return response
@@ -92,7 +101,10 @@ def install_error_handling(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(request: Request, exc: RequestValidationError):
         # Details are left out on purpose: they could echo personal data from the request.
-        return error_response(request, ApiError(422, validation_error_code(list(exc.errors()))))
+        errors = [{**error, "loc": tuple(error["loc"])} for error in exc.errors()]
+        if is_path_error(errors):
+            return error_response(request, ApiError(404, ErrorCode.RESOURCE_NOT_AVAILABLE))
+        return error_response(request, ApiError(422, validation_error_code(errors)))
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:
@@ -104,3 +116,8 @@ def install_error_handling(app: FastAPI) -> None:
         if exc.headers:
             response.headers.update(exc.headers)
         return response
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+        # Logged by the server; the client only gets the envelope, never the trace.
+        return error_response(request, ApiError(500, ErrorCode.INTERNAL_ERROR))

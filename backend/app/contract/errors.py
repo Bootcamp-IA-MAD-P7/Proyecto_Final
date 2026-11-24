@@ -25,6 +25,7 @@ class ErrorCode(StrEnum):
     AUDIO_TOO_LARGE = "audio_too_large"
     UNSUPPORTED_AUDIO = "unsupported_audio"
     SERVICE_UNAVAILABLE = "service_unavailable"
+    INTERNAL_ERROR = "internal_error"
 
 
 DEFAULT_MESSAGES: dict[ErrorCode, str] = {
@@ -41,6 +42,7 @@ DEFAULT_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.AUDIO_TOO_LARGE: "El audio supera el tamaño permitido",
     ErrorCode.UNSUPPORTED_AUDIO: "El formato del audio no está admitido",
     ErrorCode.SERVICE_UNAVAILABLE: "Servicio temporalmente no disponible",
+    ErrorCode.INTERNAL_ERROR: "Error interno del servicio",
 }
 """Safe default message of each code: never traces, tokens, audio or personal data."""
 
