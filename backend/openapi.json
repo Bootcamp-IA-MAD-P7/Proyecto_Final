@@ -1,0 +1,1285 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CoTeach AI API",
+    "description": "Contract between the CoTeach AI service and its consumers (the web and CoTeach).\nRules that this document does not tell, such as authentication, visibility and compatibility,\nare in docs/CONTRACTS/coteach-ai-api.md.\n",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/classes": {
+      "post": {
+        "summary": "Submit the audio and metadata of a class",
+        "description": "Creates the class and its processing job and answers without waiting for the processing. Allowed to a teacher or to the CoTeach service credential. 409 `idempotency_conflict` when the Idempotency-Key was used with other content; 422 `invalid_participants`, `invalid_consent_reference` or `invalid_request`.",
+        "operationId": "submitClass",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Same key and content return the same class; same key, other content: 409",
+              "title": "Idempotency-Key"
+            },
+            "description": "Same key and content return the same class; same key, other content: 409"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_submitClass"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassAccepted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or invalid credential (`unauthenticated`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation not allowed on a class the caller can see (`forbidden`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown resource or one the caller cannot see (`resource_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Audio larger than allowed (`audio_too_large`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Audio format not supported (`unsupported_audio`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Transient unavailability (`service_unavailable`, retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job_id}": {
+      "get": {
+        "summary": "State and stage of a processing job",
+        "operationId": "getJob",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or invalid credential (`unauthenticated`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown resource or one the caller cannot see (`resource_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Transient unavailability (`service_unavailable`, retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/classes/{class_id}/result": {
+      "get": {
+        "summary": "Result of a class visible to the caller",
+        "description": "Teachers of the class see the draft; students only the published version. 409 `result_not_ready` while the job has not finished.",
+        "operationId": "getClassResult",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Class Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or invalid credential (`unauthenticated`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown resource or one the caller cannot see (`resource_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Transient unavailability (`service_unavailable`, retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/classes/{class_id}/review": {
+      "patch": {
+        "summary": "Correct the result and create a new version",
+        "description": "Each section sent replaces that whole section; absent ones are kept. 409 `result_version_conflict` when expected_result_version is stale; 422 `invalid_review_changes` for an invalid change or reference.",
+        "operationId": "reviewClassResult",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Class Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or invalid credential (`unauthenticated`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation not allowed on a class the caller can see (`forbidden`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown resource or one the caller cannot see (`resource_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Transient unavailability (`service_unavailable`, retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/classes/{class_id}/approve": {
+      "post": {
+        "summary": "Approve and publish a version of the result",
+        "description": "409 `result_version_conflict` when expected_result_version is stale.",
+        "operationId": "approveClassResult",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Class Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or invalid credential (`unauthenticated`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation not allowed on a class the caller can see (`forbidden`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown resource or one the caller cannot see (`resource_not_available`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Transient unavailability (`service_unavailable`, retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Analysis": {
+        "properties": {
+          "general_summary": {
+            "type": "string",
+            "title": "General Summary"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "general_summary",
+          "items"
+        ],
+        "title": "Analysis"
+      },
+      "AnalysisCategory": {
+        "type": "string",
+        "enum": [
+          "vocabulary",
+          "grammar",
+          "errors_corrections",
+          "reinforced_successes",
+          "key_concepts",
+          "resolved_questions"
+        ],
+        "title": "AnalysisCategory"
+      },
+      "AnalysisItem": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Item Id"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AnalysisCategory"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "item_id",
+          "category",
+          "content"
+        ],
+        "title": "AnalysisItem"
+      },
+      "ApprovalResponse": {
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Class Id"
+          },
+          "publication": {
+            "$ref": "#/components/schemas/Publication"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "class_id",
+          "publication"
+        ],
+        "title": "ApprovalResponse"
+      },
+      "ApproveRequest": {
+        "properties": {
+          "expected_result_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Expected Result Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_result_version"
+        ],
+        "title": "ApproveRequest"
+      },
+      "Body_submitClass": {
+        "properties": {
+          "audio": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Audio",
+            "description": "Audio of the class"
+          },
+          "metadata": {
+            "type": "string",
+            "contentMediaType": "application/json",
+            "contentSchema": {
+              "$ref": "#/components/schemas/ClassMetadata"
+            },
+            "title": "Metadata",
+            "description": "ClassMetadata serialized as JSON"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audio",
+          "metadata"
+        ],
+        "title": "Body_submitClass"
+      },
+      "ClassAccepted": {
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Class Id"
+          },
+          "job_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Job Id"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JobState"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "class_id",
+          "job_id",
+          "state"
+        ],
+        "title": "ClassAccepted",
+        "description": "Response 202 of POST /v1/classes."
+      },
+      "ClassMetadata": {
+        "properties": {
+          "external_class_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "External Class Id"
+          },
+          "participant_count": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Participant Count"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/Participant"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Participants"
+          },
+          "consent_reference": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Consent Reference"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "external_class_id",
+          "participant_count",
+          "participants",
+          "consent_reference"
+        ],
+        "title": "ClassMetadata",
+        "description": "Metadata sent with the audio of a class (`metadata` part of POST /v1/classes)."
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "unauthenticated",
+          "forbidden",
+          "resource_not_available",
+          "invalid_request",
+          "invalid_participants",
+          "invalid_consent_reference",
+          "invalid_review_changes",
+          "idempotency_conflict",
+          "result_not_ready",
+          "result_version_conflict",
+          "audio_too_large",
+          "unsupported_audio",
+          "service_unavailable"
+        ],
+        "title": "ErrorCode"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorDetail"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Request Id",
+            "description": "Identifier of the request, for support"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error",
+          "request_id"
+        ],
+        "title": "ErrorResponse",
+        "description": "Body of every error response."
+      },
+      "Job": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Job Id"
+          },
+          "class_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Class Id"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JobState"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Attempt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "job_id",
+          "class_id",
+          "state",
+          "stage",
+          "attempt",
+          "error"
+        ],
+        "title": "Job"
+      },
+      "JobError": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/JobErrorCode"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "JobError"
+      },
+      "JobErrorCode": {
+        "type": "string",
+        "enum": [
+          "processing_unavailable",
+          "processing_failed",
+          "invalid_audio"
+        ],
+        "title": "JobErrorCode"
+      },
+      "JobStage": {
+        "type": "string",
+        "enum": [
+          "normalizing",
+          "transcribing",
+          "diarizing",
+          "analyzing"
+        ],
+        "title": "JobStage",
+        "description": "Processing stages, in order. A job in progress has the state of its current stage."
+      },
+      "JobState": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "normalizing",
+          "transcribing",
+          "diarizing",
+          "analyzing",
+          "ready_for_review",
+          "failed",
+          "retry_wait",
+          "published",
+          "expired"
+        ],
+        "title": "JobState"
+      },
+      "Participant": {
+        "properties": {
+          "participant_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Participant Id"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ParticipantRole"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "participant_id",
+          "role"
+        ],
+        "title": "Participant"
+      },
+      "ParticipantRole": {
+        "type": "string",
+        "enum": [
+          "teacher",
+          "student"
+        ],
+        "title": "ParticipantRole"
+      },
+      "Publication": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/PublicationStatus"
+          },
+          "result_version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Version"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicationMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "result_version",
+          "published_at",
+          "mode"
+        ],
+        "title": "Publication"
+      },
+      "PublicationMode": {
+        "type": "string",
+        "enum": [
+          "teacher_approved",
+          "automatic"
+        ],
+        "title": "PublicationMode"
+      },
+      "PublicationStatus": {
+        "type": "string",
+        "enum": [
+          "unpublished",
+          "published"
+        ],
+        "title": "PublicationStatus"
+      },
+      "Result": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "title": "Schema Version"
+          },
+          "class_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Class Id"
+          },
+          "result_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Result Version"
+          },
+          "transcript": {
+            "$ref": "#/components/schemas/Transcript"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/Analysis"
+          },
+          "review": {
+            "$ref": "#/components/schemas/Review"
+          },
+          "publication": {
+            "$ref": "#/components/schemas/Publication"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "class_id",
+          "result_version",
+          "transcript",
+          "analysis",
+          "review",
+          "publication"
+        ],
+        "title": "Result",
+        "description": "Structured result of a class: transcript and analysis kept in separate sections."
+      },
+      "Review": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          },
+          "review_due_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Review Due At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "review_due_at"
+        ],
+        "title": "Review"
+      },
+      "ReviewChanges": {
+        "properties": {
+          "transcript": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Transcript"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Analysis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "speaker_assignments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SpeakerAssignment"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker Assignments"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReviewChanges",
+        "description": "Corrected sections. Each section sent replaces the whole section; absent ones are kept."
+      },
+      "ReviewRequest": {
+        "properties": {
+          "expected_result_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Expected Result Version"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/ReviewChanges"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_result_version",
+          "changes"
+        ],
+        "title": "ReviewRequest"
+      },
+      "ReviewStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "in_review",
+          "approved"
+        ],
+        "title": "ReviewStatus"
+      },
+      "Segment": {
+        "properties": {
+          "segment_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Segment Id"
+          },
+          "start_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start Ms"
+          },
+          "end_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "End Ms"
+          },
+          "speaker_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Speaker Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "segment_id",
+          "start_ms",
+          "end_ms",
+          "speaker_id",
+          "text"
+        ],
+        "title": "Segment"
+      },
+      "Speaker": {
+        "properties": {
+          "speaker_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Speaker Id"
+          },
+          "participant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participant Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "speaker_id",
+          "participant_id"
+        ],
+        "title": "Speaker"
+      },
+      "SpeakerAssignment": {
+        "properties": {
+          "speaker_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Speaker Id"
+          },
+          "participant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participant Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "speaker_id",
+          "participant_id"
+        ],
+        "title": "SpeakerAssignment",
+        "description": "Assigns a session speaker to a participant of the class, or removes the assignment."
+      },
+      "Transcript": {
+        "properties": {
+          "speakers": {
+            "items": {
+              "$ref": "#/components/schemas/Speaker"
+            },
+            "type": "array",
+            "title": "Speakers"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            },
+            "type": "array",
+            "title": "Segments"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "speakers",
+          "segments"
+        ],
+        "title": "Transcript"
+      }
+    },
+    "securitySchemes": {
+      "bearerToken": {
+        "type": "http",
+        "description": "Signed token of the identity issuer. The role comes from it, never from the body.",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
