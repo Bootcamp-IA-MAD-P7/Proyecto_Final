@@ -13,12 +13,12 @@ Plan de la funcionalidad `add-walking-skeleton` (E1, épica #1). Una sección po
 
 **Depende de:** —
 
-- [ ] 1.1 Crear `backend/` (Python 3.11, FastAPI, Pydantic 2, pytest y Ruff) con su `Makefile` (`install`, `dev`, `test`, `lint`), un `Dockerfile` con las etapas `dev` y `prod`, `backend/.env.example` y el servicio `backend` en los tres archivos de Compose (skill `add-service`).
-- [ ] 1.2 Escribir los modelos Pydantic del contrato (metadatos, trabajo, transcripción, análisis, resultado, revisión, publicación, cambios y error) y declarar las rutas `/v1` con sus respuestas; de momento devuelven 501.
-- [ ] 1.3 Exportar `backend/openapi.json` con un objetivo del `Makefile` del servicio y añadir el test que falla si el archivo versionado no coincide con la API.
-- [ ] 1.4 Convertir `examples.md` en fixtures JSON de `backend/tests/`, con casos válidos e inválidos validados contra los modelos.
-- [ ] 1.5 Declarar `JobStore` e `InferencePipeline` y una implementación en memoria de `JobStore` con sus tests.
-- [ ] 1.6 Registrar el contrato en `docs/CONTRACTS/coteach-ai-api.md` y en su índice (skill `contracts`) y enlazarlo desde ARCHITECTURE §5.
+- [x] 1.1 Crear `backend/` (Python 3.11, FastAPI, Pydantic 2, pytest y Ruff) con su `Makefile` (`install`, `dev`, `test`, `lint`), un `Dockerfile` con las etapas `dev` y `prod`, `backend/.env.example` y el servicio `backend` en los tres archivos de Compose (skill `add-service`).
+- [x] 1.2 Escribir los modelos Pydantic del contrato (metadatos, trabajo, transcripción, análisis, resultado, revisión, publicación, cambios y error) y declarar las rutas `/v1` con sus respuestas; de momento devuelven 501.
+- [x] 1.3 Exportar `backend/openapi.json` con un objetivo del `Makefile` del servicio y añadir el test que falla si el archivo versionado no coincide con la API.
+- [x] 1.4 Convertir `examples.md` en fixtures JSON de `backend/tests/`, con casos válidos e inválidos validados contra los modelos.
+- [x] 1.5 Declarar `JobStore` e `InferencePipeline` y una implementación en memoria de `JobStore` con sus tests.
+- [x] 1.6 Registrar el contrato en `docs/CONTRACTS/coteach-ai-api.md` y en su índice (skill `contracts`) y enlazarlo desde ARCHITECTURE §5.
 
 ## 2. API con base de datos y autenticación (backend) · #35
 
