@@ -1,0 +1,12 @@
+{
+  "job_id": "job-demo-01",
+  "class_id": "class-demo-01",
+  "state": "retry_wait",
+  "stage": "transcribing",
+  "attempt": 1,
+  "error": {
+    "code": "processing_unavailable",
+    "message": "Procesamiento temporalmente no disponible",
+    "retryable": true
+  }
+}

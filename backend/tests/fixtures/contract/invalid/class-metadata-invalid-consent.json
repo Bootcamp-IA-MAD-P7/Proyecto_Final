@@ -1,0 +1,22 @@
+{
+  "model": "ClassMetadata",
+  "reason": "consent_reference con caracteres no admitidos",
+  "metadata_error_code": "invalid_consent_reference",
+  "payload": {
+    "external_class_id": "demo-class-01",
+    "participant_count": 2,
+    "participants": [
+      {
+        "participant_id": "demo-teacher",
+        "role": "teacher",
+        "display_name": "Docente de prueba"
+      },
+      {
+        "participant_id": "demo-student",
+        "role": "student",
+        "display_name": "Estudiante de prueba"
+      }
+    ],
+    "consent_reference": "consent with spaces"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "invalid_consent_reference",
+    "message": "Se requiere una referencia de consentimiento válida",
+    "retryable": false
+  },
+  "request_id": "request-demo-04"
+}

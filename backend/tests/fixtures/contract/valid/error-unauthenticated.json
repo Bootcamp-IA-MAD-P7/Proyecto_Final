@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "unauthenticated",
+    "message": "Se requiere autenticación válida",
+    "retryable": false
+  },
+  "request_id": "request-demo-03"
+}

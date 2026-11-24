@@ -1,0 +1,46 @@
+{
+  "model": "Result",
+  "reason": "Sin publicar pero con modo de publicación",
+  "payload": {
+    "schema_version": "0.1.0",
+    "class_id": "class-demo-01",
+    "result_version": 1,
+    "transcript": {
+      "speakers": [
+        {
+          "speaker_id": "speaker-01",
+          "participant_id": null
+        }
+      ],
+      "segments": [
+        {
+          "segment_id": "segment-01",
+          "start_ms": 0,
+          "end_ms": 2000,
+          "speaker_id": "speaker-01",
+          "text": "Hoy practicamos saludos."
+        }
+      ]
+    },
+    "analysis": {
+      "general_summary": "La clase practica saludos.",
+      "items": [
+        {
+          "item_id": "item-01",
+          "category": "vocabulary",
+          "content": "Saludos"
+        }
+      ]
+    },
+    "review": {
+      "status": "pending",
+      "review_due_at": "2026-12-11T10:00:00Z"
+    },
+    "publication": {
+      "status": "unpublished",
+      "result_version": null,
+      "published_at": null,
+      "mode": "automatic"
+    }
+  }
+}

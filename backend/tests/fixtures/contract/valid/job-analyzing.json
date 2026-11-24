@@ -1,0 +1,8 @@
+{
+  "job_id": "job-demo-01",
+  "class_id": "class-demo-01",
+  "state": "analyzing",
+  "stage": "analyzing",
+  "attempt": 1,
+  "error": null
+}
