@@ -13,4 +13,4 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-p no:cacheprovider"
+addopts = "-q --tb=short -p no:cacheprovider"
