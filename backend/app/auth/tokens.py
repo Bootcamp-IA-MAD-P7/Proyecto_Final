@@ -10,15 +10,22 @@ from app.auth.principal import Principal, Role
 from app.settings import Settings
 
 ALGORITHM = "HS256"
+MIN_SECRET_LENGTH = 32
+"""Shorter keys are refused: HS256 needs at least 256 bits (RFC 7518 §3.2)."""
 
 
 class InvalidTokenError(Exception):
     """Missing, expired, badly signed or malformed token. Its reason is never sent to the client."""
 
 
+def _secret(settings: Settings) -> str:
+    if not settings.auth_secret or len(settings.auth_secret) < MIN_SECRET_LENGTH:
+        raise InvalidTokenError("AUTH_SECRET is missing or too short")
+    return settings.auth_secret
+
+
 def issue_token(settings: Settings, principal: Principal, ttl_seconds: int | None = None) -> str:
-    if not settings.auth_secret:
-        raise InvalidTokenError("AUTH_SECRET is not configured")
+    secret = _secret(settings)
     now = datetime.now(UTC)
     ttl = settings.auth_dev_token_ttl_seconds if ttl_seconds is None else ttl_seconds
     claims = {
@@ -29,16 +36,15 @@ def issue_token(settings: Settings, principal: Principal, ttl_seconds: int | Non
         "iat": now,
         "exp": now + timedelta(seconds=ttl),
     }
-    return jwt.encode(claims, settings.auth_secret, algorithm=ALGORITHM)
+    return jwt.encode(claims, secret, algorithm=ALGORITHM)
 
 
 def verify_token(settings: Settings, token: str) -> Principal:
-    if not settings.auth_secret:
-        raise InvalidTokenError("AUTH_SECRET is not configured")
+    secret = _secret(settings)
     try:
         claims = jwt.decode(
             token,
-            settings.auth_secret,
+            secret,
             algorithms=[ALGORITHM],
             audience=settings.auth_audience,
             issuer=settings.auth_issuer,
