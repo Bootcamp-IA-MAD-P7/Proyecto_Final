@@ -1,0 +1,8 @@
+{
+  "model": "ReviewRequest",
+  "reason": "Cambios vacíos",
+  "payload": {
+    "expected_result_version": 1,
+    "changes": {}
+  }
+}

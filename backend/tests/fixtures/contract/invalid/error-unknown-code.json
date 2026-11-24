@@ -1,0 +1,12 @@
+{
+  "model": "ErrorResponse",
+  "reason": "Código de error fuera del contrato",
+  "payload": {
+    "error": {
+      "code": "internal_error",
+      "message": "Error",
+      "retryable": false
+    },
+    "request_id": "request-demo-05"
+  }
+}

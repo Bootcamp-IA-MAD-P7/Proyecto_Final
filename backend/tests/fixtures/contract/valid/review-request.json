@@ -1,0 +1,15 @@
+{
+  "expected_result_version": 1,
+  "changes": {
+    "analysis": {
+      "general_summary": "Se han practicado saludos básicos.",
+      "items": [
+        {
+          "item_id": "item-01",
+          "category": "vocabulary",
+          "content": "Saludos básicos"
+        }
+      ]
+    }
+  }
+}

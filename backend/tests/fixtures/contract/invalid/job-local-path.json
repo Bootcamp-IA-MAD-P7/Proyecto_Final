@@ -1,0 +1,13 @@
+{
+  "model": "Job",
+  "reason": "Expone una ruta local",
+  "payload": {
+    "job_id": "job-demo-01",
+    "class_id": "class-demo-01",
+    "state": "queued",
+    "stage": null,
+    "attempt": 0,
+    "error": null,
+    "audio_path": "/data/audio.mp3"
+  }
+}

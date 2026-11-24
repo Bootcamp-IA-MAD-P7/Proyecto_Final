@@ -1,0 +1,7 @@
+{
+  "model": "ApproveRequest",
+  "reason": "Versión esperada no positiva",
+  "payload": {
+    "expected_result_version": 0
+  }
+}

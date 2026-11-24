@@ -1,0 +1,11 @@
+{
+  "model": "ClassMetadata",
+  "reason": "Lista de participantes vacía",
+  "metadata_error_code": "invalid_participants",
+  "payload": {
+    "external_class_id": "demo-class-01",
+    "participant_count": 1,
+    "participants": [],
+    "consent_reference": "synthetic-fixture-01"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "model": "Job",
+  "reason": "Estado fuera del contrato",
+  "payload": {
+    "job_id": "job-demo-01",
+    "class_id": "class-demo-01",
+    "state": "done",
+    "stage": null,
+    "attempt": 0,
+    "error": null
+  }
+}

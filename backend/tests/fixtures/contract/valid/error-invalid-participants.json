@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "invalid_participants",
+    "message": "Los participantes deben tener identificadores distintos",
+    "retryable": false
+  },
+  "request_id": "request-demo-02"
+}

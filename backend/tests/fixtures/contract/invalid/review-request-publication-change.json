@@ -1,0 +1,12 @@
+{
+  "model": "ReviewRequest",
+  "reason": "Intenta cambiar la publicación",
+  "payload": {
+    "expected_result_version": 1,
+    "changes": {
+      "publication": {
+        "status": "published"
+      }
+    }
+  }
+}

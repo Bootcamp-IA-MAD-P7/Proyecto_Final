@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "result_version_conflict",
+    "message": "La versión del resultado ha cambiado",
+    "retryable": false
+  },
+  "request_id": "request-demo-01"
+}

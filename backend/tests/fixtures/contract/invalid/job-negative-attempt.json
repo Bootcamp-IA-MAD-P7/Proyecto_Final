@@ -1,0 +1,12 @@
+{
+  "model": "Job",
+  "reason": "attempt negativo",
+  "payload": {
+    "job_id": "job-demo-01",
+    "class_id": "class-demo-01",
+    "state": "queued",
+    "stage": null,
+    "attempt": -1,
+    "error": null
+  }
+}

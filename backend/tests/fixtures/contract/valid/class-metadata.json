@@ -1,0 +1,17 @@
+{
+  "external_class_id": "demo-class-01",
+  "participant_count": 2,
+  "participants": [
+    {
+      "participant_id": "demo-teacher",
+      "role": "teacher",
+      "display_name": "Docente de prueba"
+    },
+    {
+      "participant_id": "demo-student",
+      "role": "student",
+      "display_name": "Estudiante de prueba"
+    }
+  ],
+  "consent_reference": "synthetic-fixture-01"
+}
