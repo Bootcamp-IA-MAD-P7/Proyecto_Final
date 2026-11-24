@@ -1,9 +1,9 @@
 # ADR-0003: Private staged inference
 
-- **Estado:** Propuesto
-- **Fecha:** 2026-11-23
+- **Estado:** Aceptado
+- **Fecha:** 2026-11-24
 - **Decisores:** Equipo de tres personas; CoTeach/Lay para restricciones de producto y datos.
-- **Relacionado:** RF-02, RF-03; RNF-03, RNF-04; ADR-0001. Sin Issue: propuesta de fase 1.
+- **Relacionado:** RF-02, RF-03; RNF-03, RNF-04; ADR-0001. Sin Issue: fase 1.
 
 ## Contexto
 
@@ -13,7 +13,7 @@ Las fuentes exigen software libre y privacidad, pero no fijan modelos, hardware,
 
 Evaluar faster-whisper con Whisper small multilingüe, pyannote.audio Community-1 y Qwen3-8B cuantizado servido por llama.cpp. Etapas secuenciales, adaptadores intercambiables, validación JSON y fragmentación por tokens. Usar GPU local primero; GPU remota privada solo tras aprobación de coste y tratamiento de datos. Registrar versiones, parámetros y hashes. Nombres de entrada se asignan manualmente a hablantes cuando no existe evidencia fiable; no reconocimiento biométrico entre sesiones.
 
-La propuesta requiere aprobación humana antes de pasar a Aceptado. El detalle operativo está en [ARCHITECTURE](../ARCHITECTURE.md).
+El detalle operativo está en [ARCHITECTURE](../ARCHITECTURE.md).
 
 ## Alternativas consideradas
 

@@ -1,9 +1,9 @@
 # ADR-0001: Modular backend and API-first demo
 
-- **Estado:** Propuesto
-- **Fecha:** 2026-11-23
+- **Estado:** Aceptado
+- **Fecha:** 2026-11-24
 - **Decisores:** Equipo de tres personas; CoTeach/Lay para restricciones de producto y datos.
-- **Relacionado:** RF-01, RF-04, RF-05; ADR-0002. Sin Issue: propuesta de fase 1.
+- **Relacionado:** RF-01, RF-04, RF-05; ADR-0002. Sin Issue: fase 1.
 
 ## Contexto
 
@@ -11,9 +11,9 @@ Tres personas necesitan desarrollar en paralelo un servicio independiente y una 
 
 ## Decisión
 
-Proponer Python 3.11, FastAPI/Pydantic y un paquete de dominio compartido por API/worker/maintenance. Proponer React con TypeScript y Vite como cliente web separado, que consume exclusivamente los endpoints REST versionados de FastAPI. Mantener revisión, autorización y reglas de negocio en el servidor. Definir primero OpenAPI y ejemplos sintéticos en fase 2, permitiendo dobles independientes. No ejecutar inferencia pesada en BackgroundTasks de la API.
+Usar Python 3.11, FastAPI/Pydantic y un paquete de dominio compartido por API/worker/maintenance. Usar React con TypeScript y Vite como cliente web separado, que consume exclusivamente los endpoints REST versionados de FastAPI. Mantener revisión, autorización y reglas de negocio en el servidor. Definir primero OpenAPI y ejemplos sintéticos en fase 2, permitiendo dobles independientes. No ejecutar inferencia pesada en BackgroundTasks de la API.
 
-La propuesta requiere aprobación humana antes de pasar a Aceptado. El detalle operativo está en [ARCHITECTURE](../ARCHITECTURE.md).
+El detalle operativo está en [ARCHITECTURE](../ARCHITECTURE.md).
 
 ## Alternativas consideradas
 

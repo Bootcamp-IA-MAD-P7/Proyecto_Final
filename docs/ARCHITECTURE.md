@@ -1,12 +1,15 @@
 # ARCHITECTURE
 
-> Propuesta pendiente de revisión. Todas las piezas nuevas son **Candidatas**, no implementadas ni aprobadas. El [PRD](PRD.md) conserva estado Borrador; esta propuesta responde al alcance RF-01 a RF-05 autorizado y no supone su aprobación completa.
+> Cómo está construido el sistema y hacia dónde va. Mapa de documentación: [WORKFLOW](../WORKFLOW.md#2-mapa-de-documentación).
 
-Fuentes: [briefing](references/BRIEFING_COTEACH.md), [respuestas de Lay](references/RESPUESTAS_LAY.md) y [WORKFLOW](../WORKFLOW.md). Los requisitos pertenecen al PRD; las opciones técnicas y políticas operativas siguientes requieren consenso.
+- **Estado del documento:** Aprobado el 2026-11-24
+- **Leyenda de estados:** Actual (existe en el código), Objetivo (decidido, aún sin construir) o Candidata (por decidir: pendiente de medir o de una respuesta, ver [§11](#11-preguntas-abiertas)).
+
+Fuentes: [PRD](PRD.md), [briefing](references/BRIEFING_COTEACH.md), [respuestas de Lay](references/RESPUESTAS_LAY.md) y [WORKFLOW](../WORKFLOW.md). Los requisitos pertenecen al PRD; aquí solo se describe cómo se cumplen.
 
 ## 1. Visión general
 
-Proponer un backend modular Python, con API y procesos de trabajo separados, compartiendo PostgreSQL y almacenamiento privado. Un cliente web React con TypeScript y Vite consume exclusivamente la API REST de FastAPI. Un único trabajador de inferencia procesa inicialmente una clase cada vez, por etapas, para limitar memoria. Un proceso ligero independiente publica resultados vencidos y elimina audios aunque la GPU esté ocupada.
+Backend modular Python, con API y procesos de trabajo separados, compartiendo PostgreSQL y almacenamiento privado. Un cliente web React con TypeScript y Vite consume exclusivamente la API REST de FastAPI. Un único trabajador de inferencia procesa inicialmente una clase cada vez, por etapas, para limitar memoria. Un proceso ligero independiente publica resultados vencidos y elimina audios aunque la GPU esté ocupada.
 
 ```mermaid
 flowchart LR
@@ -31,14 +34,14 @@ RF-01 a RF-05 incluyen revisión y publicación. RF-06 (resumen individual grupa
 
 | Área | Tecnología propuesta y compromiso | Estado | Decisión |
 |---|---|---|---|
-| API y dominio | Python 3.11, FastAPI, Pydantic 2; validación y OpenAPI, sin inferencia dentro de peticiones HTTP | Candidata | [ADR-0001](ADR/0001-modular-backend.md) |
-| Persistencia | PostgreSQL 17, SQLAlchemy 2, Alembic; mismo motor en desarrollo y producción | Candidata | [ADR-0002](ADR/0002-durable-jobs.md) |
-| Interfaz de demostración | React, TypeScript y Vite; cliente web separado, tipos alineados con el contrato y autorización siempre en FastAPI | Candidata | ADR-0001 |
-| Audio | FFmpeg para normalización; faster-whisper con Whisper small multilingüe como primera evaluación | Candidata | [ADR-0003](ADR/0003-private-inference.md) |
-| Diarización | pyannote.audio con speaker-diarization-community-1; evaluar errores y acceso a pesos | Candidata | ADR-0003 |
-| Análisis | Qwen3-8B cuantizado mediante llama.cpp, modo sin razonamiento extendido, salida JSON validada | Candidata | ADR-0003 |
-| Operación | Docker Compose, volúmenes privados y proxy Caddy con TLS en servidor | Candidata | [ADR-0004](ADR/0004-access-and-retention.md) |
-| Calidad | pytest, Ruff, HTTPX y pruebas de contrato; reloj controlable para publicación/purga | Candidata | ADR-0001 |
+| API y dominio | Python 3.11, FastAPI, Pydantic 2; validación y OpenAPI, sin inferencia dentro de peticiones HTTP | Objetivo | [ADR-0001](ADR/0001-modular-backend.md) |
+| Persistencia | PostgreSQL 17, SQLAlchemy 2, Alembic; mismo motor en desarrollo y producción | Objetivo | [ADR-0002](ADR/0002-durable-jobs.md) |
+| Interfaz de demostración | React, TypeScript y Vite; cliente web separado, tipos alineados con el contrato y autorización siempre en FastAPI | Objetivo | ADR-0001 |
+| Audio | FFmpeg para normalización (Objetivo); faster-whisper con Whisper small multilingüe como primera evaluación | Candidata: modelo por medir | [ADR-0003](ADR/0003-private-inference.md) |
+| Diarización | pyannote.audio con speaker-diarization-community-1; evaluar errores y acceso a pesos | Candidata: modelo por medir | ADR-0003 |
+| Análisis | Qwen3-8B cuantizado mediante llama.cpp, modo sin razonamiento extendido, salida JSON validada | Candidata: modelo por medir | ADR-0003 |
+| Operación | Docker Compose, volúmenes privados y proxy Caddy con TLS en servidor | Objetivo | [ADR-0004](ADR/0004-access-and-retention.md) |
+| Calidad | pytest, Ruff, HTTPX y pruebas de contrato; reloj controlable para publicación/purga | Objetivo | ADR-0001 |
 
 Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prueba de compatibilidad, sin usar etiquetas flotantes en entrega. No se ha ejecutado ningún benchmark. No se garantiza calidad multilingüe ni capacidad con este tamaño de modelo.
 
@@ -46,10 +49,10 @@ Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prue
 
 | Componente | Responsabilidad | Datos que posee | Depende de | Estado |
 |---|---|---|---|---|
-| api | Recepción, autorización por clase, validación, consulta, edición y aprobación | Clases, permisos, revisiones y resultados publicados | PostgreSQL, almacenamiento | Candidata |
-| worker | Normalizar, transcribir, diarizar, combinar intervenciones, analizar | Artefactos por etapa y metadatos de ejecución | Cola PostgreSQL, audio, modelos | Candidata |
-| maintenance | Publicar vencidos, recuperar trabajos abandonados, purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Candidata |
-| frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Candidata |
+| api | Recepción, autorización por clase, validación, consulta, edición y aprobación | Clases, permisos, revisiones y resultados publicados | PostgreSQL, almacenamiento | Objetivo |
+| worker | Normalizar, transcribir, diarizar, combinar intervenciones, analizar | Artefactos por etapa y metadatos de ejecución | Cola PostgreSQL, audio, modelos | Objetivo |
+| maintenance | Publicar vencidos y purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Objetivo |
+| frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Objetivo |
 
 API, worker y maintenance comparten paquete de dominio y migraciones; no son microservicios independientes. La IA se encapsula en adaptadores para sustituir modelos sin cambiar la API pública. Ningún modelo decide permisos ni ejecuta instrucciones contenidas en el audio.
 
@@ -57,9 +60,9 @@ Reparto propuesto entre tres personas, sin crear aún historias: persona A, API/
 
 ## 4. Estructura del repositorio
 
-Actual: documentación, OpenSpec, Makefile, Compose de plantilla y workflows de CI. La propuesta no presupone servicios existentes.
+Actual: documentación, OpenSpec, Makefile, Compose de plantilla y workflows de CI; todavía no hay ningún servicio.
 
-Estructura candidata:
+Estructura objetivo, que crea el walking skeleton:
 
 ```text
 backend/                 # Makefile, Dockerfile dev/prod, .env.example
@@ -87,7 +90,7 @@ El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios
 
 1. API autentica al emisor y valida acceso a la clase, referencia del consentimiento, participantes y límites de tamaño/duración configurados. Formatos comprimidos exactos pendientes de muestras.
 2. Escritura temporal con nombre opaco, validación de contenido y movimiento al almacenamiento privado. Transacción crea clase/audio/trabajo; responder 202 solo tras persistencia. Un limpiador elimina huérfanos de cargas fallidas.
-3. Worker reclama un trabajo mediante transacción corta y lease; transcribe y diariza por separado y cruza intervalos temporales. No mantiene bloqueos de base de datos durante inferencia.
+3. Worker reclama un trabajo mediante transacción corta; transcribe y diariza por separado y cruza intervalos temporales. No mantiene bloqueos de base de datos durante inferencia.
 4. Los hablantes reciben identificadores de sesión. Los nombres aportados no identifican voces por sí solos: proponer asignación manual docente. Solapamientos o asignaciones ambiguas quedan señalados, nunca inventados.
 5. El análisis procesa fragmentos limitados por tokens y consolida categorías y resumen general. Validar esquema y referencias internas; una categoría puede estar vacía. No generar calificaciones o diagnósticos no solicitados.
 6. Persistir versión de resultados válida y pasar a revisión. Fallos de IA no producen resultados publicables.
@@ -104,9 +107,9 @@ Pendiente de producto: qué hacer con una revisión iniciada pero no aprobada al
 
 ### Fallos y recuperación
 
-Proponer máximo tres intentos con espera creciente para errores transitorios; errores de formato, permiso o consentimiento no se reintentan. Guardar etapa, código de error, intento, próximo intento y lease_token. Heartbeat renueva lease; al caducar se recupera el trabajo y se rechazan escrituras de un trabajador con token antiguo.
+Proponer máximo tres intentos con espera creciente para errores transitorios; errores de formato, permiso o consentimiento no se reintentan. Guardar etapa, código de error, intento y próximo intento. Con un único worker en el MVP, al arrancar devuelve a la cola los trabajos que quedaron en curso ([ADR-0002](ADR/0002-durable-jobs.md)); lease con heartbeat y token de intento son evolución si hay varios workers.
 
-OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silenciosamente. Resultados de etapa se guardan con versión y hash de entrada, para evitar repetir audio ya procesado. Idempotencia de carga por emisor y clave; misma clave con contenido diferente devuelve conflicto. Purga/cancelación invalida leases y resultados tardíos. Maintenance independiente permite cumplir vencimientos durante inferencias largas.
+OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silenciosamente. Resultados de etapa se guardan con versión y hash de entrada, para evitar repetir audio ya procesado. Idempotencia de carga por emisor y clave; misma clave con contenido diferente devuelve conflicto. Purga/cancelación invalida resultados tardíos. Maintenance independiente permite cumplir vencimientos durante inferencias largas.
 
 ### Interfaces candidatas, aún no contratos aprobados
 
@@ -116,7 +119,7 @@ OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silencio
 | API → frontend/CoTeach | GET /v1/jobs/{id} | state, stage, attempt, error.code, retryable; autorizado por clase |
 | API → docente/alumnado | GET /v1/classes/{id}/result | schema_version, result_version, transcript, analysis, publication; docente ve borrador, alumno solo publicado |
 | Docente → API | PATCH /v1/classes/{id}/review; POST .../approve | cambios y versión esperada; conflicto 409 si cambió; roles contrastados con identidad autenticada |
-| Worker → dominio | Resultado de etapa validado | job_id, lease_token, stage, model_revision, payload, warnings |
+| Worker → dominio | Resultado de etapa validado | job_id, attempt, stage, model_revision, payload, warnings |
 
 Esquema propuesto de transcript: segments con id, start_ms, end_ms, speaker_id, text; speakers con id y participant_id nullable. Analysis contiene general_summary y items con category/content; categorías del RF-03. Referencias internas a segmentos para evaluación no constituyen navegación temporal RF-07. Publication contiene status, published_at, mode y versión publicada. Fechas UTC ISO 8601; errores sin textos de audio ni secretos. Límites de duración, formato y tamaño deben acordarse antes de estabilizar recepción.
 
@@ -162,7 +165,7 @@ Medir segundos de cómputo por minuto de audio, pico RAM/VRAM, tamaño de artefa
 ## 8. Calidad: tests, CI y observabilidad
 
 - Unitarias: permisos, estados, validación, asignación manual de hablantes, edición y vencimientos con reloj controlado.
-- Integración sobre PostgreSQL real: leases y recuperación, idempotencia, carreras aprobación/publicación, errores de almacenamiento, purga incluso con trabajos activos y reinicio tras vencimiento.
+- Integración sobre PostgreSQL real: recuperación al reiniciar el worker, idempotencia, carreras aprobación/publicación, errores de almacenamiento, purga incluso con trabajos activos y reinicio tras vencimiento.
 - Contratos: API y adaptadores con payloads sintéticos; respuestas malformadas de IA se rechazan. Tratar texto transcrito como datos, con pruebas de instrucciones maliciosas dentro del audio.
 - Frontend: comprobación de tipos, pruebas de componentes y del cliente REST, construcción Vite de producción y aislamiento del estado entre identidades.
 - E2E: docente carga audio, consulta progreso, corrige y aprueba; alumno autorizado ve publicado; otro alumno no accede. Ruta sin revisión publica al vencer el reloj simulado. Ruta in_review pendiente de decisión no se da por validada.
@@ -173,10 +176,10 @@ Medir segundos de cómputo por minuto de audio, pico RAM/VRAM, tamaño de artefa
 
 ## 9. Despliegue
 
-| Entorno | Rama | Cuándo se despliega (propuesta) | Estado |
+| Entorno | Rama | Cuándo se despliega | Estado |
 |---|---|---|---|
-| Pruebas | dev | Tras integración con CI verde, despliegue manual documentado inicialmente | Candidata |
-| Producción | main | Tras promoción aprobada, despliegue manual de la versión publicada | Candidata |
+| Pruebas | `dev` | Tras integración con CI verde, despliegue manual documentado inicialmente | Objetivo; servidor pendiente ([§11](#11-preguntas-abiertas)) |
+| Producción | `main` | Tras promoción aprobada, despliegue manual de la versión publicada | Objetivo; servidor pendiente ([§11](#11-preguntas-abiertas)) |
 
 Ambos entornos deben existir desde el walking skeleton según WORKFLOW; usar datos sintéticos hasta resolver consentimiento y acceso. Compose por entorno, bases/volúmenes/secretos separados. El frontend se construye como artefacto estático y accede únicamente a la API REST publicada; no contiene secretos ni decide permisos. Servidor y dominios pendientes de acuerdo; no asumir GPU en el servidor actual de Odoo. Inferencia inicialmente junto al almacenamiento; mover worker a GPU privada solo con conectividad privada y limpieza de copias definida. Sin Kubernetes, broker adicional, vector DB ni entrenamiento propio para diciembre.
 
@@ -184,12 +187,18 @@ Guardar imágenes y migraciones compatibles; respaldar DB antes de migrar y ensa
 
 ## 10. Decisiones y contratos
 
-Los [ADR](ADR/README.md) están en estado Propuesto. No hay contratos estables nuevos ni implementación. La propuesta necesita resolver:
-
-1. Equipo: aceptar stack, reparto, licencias de código/pesos y acceso al diarizador; inventario real de RAM/GPU y una medición con audio autorizado.
-2. Lay/equipo: idiomas y calidad mínima, formatos/límites de carga, presupuesto, alojamiento y disponibilidad durante las demostraciones.
-3. Lay: validar 24 horas, comienzo del cómputo, revisión iniciada sin aprobación y correcciones tras publicación. Estas propuestas operativas no son requisitos confirmados.
-4. CoTeach: emisor de identidad, autorización por clase y consentimiento; conservación de derivados y backups.
-5. Aprobación del PRD y de esta arquitectura antes de cerrar ROADMAP y planificar las funcionalidades según WORKFLOW.
+- Decisiones técnicas: [índice de ADR](ADR/README.md).
+- Interfaces estables: [índice de contratos](CONTRACTS/README.md). Todavía no hay ninguno; el primero llega con la primera funcionalidad que conecte dos componentes.
 
 Fuentes técnicas consultadas: [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [pyannote Community-1](https://huggingface.co/pyannote/speaker-diarization-community-1), [Qwen3-8B](https://huggingface.co/Qwen/Qwen3-8B), [llama.cpp](https://github.com/ggml-org/llama.cpp), [FastAPI y trabajos pesados](https://fastapi.tiangolo.com/tutorial/background-tasks/), [PostgreSQL SELECT y SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html). Capacidades upstream no equivalen a pruebas realizadas en CoTeach.
+
+## 11. Preguntas abiertas
+
+Las preguntas de producto (plazo de revisión, retención de derivados, idiomas, identidad de los usuarios, límites de calidad) están en el [PRD §14](PRD.md#14-preguntas-abiertas). Aquí solo las técnicas:
+
+- **Servidores de pruebas y producción** (equipo y Lay): dónde se despliega cada entorno, con qué recursos y dominios, y si hay presupuesto para GPU remota privada. **Bloquea:** la historia de despliegue del walking skeleton.
+- **Hardware del equipo** (equipo): RAM y GPU reales de cada equipo y si Docker con GPU funciona en ellos. **Bloquea:** la imagen del worker y la elección de modelos.
+- **Modelos** (equipo): ASR, diarizador y LLM definitivos, tras medir calidad y recursos con audio autorizado de 30 y 60 minutos. **Bloquea:** pasar a Objetivo las filas Candidata de [§2](#2-stack).
+- **Límites de carga** (equipo, con muestras de Lay): formatos, tamaño y duración máximos. **Bloquea:** el contrato de recepción.
+- **Emisor de identidad** (CoTeach): quién emite los tokens y cómo se resuelve la pertenencia a una clase. Mientras, la demo usa un emisor de pruebas aislado ([ADR-0004](ADR/0004-access-and-retention.md)). **Bloquea:** producción con usuarios reales.
+- **Licencias** (equipo y CoTeach): licencia del código y revisión de licencias de pesos y dependencias. **Bloquea:** el primer código publicado y aceptar los modelos.

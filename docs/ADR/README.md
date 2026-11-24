@@ -20,7 +20,7 @@ Para decisiones locales y reversibles basta con el `design.md` del cambio de Ope
 
 | ADR | Título | Estado |
 |---|---|---|
-| [ADR-0001](0001-modular-backend.md) | Modular backend and API-first demo | Propuesto |
-| [ADR-0002](0002-durable-jobs.md) | Durable jobs in PostgreSQL | Propuesto |
-| [ADR-0003](0003-private-inference.md) | Private staged inference | Propuesto |
-| [ADR-0004](0004-access-and-retention.md) | Private storage and controlled publication | Propuesto |
+| [ADR-0001](0001-modular-backend.md) | Modular backend and API-first demo | Aceptado |
+| [ADR-0002](0002-durable-jobs.md) | Durable jobs in PostgreSQL | Aceptado |
+| [ADR-0003](0003-private-inference.md) | Private staged inference | Aceptado |
+| [ADR-0004](0004-access-and-retention.md) | Private storage and controlled publication | Aceptado |

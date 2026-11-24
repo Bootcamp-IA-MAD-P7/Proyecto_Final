@@ -4,7 +4,7 @@
 
 - **Nombre:** CoTeach-AI
 - **Responsable:** CoTeach, como entidad colaboradora y cliente; equipo del proyecto para el desarrollo del MVP.
-- **Estado del documento:** Borrador
+- **Estado del documento:** Aprobado el 2026-11-24
 
 ## 1. Resumen
 
@@ -53,9 +53,9 @@ CoTeach-AI es un servicio independiente de inteligencia artificial para clases p
 - Conservación del audio original durante dos semanas y acceso previsto para profesorado y alumnado.
 - Uso de software libre, privacidad por diseño, soberanía tecnológica y consideración del impacto ecológico.
 
-**Funcionalidades deseables confirmadas, no imprescindibles mientras no se aprueben para la demostración:**
+**Decidido por el equipo para el MVP, con la conformidad de Lay a una presentación visual:**
 
-- Una presentación visual del MVP; Lay ha dado conformidad a mostrarla, sin fijar una tecnología de interfaz.
+- Un cliente web de demostración, separado del servicio, que consume su API: lista de clases, subida del audio y seguimiento del procesamiento, consulta del resultado con corrección y aprobación docente, y vista del alumnado. No contiene reglas de negocio ni de autorización ([DEC-06](#13-decisiones-de-producto)); la tecnología está en [ARCHITECTURE](ARCHITECTURE.md).
 
 **Alcance aprobado para el MVP, con una regla provisional pendiente de validación por Lay:**
 
@@ -270,7 +270,7 @@ El producto no requiere entregar la transcripción ni el repaso durante la clase
 
 ## 12. Restricciones, supuestos y riesgos
 
-- **Restricciones confirmadas:** el MVP debe estar disponible para la presentación de diciembre; será un servicio independiente integrado por API; debe usar software libre, privacidad por diseño y priorizar soberanía tecnológica e impacto ecológico. CoTeach dispone de un servidor temporal con Odoo y usa servicios Nextcloud; la infraestructura y proveedor definitivos no están decididos.
+- **Restricciones confirmadas:** el MVP debe estar disponible para las presentaciones del 11 y el 15 de diciembre de 2026; será un servicio independiente integrado por API; debe usar software libre, privacidad por diseño y priorizar soberanía tecnológica e impacto ecológico. CoTeach dispone de un servidor temporal con Odoo y usa servicios Nextcloud; la infraestructura y proveedor definitivos no están decididos.
 - **Supuestos a validar:** se dispone de tres grabaciones reales y de grabaciones simuladas suficientes para evaluar el MVP; el servicio recibirá por API el audio comprimido y, cuando exista, los participantes; Odoo seguirá proporcionando la gestión administrativa y de usuarios.
 - **Riesgos:**
   - **Diarización:** solapamientos de voz y clases grupales pueden impedir distinguir correctamente a las personas hablantes. Mitigación: evaluar con grabaciones individuales y grupales autorizadas, y explicitar las limitaciones en la demostración.
@@ -279,6 +279,7 @@ El producto no requiere entregar la transcripción ni el repaso durante la clase
   - **Recursos y coste:** solo hay GPU local y el presupuesto o posible uso de GPU remota privada no está definido. Mitigación: medir recursos con el flujo MVP y tomar una decisión de capacidad antes de escalar.
   - **Calendario:** el alcance completo puede exceder la presentación de diciembre. Mitigación: proteger el flujo Base RF-01 a RF-05 y posponer RF-06 y RF-07 a la segunda fase.
   - **Integración:** la documentación de CoTeach es un borrador no definitivo. Mitigación: mantener el servicio desacoplado y fijar el contrato de API cuando la documentación esté disponible.
+  - **Regulación:** el uso de IA en contextos educativos puede quedar sujeto al Reglamento europeo de IA (AI Act). Mitigación: evaluar su aplicación antes de pasar a producción con datos reales.
 
 ## 13. Decisiones de producto
 
@@ -289,7 +290,7 @@ El producto no requiere entregar la transcripción ni el repaso durante la clase
 | DEC-03 | El audio original se conservará 14 días y se purgará automáticamente. | Lay fija dos semanas de conservación. | Aceptada |
 | DEC-04 | Para diciembre, el flujo Base incluye RF-01 a RF-05; RF-06 y RF-07 se trasladan a una segunda fase. | Alcance aprobado para concentrar la demostración en el flujo completo de audio a resultados estructurados y publicación. | Aceptada |
 | DEC-05 | Para el MVP se propone un plazo configurable de revisión de 24 horas; antes del plazo el profesorado puede aprobar la compartición y, al vencerlo sin revisión, el resultado se publica al alumnado autorizado. | Materializa el alcance aprobado de RF-05 sin fijar el plazo en el código. Requiere validación de Lay. | Propuesta |
-| DEC-06 | La interfaz visual de demostración será un cliente web separado del servicio y consumirá su API versionada; la tecnología concreta pertenece a la arquitectura. | Lay acepta una presentación visual, pero esta no debe condicionar el contrato ni trasladar autorización o reglas de negocio fuera del servicio. | Propuesta |
+| DEC-06 | La interfaz visual de demostración será un cliente web separado del servicio y consumirá su API versionada; la tecnología concreta pertenece a la arquitectura. | Lay acepta una presentación visual; el equipo la incluye en el MVP. No debe condicionar el contrato ni trasladar autorización o reglas de negocio fuera del servicio. | Aceptada |
 
 ## 14. Preguntas abiertas
 
@@ -299,3 +300,14 @@ El producto no requiere entregar la transcripción ni el repaso durante la clase
 - ¿Cuál es el presupuesto disponible y bajo qué condiciones se podría usar infraestructura o GPU remota privada? **Bloquea:** límites de coste y evaluación de capacidad.
 - ¿Qué consentimiento, información y responsabilidades de protección de datos se aplicarán a las grabaciones reales, especialmente antes de incorporar menores en una fase futura? **Bloquea:** paso a producción con datos reales.
 - ¿Qué formato de resultado espera CoTeach y qué documentación estable de su API proporcionará? **Bloquea:** definición del contrato de integración.
+- ¿Qué se enseña el 11 y qué el 15 de diciembre, y qué es imprescindible? **Bloquea:** reparto de épicas entre hitos en el ROADMAP.
+- ¿Cómo se identifican profesorado y alumnado: tokens emitidos por Odoo, llamadas a través de Odoo u otra vía? **Bloquea:** autorización (RNF-01) y su ADR.
+- ¿En qué idioma se redacta el repaso (lengua vehicular, lengua meta o ambas)? **Bloquea:** criterios de RF-03.
+- ¿Se señalan también los errores que el profesorado no corrigió en clase? **Bloquea:** criterios de RF-03.
+- ¿Qué pasa con una revisión empezada pero no aprobada cuando vence el plazo? **Bloquea:** regla definitiva de RF-05.
+- En una clase grupal, ¿qué ocurre si una persona participante no consiente? **Bloquea:** reglas de consentimiento (RD-02).
+- ¿Hace falta un requisito para borrar a petición una clase y todos sus datos antes de los plazos de conservación? **Bloquea:** política de retención.
+- Tras purgar el audio a los 14 días, ¿las referencias temporales apuntan solo a la transcripción? **Bloquea:** RF-07 y el contrato de resultados.
+- ¿Qué umbrales mínimos de calidad (WER, DER, revisión humana del repaso) o qué protocolo de evaluación se aceptan para la demo? **Bloquea:** criterios de aceptación de calidad de RF-02 y RF-03.
+- ¿Se pueden usar las tres grabaciones reales en una demostración pública, y nos podéis dar el resultado esperado de alguna? **Bloquea:** datos de evaluación y demo.
+- ¿Qué licencia se aplica al código? **Bloquea:** el primer código publicado.

@@ -4,7 +4,7 @@ CoTeach-AI es un servicio de inteligencia artificial para CoTeach que procesa gr
 
 ## Estado
 
-El trabajo se sigue en [GitHub Issues](https://github.com/mariaherrerosanchez/CoTeach-AI/issues) y las versiones se publican en [Releases](https://github.com/mariaherrerosanchez/CoTeach-AI/releases).
+El trabajo se sigue en [GitHub Issues](https://github.com/Bootcamp-IA-MAD-P7/Proyecto_Final/issues) y las versiones se publican en [Releases](https://github.com/Bootcamp-IA-MAD-P7/Proyecto_Final/releases).
 
 ## Puesta en marcha
 

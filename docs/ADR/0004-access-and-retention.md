@@ -1,9 +1,9 @@
 # ADR-0004: Private storage and controlled publication
 
-- **Estado:** Propuesto
-- **Fecha:** 2026-11-23
+- **Estado:** Aceptado
+- **Fecha:** 2026-11-24
 - **Decisores:** Equipo de tres personas; CoTeach/Lay para restricciones de producto y datos.
-- **Relacionado:** RF-01, RF-04, RF-05; RNF-01, RNF-02; ADR-0002. Sin Issue: propuesta de fase 1.
+- **Relacionado:** RF-01, RF-04, RF-05; RNF-01, RNF-02; ADR-0002. Sin Issue: fase 1.
 
 ## Contexto
 
@@ -11,9 +11,9 @@ El PRD limita audio a 14 días y acceso a participantes autorizados. Las 24 hora
 
 ## Decisión
 
-Proponer volumen privado de audio en servidor propio, DB independiente de Odoo y acceso exclusivamente por API autorizada. Tokens de vida corta verificados y pertenencia a clase resuelta por servidor. Original y temporales fuera de Git y de backups; vencimiento bloquea lecturas y activa borrado reintentable. Versionar resultados/correcciones; aprobar y publicar automáticamente usan la misma transición transaccional. Proponer contar revisión desde disponibilidad del resultado y no publicar borradores in_review sin aprobación: ambos detalles requieren validación de Lay.
+Usar volumen privado de audio en servidor propio, DB independiente de Odoo y acceso exclusivamente por API autorizada. Tokens de vida corta verificados y pertenencia a clase resuelta por servidor. Original y temporales fuera de Git y de backups; vencimiento bloquea lecturas y activa borrado reintentable. Versionar resultados/correcciones; aprobar y publicar automáticamente usan la misma transición transaccional. Cuándo empieza el plazo de revisión y qué pasa con una revisión iniciada al vencer son reglas de producto pendientes ([PRD §14](../PRD.md#14-preguntas-abiertas)); esta decisión no las fija.
 
-La propuesta requiere aprobación humana antes de pasar a Aceptado. El detalle operativo está en [ARCHITECTURE](../ARCHITECTURE.md).
+El detalle operativo está en [ARCHITECTURE](../ARCHITECTURE.md).
 
 ## Alternativas consideradas
 
