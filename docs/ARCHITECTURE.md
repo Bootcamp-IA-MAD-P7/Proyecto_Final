@@ -113,19 +113,12 @@ OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silencio
 
 ### Interfaces entre componentes
 
-El contrato normativo es [API de CoTeach AI](CONTRACTS/coteach-ai-api.md) (v0.1.0, Propuesto), con `backend/openapi.json` como artefacto ejecutable. La tabla y el esquema siguientes son el diseño preliminar del que partió; si difieren, manda el contrato.
-
-| Productor → consumidor | Interfaz propuesta | Contenido y reglas |
+| Productor → consumidores | Interfaz | Dónde se define |
 |---|---|---|
-| CoTeach/frontend → API | POST /v1/classes, multipart, Idempotency-Key | audio, external_class_id, participantes con id/rol/nombre opcional, consentimiento referenciado; respuesta 202 con class_id/job_id |
-| API → frontend/CoTeach | GET /v1/jobs/{id} | state, stage, attempt, error.code, retryable; autorizado por clase |
-| API → docente/alumnado | GET /v1/classes/{id}/result | schema_version, result_version, transcript, analysis, publication; docente ve borrador, alumno solo publicado |
-| Docente → API | PATCH /v1/classes/{id}/review; POST .../approve | cambios y versión esperada; conflicto 409 si cambió; roles contrastados con identidad autenticada |
-| Worker → dominio | Resultado de etapa validado | job_id, attempt, stage, model_revision, payload, warnings |
+| api → frontend, CoTeach | API REST `/v1` (recepción, trabajos, resultado, revisión y aprobación) y `/health`, `/ready` | Contrato [API de CoTeach AI](CONTRACTS/coteach-ai-api.md), con `backend/openapi.json` como artefacto ejecutable |
+| worker → api (mismo paquete) | `JobStore` e `InferencePipeline` | [Diseño de add-walking-skeleton](../openspec/changes/add-walking-skeleton/design.md#interfaces-internas); no es un contrato publicado |
 
-Esquema propuesto de transcript: segments con id, start_ms, end_ms, speaker_id, text; speakers con id y participant_id nullable. Analysis contiene general_summary y items con category/content; categorías del RF-03. Referencias internas a segmentos para evaluación no constituyen navegación temporal RF-07. Publication contiene status, published_at, mode y versión publicada. Fechas UTC ISO 8601; errores sin textos de audio ni secretos. Límites de duración, formato y tamaño deben acordarse antes de estabilizar recepción.
-
-La interfaz interna Worker → dominio no es un contrato publicado: vive en el paquete `backend` como las interfaces `JobStore` e `InferencePipeline` ([diseño de add-walking-skeleton](../openspec/changes/add-walking-skeleton/design.md#interfaces-internas)).
+Los campos, estados y errores solo se describen en el contrato. Quedan pendientes los límites de duración, formato y tamaño del audio ([§11](#11-preguntas-abiertas)); las referencias internas a segmentos no constituyen navegación temporal (RF-07).
 
 ## 6. Datos, configuración y secretos
 
