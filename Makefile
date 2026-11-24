@@ -64,9 +64,9 @@ lint: $(addsuffix -lint,$(SERVICES)) ## Run every service linter
 ci: env ## Run every service lint and tests in its dev image, then build the production images
 	@if [ -z "$(SERVICES)" ]; then echo "No services yet."; exit 0; fi; \
 	for service in $(SERVICES); do \
-		$(COMPOSE) run --rm --build $$service make lint test || exit 1; \
+		$(COMPOSE) --progress quiet run --rm --build $$service make lint test || exit 1; \
 	done; \
-	$(COMPOSE_PROD) build
+	$(COMPOSE_PROD) --progress quiet build
 
 # --- Docker: development ---
 
