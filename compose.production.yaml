@@ -1,13 +1,10 @@
 # Production overrides: `docker compose -f compose.yaml -f compose.production.yaml up -d` (`make up-prod`).
 # Typical content: the `prod` build target, restart policies and no source mounts or debug ports.
 
-services: {}
-# Example:
-#  backend:
-#    build:
-#      target: prod
-#    restart: unless-stopped
-#    ports:
-#      - "${BACKEND_PORT:-8000}:8000"
-#  db:
-#    restart: unless-stopped
+services:
+  backend:
+    build:
+      target: prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
