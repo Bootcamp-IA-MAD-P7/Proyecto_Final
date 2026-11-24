@@ -24,7 +24,7 @@ Primero, un esqueleto que se levanta en local con Docker, con el contrato v0.1, 
 - **Resultado:** API, worker, maintenance y web React levantados en local, con y sin Docker, con `/health`, el contrato v0.1 en [CONTRACTS](CONTRACTS/README.md) y un recorrido falso de extremo a extremo: subir un audio, ver el trabajo y consultar un resultado de ejemplo. Ver [WORKFLOW §5](../WORKFLOW.md#trabajo-por-capas). Mientras no haya servidor no se despliega ([ADR-0005](ADR/0005-local-only-environment.md)).
 - **Requisitos:** RNF-01 (validación de tokens con un emisor de pruebas), RNF-03; prepara el contrato de RF-01 a RF-05 sin implementarlos.
 - **Depende de:** —
-- **Funcionalidades:** `add-walking-skeleton`, que reorienta el cambio existente `add-shared-mvp-contracts`; pendiente de planificar.
+- **Funcionalidades:** [`add-walking-skeleton`](../openspec/changes/add-walking-skeleton/)
 
 ### E2 — Recibir una clase y seguir su procesamiento · Issue: [#2](https://github.com/Bootcamp-IA-MAD-P7/Proyecto_Final/issues/2)
 
