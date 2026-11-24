@@ -4,27 +4,22 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from threading import Lock
-from uuid import uuid4
 
 from app.contract import ClassMetadata, Job, JobError, JobStage, JobState, Result
 from app.jobs.store import (
     IN_PROGRESS_STATES,
+    STAGE_ORDER,
     InvalidJobTransitionError,
     JobNotFoundError,
     StoredClass,
+    new_id,
 )
-
-STAGE_ORDER = list(JobStage)
-
-
-def _new_id(prefix: str) -> str:
-    return f"{prefix}-{uuid4().hex}"
 
 
 class InMemoryJobStore:
     """JobStore kept in a process. Safe to share between threads; nothing survives a restart."""
 
-    def __init__(self, new_id: Callable[[str], str] = _new_id) -> None:
+    def __init__(self, new_id: Callable[[str], str] = new_id) -> None:
         self._new_id = new_id
         self._lock = Lock()
         self._classes: dict[str, StoredClass] = {}
