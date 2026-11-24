@@ -7,7 +7,7 @@
 
 ## Propósito
 
-Estabiliza el intercambio entre el servicio y quien lo usa: enviar una clase con su audio y sus metadatos, seguir su trabajo de procesamiento, consultar el resultado (transcripción y repaso pedagógico por separado), corregirlo y aprobarlo. Permite que la API, el procesamiento y la web avancen en paralelo desde el walking skeleton ([add-walking-skeleton](../../openspec/changes/add-walking-skeleton/design.md)).
+Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está vivo y disponible, enviar una clase con su audio y sus metadatos, seguir su trabajo de procesamiento, consultar el resultado (transcripción y repaso pedagógico por separado), corregirlo y aprobarlo. Permite que la API, el procesamiento y la web avancen en paralelo desde el walking skeleton ([add-walking-skeleton](../../openspec/changes/add-walking-skeleton/design.md)).
 
 ## Fuente de verdad
 
@@ -19,14 +19,16 @@ Estabiliza el intercambio entre el servicio y quien lo usa: enviar una clase con
 
 ### Autenticación y acceso
 
+- `GET /health` y `GET /ready` no llevan credencial ni datos de clases; `/ready` nombra las dependencias caídas sin credenciales ni cadenas de conexión ([spec service-operation](../../openspec/changes/add-walking-skeleton/specs/service-operation/spec.md)).
 - Toda petición a `/v1` lleva `Authorization: Bearer <token>`, firmado por el emisor configurado. El rol y el sujeto salen del token, nunca del cuerpo: los objetos de petición rechazan campos desconocidos ([spec api-access](../../openspec/changes/add-walking-skeleton/specs/api-access/spec.md), [ADR-0004](../ADR/0004-access-and-retention.md)).
-- El servidor resuelve el acceso a cada clase: la crea una docente o la credencial de servicio de CoTeach, y la consultan las personas cuyo `participant_id` coincide con el sujeto del token. Una clase ajena o inexistente responde 404 `resource_not_available`, para no revelar que existe; 403 `forbidden` es solo para una operación no permitida sobre una clase que sí se ve.
+- El servidor resuelve el acceso a cada clase: la crea una docente o la credencial de servicio de CoTeach, y la consultan las personas cuyo `participant_id` coincide con el sujeto del token. Una clase o un trabajo ajenos, inexistentes o con un identificador mal formado responden 404 `resource_not_available`, para no revelar que existen; 403 `forbidden` es solo para una operación no permitida sobre una clase que sí se ve.
 - El alumnado solo ve la versión publicada de un resultado; ante un borrador recibe 404.
 - Mientras CoTeach no defina su emisor, la demo usa un emisor de pruebas aislado que no forma parte del contrato (PRD §14).
 
 ### Errores
 
 - Todo error usa el sobre `ErrorResponse`: `error.code`, `error.message` seguro, `error.retryable` y `request_id`, que también va en la cabecera `X-Request-ID`. Nunca lleva trazas, tokens, audio, transcripciones ni datos de la petición.
+- Un fallo inesperado responde 500 `internal_error`, sin detalles.
 - Solo los errores transitorios (`service_unavailable`) llevan `retryable=true`. Los 409 de corrección y aprobación piden releer el resultado y resolver, no repetir a ciegas.
 - En un 422 de `POST /v1/classes`, `invalid_consent_reference` prevalece sobre `invalid_participants`, y ambos sobre `invalid_request`.
 - Un trabajo fallido o en espera de reintento se consulta con 200 y lleva su propio `error` con un código de `JobErrorCode`.
@@ -40,7 +42,7 @@ Estabiliza el intercambio entre el servicio y quien lo usa: enviar una clase con
 
 ### Estado en el walking skeleton
 
-En v0.1 las rutas están declaradas pero no todas tienen comportamiento. Mientras una ruta no esté implementada responde 501 con el código temporal `not_implemented`, que no forma parte del contrato. Lo que se implementa en cada historia está en [tasks.md](../../openspec/changes/add-walking-skeleton/tasks.md): recepción, consulta del trabajo y del resultado en la sección 2; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La idempotencia y los límites de tamaño y formato del audio (409, 413 y 415) se declaran ya y llegan en E2.
+En v0.1 las rutas están declaradas pero no todas tienen comportamiento. Mientras una ruta no esté implementada responde 501 con el código temporal `not_implemented`, que no forma parte del contrato. `GET /health` ya responde. Lo que se implementa en cada historia está en [tasks.md](../../openspec/changes/add-walking-skeleton/tasks.md): `/ready`, recepción, consulta del trabajo y del resultado en la sección 2; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La idempotencia y los límites de tamaño y formato del audio (409, 413 y 415) se declaran ya y llegan en E2.
 
 ## Compatibilidad
 
