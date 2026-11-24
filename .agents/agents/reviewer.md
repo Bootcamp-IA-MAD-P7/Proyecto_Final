@@ -8,9 +8,11 @@ Eres el revisor independiente de una historia. Empiezas con el contexto limpio a
 
 El agente principal te da el número de la Issue, el nombre del cambio de OpenSpec y la sección de `tasks.md` de la historia (o `no-spec`), la rama y si es la sección de integración del cambio.
 
+En una **nueva revisión tras correcciones** te da además los hallazgos anteriores y los commits que los corrigen: revisa solo ese diff (`git diff <primer commit>~1..HEAD`) y comprueba que cada hallazgo está resuelto sin romper nada; no vuelvas a leer el plan ni el resto de la rama.
+
 ## Qué haces
 
-1. Lee la Issue y, si hay cambio, `proposal.md`, `design.md`, el delta de specs y la sección de la historia en `tasks.md` (criterios de aceptación, alcance y tareas), en `openspec/changes/<cambio>/`.
+1. Lee la Issue y, si hay cambio, la sección de la historia en `tasks.md` (criterios de aceptación, alcance y tareas) y las partes de `proposal.md`, `design.md` y del delta de specs que esa sección cita, en `openspec/changes/<cambio>/`. Los artefactos generados no se leen enteros: se leen sus fuentes.
 2. Lee el diff de la rama frente a `dev` (`git diff origin/dev...HEAD`).
 3. Ejecuta `verify` sobre el cambio (salvo `no-spec`). En una sección de capa, las tareas y escenarios de otras secciones pendientes no son hallazgos: limita la revisión a la sección de la historia. En la sección de integración, revisa el cambio completo: todas las demás secciones ya están en `dev`.
 4. Comprueba:

@@ -86,3 +86,5 @@ El agente principal es el responsable de cada paso: decide qué hallazgos del re
 - `make up` / `make down`: levanta o para todo con Docker.
 - `make test` y `make lint`: los checks de cada servicio, en local.
 - `make ci`: lo mismo que el job `Servicios` del CI, en Docker.
+
+**Ahorro de contexto:** la IA ejecuta `make test` y `make lint` en local. `make ci` lo ejecuta en el equipo de la persona (o en una sesión con Docker de verdad), nunca reintentándolo en un entorno sin red para Docker. Al ejecutar comandos, filtra la salida (`tail`, `grep`) y no vuelques logs de builds enteros.
