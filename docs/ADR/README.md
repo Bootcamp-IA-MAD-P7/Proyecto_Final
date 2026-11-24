@@ -24,3 +24,4 @@ Para decisiones locales y reversibles basta con el `design.md` del cambio de Ope
 | [ADR-0002](0002-durable-jobs.md) | Durable jobs in PostgreSQL | Aceptado |
 | [ADR-0003](0003-private-inference.md) | Private staged inference | Aceptado |
 | [ADR-0004](0004-access-and-retention.md) | Private storage and controlled publication | Aceptado |
+| [ADR-0005](0005-local-only-environment.md) | Local-only environment until a server is available | Aceptado |
