@@ -1,0 +1,5 @@
+# Runtime dependencies of the backend image (api, worker and maintenance).
+fastapi==0.165.0
+pydantic==2.14.4
+python-multipart==0.0.34
+uvicorn==0.54.0
