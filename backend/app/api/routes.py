@@ -19,7 +19,10 @@ from app.contract import (
     ClassAccepted,
     ClassMetadata,
     ErrorResponse,
+    Health,
+    Identifier,
     Job,
+    Readiness,
     Result,
     ReviewRequest,
 )
@@ -32,9 +35,11 @@ bearer = HTTPBearer(
 """Declares the credential in the contract. Section 2 validates it (spec api-access)."""
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(bearer)])
+operation_router = APIRouter(tags=["operation"])
+"""Health and readiness: no credential and no class data (spec service-operation)."""
 
-ClassId = Annotated[str, Path(min_length=1, max_length=128)]
-JobId = Annotated[str, Path(min_length=1, max_length=128)]
+ClassId = Annotated[Identifier, Path(description="Unknown or malformed ids answer 404")]
+JobId = Annotated[Identifier, Path(description="Unknown or malformed ids answer 404")]
 
 
 def _errors(*statuses: int) -> dict[int | str, dict[str, Any]]:
@@ -46,9 +51,10 @@ def _errors(*statuses: int) -> dict[int | str, dict[str, Any]]:
         413: "Audio larger than allowed (`audio_too_large`)",
         415: "Audio format not supported (`unsupported_audio`)",
         422: "Invalid request",
+        500: "Unexpected error (`internal_error`)",
         503: "Transient unavailability (`service_unavailable`, retryable)",
     }
-    common = (401, 404, 422, 503)
+    common = (401, 403, 404, 422, 500, 503)
     return {
         code: {"model": ErrorResponse, "description": descriptions[code]}
         for code in sorted({*common, *statuses})
@@ -136,4 +142,30 @@ def review_class_result(class_id: ClassId, request: ReviewRequest) -> Result:
     responses=_errors(403, 409),
 )
 def approve_class_result(class_id: ClassId, request: ApproveRequest) -> ApprovalResponse:
+    raise not_implemented()
+
+
+@operation_router.get(
+    "/health",
+    operation_id="getHealth",
+    response_model=Health,
+    summary="The api process is alive",
+    description="Answers 200 while the process runs, even if a dependency is down.",
+)
+def get_health() -> Health:
+    return Health(status="ok")
+
+
+@operation_router.get(
+    "/ready",
+    operation_id="getReadiness",
+    response_model=Readiness,
+    summary="The dependencies of the api are available",
+    description=(
+        "503 with the same body when a dependency, such as the database, is not available. "
+        "Never includes credentials or connection strings."
+    ),
+    responses={503: {"model": Readiness, "description": "A dependency is not available"}},
+)
+def get_readiness() -> Readiness:
     raise not_implemented()

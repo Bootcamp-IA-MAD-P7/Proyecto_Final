@@ -7,7 +7,7 @@ These models and the routes that declare them are the source of truth of the con
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     AwareDatetime,
@@ -259,6 +259,27 @@ class Result(ContractModel):
     analysis: Analysis
     review: Review
     publication: Publication
+
+
+# --- Operation --------------------------------------------------------------------------------
+
+
+class Health(ContractModel):
+    status: Literal["ok"]
+
+
+class DependencyStatus(StrEnum):
+    OK = "ok"
+    UNAVAILABLE = "unavailable"
+
+
+class Readiness(ContractModel):
+    """Body of GET /ready, with 200 or 503. Names dependencies, never their connection details."""
+
+    status: Literal["ready", "unavailable"]
+    dependencies: dict[
+        Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]*$")], DependencyStatus
+    ]
 
 
 # --- Review and approval ----------------------------------------------------------------------

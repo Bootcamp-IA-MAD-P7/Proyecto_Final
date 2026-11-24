@@ -3,7 +3,7 @@
   "reason": "Código de error fuera del contrato",
   "payload": {
     "error": {
-      "code": "internal_error",
+      "code": "unexpected_failure",
       "message": "Error",
       "retryable": false
     },

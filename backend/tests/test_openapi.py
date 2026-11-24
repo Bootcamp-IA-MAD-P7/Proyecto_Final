@@ -9,6 +9,7 @@ CONTRACT_OPERATIONS = {
     ("patch", "/v1/classes/{class_id}/review"),
     ("post", "/v1/classes/{class_id}/approve"),
 }
+OPERATION_ROUTES = {("get", "/health"), ("get", "/ready")}
 
 
 def test_versioned_openapi_matches_the_declared_api():
@@ -25,18 +26,28 @@ def test_contract_version_and_operations():
     spec = create_app().openapi()
     assert spec["info"]["version"] == CONTRACT_VERSION == "0.1.0"
     operations = {(method, path) for path, item in spec["paths"].items() for method in item}
-    assert operations == CONTRACT_OPERATIONS
+    assert operations == CONTRACT_OPERATIONS | OPERATION_ROUTES
 
 
 def test_every_operation_requires_a_bearer_token_and_documents_common_errors():
     spec = create_app().openapi()
     assert spec["components"]["securitySchemes"]["bearerToken"]["scheme"] == "bearer"
-    for item in spec["paths"].values():
-        for operation in item.values():
-            assert operation["security"] == [{"bearerToken": []}]
-            for status in ("401", "404", "422", "503"):
-                schema = operation["responses"][status]["content"]["application/json"]["schema"]
-                assert schema == {"$ref": "#/components/schemas/ErrorResponse"}
+    for method, path in CONTRACT_OPERATIONS:
+        operation = spec["paths"][path][method]
+        assert operation["security"] == [{"bearerToken": []}]
+        for status in ("401", "403", "404", "422", "500", "503"):
+            schema = operation["responses"][status]["content"]["application/json"]["schema"]
+            assert schema == {"$ref": "#/components/schemas/ErrorResponse"}
+
+
+def test_health_and_readiness_need_no_credential():
+    spec = create_app().openapi()
+    for method, path in OPERATION_ROUTES:
+        assert "security" not in spec["paths"][path][method]
+    readiness = spec["paths"]["/ready"]["get"]["responses"]
+    assert readiness["503"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/Readiness"
+    }
 
 
 def test_submit_class_takes_metadata_as_json_and_an_idempotency_key():

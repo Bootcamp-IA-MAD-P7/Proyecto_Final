@@ -63,3 +63,12 @@ def test_metadata_without_problems_on_participants_or_consent_is_an_invalid_requ
     assert metadata_error_code(raised.value.errors()) is ErrorCode.INVALID_CONSENT_REFERENCE
     errors = [{"type": "string_too_long", "loc": ("external_class_id",)}]
     assert metadata_error_code(errors) is ErrorCode.INVALID_REQUEST
+
+
+def test_readiness_names_dependencies_only():
+    ready = contract.Readiness.model_validate({"status": "ready", "dependencies": {"db": "ok"}})
+    assert ready.dependencies["db"] is contract.DependencyStatus.OK
+    with pytest.raises(ValidationError):
+        contract.Readiness.model_validate(
+            {"status": "unavailable", "dependencies": {"postgresql://user:pw@db": "unavailable"}}
+        )
