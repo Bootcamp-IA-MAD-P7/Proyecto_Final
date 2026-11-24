@@ -13,15 +13,15 @@
 
 ## Dirección
 
-Primero, un esqueleto desplegado en pruebas y producción con el contrato v0.1, para que API, inferencia e interfaz avancen en paralelo contra él. Después, el flujo Base de extremo a extremo, una capacidad cada vez: recibir una clase, transcribirla y generar el repaso, para la presentación del 11 de diciembre; y la revisión docente con publicación y el ensayo con un lote de clases, para la del 15 de diciembre. Las fechas son las de las presentaciones ([PRD §12](PRD.md#12-restricciones-supuestos-y-riesgos)); lo que queda fuera del MVP está en el [PRD §6](PRD.md#6-alcance).
+Primero, un esqueleto que se levanta en local con Docker, con el contrato v0.1, para que API, inferencia e interfaz avancen en paralelo contra él. Después, el flujo Base de extremo a extremo, una capacidad cada vez: recibir una clase, transcribirla y generar el repaso, para la presentación del 11 de diciembre; y la revisión docente con publicación y el ensayo con un lote de clases, para la del 15 de diciembre. Las fechas son las de las presentaciones ([PRD §12](PRD.md#12-restricciones-supuestos-y-riesgos)); lo que queda fuera del MVP está en el [PRD §6](PRD.md#6-alcance).
 
 ## Hito 1 — De una grabación al repaso (presentación del 11 de diciembre)
 
-**Resultado:** una clase autorizada se sube desde la web, se procesa en el entorno desplegado y muestra su transcripción diarizada y su repaso pedagógico.
+**Resultado:** una clase autorizada se sube desde la web, se procesa en local con Docker y muestra su transcripción diarizada y su repaso pedagógico.
 
 ### E1 — Walking skeleton con el contrato v0.1 · Issue: [#1](https://github.com/Bootcamp-IA-MAD-P7/Proyecto_Final/issues/1)
 
-- **Resultado:** API, worker, maintenance y web React levantados en local (con y sin Docker), en pruebas y en producción, con `/health`, el contrato v0.1 en [CONTRACTS](CONTRACTS/README.md) y un recorrido falso de extremo a extremo: subir un audio, ver el trabajo y consultar un resultado de ejemplo. Ver [WORKFLOW §5](../WORKFLOW.md#trabajo-por-capas).
+- **Resultado:** API, worker, maintenance y web React levantados en local, con y sin Docker, con `/health`, el contrato v0.1 en [CONTRACTS](CONTRACTS/README.md) y un recorrido falso de extremo a extremo: subir un audio, ver el trabajo y consultar un resultado de ejemplo. Ver [WORKFLOW §5](../WORKFLOW.md#trabajo-por-capas). Mientras no haya servidor no se despliega ([ADR-0005](ADR/0005-local-only-environment.md)).
 - **Requisitos:** RNF-01 (validación de tokens con un emisor de pruebas), RNF-03; prepara el contrato de RF-01 a RF-05 sin implementarlos.
 - **Depende de:** —
 - **Funcionalidades:** `add-walking-skeleton`, que reorienta el cambio existente `add-shared-mvp-contracts`; pendiente de planificar.
@@ -60,7 +60,7 @@ Primero, un esqueleto desplegado en pruebas y producción con el contrato v0.1, 
 
 ### E6 — Ensayo con un lote de clases y entrega · Issue: [#8](https://github.com/Bootcamp-IA-MAD-P7/Proyecto_Final/issues/8)
 
-- **Resultado:** un lote reducido de clases se procesa de extremo a extremo en el entorno desplegado, con tiempos, recursos y limitaciones documentados, y CoTeach recibe la guía de operación.
+- **Resultado:** un lote reducido de clases se procesa de extremo a extremo en el entorno de la demo (en local con Docker mientras no haya servidor), con tiempos, recursos y limitaciones documentados, y CoTeach recibe la guía de operación.
 - **Requisitos:** RNF-04
 - **Depende de:** E4 y E5, porque ensaya el flujo completo.
 - **Funcionalidades:** pendiente

@@ -40,7 +40,7 @@ RF-01 a RF-05 incluyen revisión y publicación. RF-06 (resumen individual grupa
 | Audio | FFmpeg para normalización (Objetivo); faster-whisper con Whisper small multilingüe como primera evaluación | Candidata: modelo por medir | [ADR-0003](ADR/0003-private-inference.md) |
 | Diarización | pyannote.audio con speaker-diarization-community-1; evaluar errores y acceso a pesos | Candidata: modelo por medir | ADR-0003 |
 | Análisis | Qwen3-8B cuantizado mediante llama.cpp, modo sin razonamiento extendido, salida JSON validada | Candidata: modelo por medir | ADR-0003 |
-| Operación | Docker Compose, volúmenes privados y proxy Caddy con TLS en servidor | Objetivo | [ADR-0004](ADR/0004-access-and-retention.md) |
+| Operación | Docker Compose y volúmenes privados, solo en local mientras no haya servidor; proxy Caddy con TLS cuando lo haya | Objetivo | [ADR-0004](ADR/0004-access-and-retention.md), [ADR-0005](ADR/0005-local-only-environment.md) |
 | Calidad | pytest, Ruff, HTTPX y pruebas de contrato; reloj controlable para publicación/purga | Objetivo | ADR-0001 |
 
 Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prueba de compatibilidad, sin usar etiquetas flotantes en entrega. No se ha ejecutado ningún benchmark. No se garantiza calidad multilingüe ni capacidad con este tamaño de modelo.
@@ -178,10 +178,11 @@ Medir segundos de cómputo por minuto de audio, pico RAM/VRAM, tamaño de artefa
 
 | Entorno | Rama | Cuándo se despliega | Estado |
 |---|---|---|---|
-| Pruebas | `dev` | Tras integración con CI verde, despliegue manual documentado inicialmente | Objetivo; servidor pendiente ([§11](#11-preguntas-abiertas)) |
-| Producción | `main` | Tras promoción aprobada, despliegue manual de la versión publicada | Objetivo; servidor pendiente ([§11](#11-preguntas-abiertas)) |
+| Local | cualquiera | En el equipo de cada persona: `make up` (desarrollo) o `make up-prod` (configuración de producción). Las demos se hacen así | Objetivo |
+| Pruebas | `dev` | No se despliega mientras no haya servidor ([ADR-0005](ADR/0005-local-only-environment.md)) | Pendiente de servidor ([§11](#11-preguntas-abiertas)) |
+| Producción | `main` | No se despliega mientras no haya servidor ([ADR-0005](ADR/0005-local-only-environment.md)) | Pendiente de servidor ([§11](#11-preguntas-abiertas)) |
 
-Ambos entornos deben existir desde el walking skeleton según WORKFLOW; usar datos sintéticos hasta resolver consentimiento y acceso. Compose por entorno, bases/volúmenes/secretos separados. El frontend se construye como artefacto estático y accede únicamente a la API REST publicada; no contiene secretos ni decide permisos. Servidor y dominios pendientes de acuerdo; no asumir GPU en el servidor actual de Odoo. Inferencia inicialmente junto al almacenamiento; mover worker a GPU privada solo con conectividad privada y limpieza de copias definida. Sin Kubernetes, broker adicional, vector DB ni entrenamiento propio para diciembre.
+Mientras no haya servidor, el walking skeleton se levanta solo en local y los dos entornos de WORKFLOW §5 se añadirán cuando lo haya ([ADR-0005](ADR/0005-local-only-environment.md)). Usar datos sintéticos hasta resolver consentimiento y acceso. Compose por entorno, bases/volúmenes/secretos separados. El frontend se construye como artefacto estático y accede únicamente a la API REST publicada; no contiene secretos ni decide permisos. Servidor y dominios pendientes de acuerdo; no asumir GPU en el servidor actual de Odoo. Inferencia inicialmente junto al almacenamiento; mover worker a GPU privada solo con conectividad privada y limpieza de copias definida. Sin Kubernetes, broker adicional, vector DB ni entrenamiento propio para diciembre.
 
 Guardar imágenes y migraciones compatibles; respaldar DB antes de migrar y ensayar restauración. CoTeach recibirá instrucciones de operación, purga, recuperación y actualización de modelos con evaluación previa.
 
@@ -196,7 +197,7 @@ Fuentes técnicas consultadas: [faster-whisper](https://github.com/SYSTRAN/faste
 
 Las preguntas de producto (plazo de revisión, retención de derivados, idiomas, identidad de los usuarios, límites de calidad) están en el [PRD §14](PRD.md#14-preguntas-abiertas). Aquí solo las técnicas:
 
-- **Servidores de pruebas y producción** (equipo y Lay): dónde se despliega cada entorno, con qué recursos y dominios, y si hay presupuesto para GPU remota privada. **Bloquea:** la historia de despliegue del walking skeleton.
+- **Servidores de pruebas y producción** (equipo y Lay): dónde se despliega cada entorno, con qué recursos y dominios, y si hay presupuesto para GPU remota privada. **Bloquea:** el despliegue en pruebas y producción, que queda fuera hasta entonces ([ADR-0005](ADR/0005-local-only-environment.md)).
 - **Hardware del equipo** (equipo): RAM y GPU reales de cada equipo y si Docker con GPU funciona en ellos. **Bloquea:** la imagen del worker y la elección de modelos.
 - **Modelos** (equipo): ASR, diarizador y LLM definitivos, tras medir calidad y recursos con audio autorizado de 30 y 60 minutos. **Bloquea:** pasar a Objetivo las filas Candidata de [§2](#2-stack).
 - **Límites de carga** (equipo, con muestras de Lay): formatos, tamaño y duración máximos. **Bloquea:** el contrato de recepción.
