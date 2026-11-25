@@ -12,7 +12,10 @@ services:
   frontend:
     build:
       target: dev
+    environment:
+      REPOSITORY_ROOT: /repo
     volumes:
+      - ./:/repo:ro
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
       - ./backend/openapi.json:/backend/openapi.json:ro

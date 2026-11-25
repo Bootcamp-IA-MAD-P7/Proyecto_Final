@@ -9,7 +9,7 @@
     "lint": "eslint . && tsc -b && npm run check:api",
     "test": "vitest run",
     "generate:api": "openapi-typescript ../backend/openapi.json -o src/api/schema.ts",
-    "check:api": "npm run generate:api && git diff --exit-code -- src/api/schema.ts"
+    "check:api": "npm run generate:api && node scripts/check-api.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.8",
