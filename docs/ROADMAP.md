@@ -38,7 +38,7 @@ Primero, un esqueleto que se levanta en local con Docker, con el contrato v0.1, 
 - **Resultado:** cada trabajo produce la transcripción con intervenciones por hablante y marcas temporales, y la web la muestra.
 - **Requisitos:** RF-02, RF-04 (parte de transcripción), RNF-04
 - **Depende de:** E2, porque transcribe los trabajos que crea. Su `explore` (medir modelos y recursos con las grabaciones autorizadas, [ARCHITECTURE §11](ARCHITECTURE.md#11-preguntas-abiertas)) puede empezar en paralelo a E1.
-- **Funcionalidades:** pendiente
+- **Funcionalidades:** [`add-speaker-diarization`](../openspec/changes/add-speaker-diarization/)
 
 ### E4 — Repaso pedagógico · Issue: [#4](https://github.com/Bootcamp-IA-MAD-P7/Proyecto_Final/issues/4)
 
