@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "unsupported_audio",
+    "message": "El formato del audio no está admitido",
+    "retryable": false
+  },
+  "request_id": "request-demo-06"
+}

@@ -21,6 +21,9 @@ VALID = {
     "error-invalid-participants.json": contract.ErrorResponse,
     "error-unauthenticated.json": contract.ErrorResponse,
     "error-invalid-consent-reference.json": contract.ErrorResponse,
+    "error-audio-too-large.json": contract.ErrorResponse,
+    "error-unsupported-audio.json": contract.ErrorResponse,
+    "error-invalid-audio-duration.json": contract.ErrorResponse,
 }
 INVALID = sorted(path.name for path in (FIXTURES / "invalid").glob("*.json"))
 
