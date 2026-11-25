@@ -31,7 +31,7 @@ Primero, un esqueleto que se levanta en local con Docker, con el contrato v0.1, 
 - **Resultado:** el profesorado sube una grabación desde la web; el servicio la guarda de forma privada, crea un trabajo duradero, muestra su progreso y purga el audio a los 14 días.
 - **Requisitos:** RF-01, RNF-02, RNF-05
 - **Depende de:** E1, porque usa su estructura, su contrato y su despliegue.
-- **Funcionalidades:** pendiente
+- **Funcionalidades:** [`add-class-reception`](../openspec/changes/add-class-reception/)
 
 ### E3 — Transcripción diarizada consultable · Issue: [#3](https://github.com/Bootcamp-IA-MAD-P7/Proyecto_Final/issues/3)
 
