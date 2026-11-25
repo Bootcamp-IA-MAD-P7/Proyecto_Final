@@ -1,14 +1,20 @@
 """Behaviour shared by every JobStore: in memory and on PostgreSQL (ADR-0002)."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 from app.contract import ClassMetadata, JobError, JobErrorCode, JobStage, JobState, Result
 from app.jobs import (
+    AudioAsset,
+    Idempotency,
+    IdempotencyKeyTakenError,
     InMemoryJobStore,
     InvalidJobTransitionError,
     JobNotFoundError,
     JobStore,
     PostgresJobStore,
+    Submission,
 )
 from tests.conftest import load_fixture
 
@@ -171,3 +177,73 @@ def test_requeue_in_progress_returns_unfinished_jobs_to_the_queue(store, metadat
     reclaimed = store.claim_next()
     assert (reclaimed.job_id, reclaimed.attempt) == (in_progress.job_id, 2)
     assert store.requeue_in_progress() == 2
+
+
+# --- Audio and idempotency (add-class-reception) ---------------------------------------------
+
+
+def audio_asset(audio_id: str = "audio-01") -> AudioAsset:
+    received_at = datetime(2026, 11, 25, 12, 0, tzinfo=UTC)
+    return AudioAsset(
+        audio_id=audio_id,
+        storage_key=audio_id,
+        format="opus",
+        size_bytes=123456,
+        duration_seconds=1800.5,
+        sha256="a" * 64,
+        received_at=received_at,
+        expires_at=received_at + timedelta(days=14),
+    )
+
+
+def test_create_class_saves_its_audio(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher", audio=audio_asset())
+
+    assert store.get_audio(stored.class_id) == audio_asset()
+
+
+def test_class_without_audio_has_none(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher")
+
+    assert store.get_audio(stored.class_id) is None
+
+
+def test_submission_is_found_by_its_submitter_and_key(store, metadata):
+    stored = store.create_class(
+        metadata, "demo-teacher", audio=audio_asset(), idempotency=Idempotency("key-1", "f" * 64)
+    )
+
+    found = store.find_submission("demo-teacher", "key-1")
+
+    assert found == Submission(stored.class_id, stored.job_id, "f" * 64)
+    assert store.find_submission("other-teacher", "key-1") is None
+    assert store.find_submission("demo-teacher", "key-2") is None
+
+
+def test_a_taken_key_creates_nothing(store, metadata):
+    first = store.create_class(metadata, "demo-teacher", idempotency=Idempotency("key-1", "1"))
+
+    with pytest.raises(IdempotencyKeyTakenError):
+        store.create_class(
+            metadata,
+            "demo-teacher",
+            audio=audio_asset("audio-02"),
+            idempotency=Idempotency("key-1", "2"),
+        )
+
+    assert store.claim_next().job_id == first.job_id
+    assert store.claim_next() is None
+
+
+def test_the_same_key_of_another_submitter_is_a_new_class(store, metadata):
+    first = store.create_class(metadata, "demo-teacher", idempotency=Idempotency("key-1", "1"))
+    second = store.create_class(metadata, "coteach-service", idempotency=Idempotency("key-1", "1"))
+
+    assert first.class_id != second.class_id
+
+
+def test_classes_without_a_key_never_collide(store, metadata):
+    first = store.create_class(metadata, "demo-teacher")
+    second = store.create_class(metadata, "demo-teacher")
+
+    assert first.class_id != second.class_id

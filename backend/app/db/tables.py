@@ -1,18 +1,21 @@
-"""Tables of classes, participants, jobs and results. Migrations live in backend/migrations."""
+"""Tables of classes, participants, jobs, results and audio. Migrations: backend/migrations."""
 
 from __future__ import annotations
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     Column,
     DateTime,
+    Double,
     ForeignKey,
     Integer,
     MetaData,
     String,
     Table,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -30,6 +33,11 @@ classes = Table(
     Column("consent_reference", String(128), nullable=False),
     Column("submitted_by", ID, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    # Idempotency-Key of the submission and the sha256 of its audio and metadata (spec
+    # class-processing). NULL keys never collide, so submissions without the header are new.
+    Column("idempotency_key", String(128)),
+    Column("request_fingerprint", String(64)),
+    UniqueConstraint("submitted_by", "idempotency_key", name="classes_idempotency_key"),
 )
 
 participants = Table(
@@ -73,4 +81,29 @@ results = Table(
     Column("result_version", Integer, nullable=False),
     Column("body", JSONB, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+)
+
+audio_assets = Table(
+    "audio_assets",
+    metadata,
+    Column("audio_id", ID, primary_key=True),
+    Column(
+        "class_id",
+        ID,
+        ForeignKey("classes.class_id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    ),
+    # Opaque name of the file in the AudioStorage: never sent to a client or a log.
+    Column("storage_key", ID, nullable=False, unique=True),
+    Column("format", String(16), nullable=False),
+    Column("size_bytes", BigInteger, nullable=False),
+    Column("duration_seconds", Double, nullable=False),
+    Column("sha256", String(64), nullable=False),
+    Column("received_at", DateTime(timezone=True), nullable=False),
+    # Purge date (spec audio-retention): maintenance looks for the expired ones.
+    Column("expires_at", DateTime(timezone=True), nullable=False, index=True),
+    Column("deleted_at", DateTime(timezone=True)),
+    CheckConstraint("size_bytes >= 0", name="audio_assets_size_non_negative"),
+    CheckConstraint("duration_seconds >= 0", name="audio_assets_duration_non_negative"),
 )
