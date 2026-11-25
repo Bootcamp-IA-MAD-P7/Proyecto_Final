@@ -34,14 +34,14 @@ RF-01 a RF-05 incluyen revisión y publicación. RF-06 (resumen individual grupa
 
 | Área | Tecnología propuesta y compromiso | Estado | Decisión |
 |---|---|---|---|
-| API y dominio | Python 3.11, FastAPI, Pydantic 2; validación y OpenAPI, sin inferencia dentro de peticiones HTTP | Objetivo | [ADR-0001](ADR/0001-modular-backend.md) |
-| Persistencia | PostgreSQL 17, SQLAlchemy 2, Alembic; mismo motor en desarrollo y producción | Objetivo | [ADR-0002](ADR/0002-durable-jobs.md) |
-| Interfaz de demostración | React, TypeScript y Vite; cliente web separado, tipos alineados con el contrato y autorización siempre en FastAPI | Objetivo | ADR-0001 |
+| API y dominio | Python 3.11, FastAPI, Pydantic 2; validación y OpenAPI, sin inferencia dentro de peticiones HTTP | Actual | [ADR-0001](ADR/0001-modular-backend.md) |
+| Persistencia | PostgreSQL 17, SQLAlchemy 2, Alembic; mismo motor en desarrollo y producción | Actual | [ADR-0002](ADR/0002-durable-jobs.md) |
+| Interfaz de demostración | React, TypeScript y Vite; cliente web separado, tipos alineados con el contrato y autorización siempre en FastAPI | Actual | ADR-0001 |
 | Audio | FFmpeg para normalización (Objetivo); faster-whisper con Whisper small multilingüe como primera evaluación | Candidata: modelo por medir | [ADR-0003](ADR/0003-private-inference.md) |
 | Diarización | pyannote.audio con speaker-diarization-community-1; evaluar errores y acceso a pesos | Candidata: modelo por medir | ADR-0003 |
 | Análisis | Qwen3-8B cuantizado mediante llama.cpp, modo sin razonamiento extendido, salida JSON validada | Candidata: modelo por medir | ADR-0003 |
-| Operación | Docker Compose y volúmenes privados, solo en local mientras no haya servidor; proxy Caddy con TLS cuando lo haya | Objetivo | [ADR-0004](ADR/0004-access-and-retention.md), [ADR-0005](ADR/0005-local-only-environment.md) |
-| Calidad | pytest, Ruff, HTTPX y pruebas de contrato; reloj controlable para publicación/purga | Objetivo | ADR-0001 |
+| Operación | Docker Compose y volúmenes privados, solo en local mientras no haya servidor; proxy Caddy con TLS cuando lo haya | Actual: Compose local. Objetivo: volúmenes privados y Caddy | [ADR-0004](ADR/0004-access-and-retention.md), [ADR-0005](ADR/0005-local-only-environment.md) |
+| Calidad | pytest, Ruff, HTTPX y pruebas de contrato; reloj controlable para publicación/purga | Actual. Objetivo: reloj controlable | ADR-0001 |
 
 Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prueba de compatibilidad, sin usar etiquetas flotantes en entrega. No se ha ejecutado ningún benchmark. No se garantiza calidad multilingüe ni capacidad con este tamaño de modelo.
 
@@ -182,7 +182,7 @@ Medir segundos de cómputo por minuto de audio, pico RAM/VRAM, tamaño de artefa
 
 | Entorno | Rama | Cuándo se despliega | Estado |
 |---|---|---|---|
-| Local | cualquiera | En el equipo de cada persona: `make up` (desarrollo) o `make up-prod` (configuración de producción). Las demos se hacen así | Objetivo |
+| Local | cualquiera | En el equipo de cada persona: `make up` (desarrollo) o `make up-prod` (configuración de producción). Las demos se hacen así | Actual |
 | Pruebas | `dev` | No se despliega mientras no haya servidor ([ADR-0005](ADR/0005-local-only-environment.md)) | Pendiente de servidor ([§11](#11-preguntas-abiertas)) |
 | Producción | `main` | No se despliega mientras no haya servidor ([ADR-0005](ADR/0005-local-only-environment.md)) | Pendiente de servidor ([§11](#11-preguntas-abiertas)) |
 
