@@ -3,3 +3,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Audio received when running the backend locally (AUDIO_STORAGE_DIR): never versioned
+data/
