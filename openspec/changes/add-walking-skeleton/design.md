@@ -77,7 +77,7 @@ No van a `docs/CONTRACTS/` porque no cruzan componentes desplegados por separado
 
 ### Cola y procesos de fondo
 
-Según [ADR-0002](../../../docs/ADR/0002-durable-jobs.md): tabla de trabajos en PostgreSQL, reclamación con transacción corta y `FOR UPDATE SKIP LOCKED`, un único worker y, al arrancar, los trabajos que quedaron en curso vuelven a la cola. `FakePipeline` espera `FAKE_STAGE_SECONDS` por etapa y devuelve el resultado sintético de los ejemplos, validado contra el contrato. `maintenance` ejecuta un ciclo cada `MAINTENANCE_INTERVAL_SECONDS` que de momento solo registra actividad; la publicación al vencer llega en E5 y la purga del audio en E2.
+Según [ADR-0002](../../../docs/ADR/0002-durable-jobs.md): tabla de trabajos en PostgreSQL, reclamación con transacción corta y `FOR UPDATE SKIP LOCKED`, un único worker y, al arrancar, los trabajos que quedaron en curso vuelven a la cola. `FakePipeline` espera `FAKE_STAGE_SECONDS` por etapa y devuelve el resultado sintético de los ejemplos, validado contra el contrato. El worker consulta la cola cada `WORKER_POLL_SECONDS` cuando está vacía y guarda la primera versión del resultado pendiente de revisión, con `review_due_at` a `REVIEW_PERIOD_HOURS` (24 h por defecto, PRD DEC-05, sin fijar el plazo en el código). `maintenance` ejecuta un ciclo cada `MAINTENANCE_INTERVAL_SECONDS` que de momento solo registra actividad; la publicación al vencer llega en E5 y la purga del audio en E2.
 
 ### Autenticación y acceso en el skeleton
 
