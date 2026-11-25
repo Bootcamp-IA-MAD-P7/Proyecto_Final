@@ -5,15 +5,31 @@ services:
   backend:
     build:
       target: dev
+    environment:
+      # The web of `frontend`; the browser sees it on localhost.
+      FRONTEND_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
     volumes:
       - ./backend:/app
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+  worker:
+    build:
+      target: dev
+    volumes:
+      - ./backend:/app
+  maintenance:
+    build:
+      target: dev
+    volumes:
+      - ./backend:/app
   frontend:
     build:
       target: dev
     environment:
       REPOSITORY_ROOT: /repo
+      # The browser calls the real API of `backend` on localhost, without mocks.
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}
+      VITE_API_MOCKS: "false"
     volumes:
       - ./:/repo:ro
       - ./frontend:/app
