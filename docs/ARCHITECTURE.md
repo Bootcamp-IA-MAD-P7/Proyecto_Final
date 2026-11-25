@@ -49,10 +49,12 @@ Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prue
 
 | Componente | Responsabilidad | Datos que posee | Depende de | Estado |
 |---|---|---|---|---|
-| api | Recepción, autorización por clase, validación, consulta, edición y aprobación | Clases, permisos, revisiones y resultados publicados | PostgreSQL, almacenamiento | Objetivo |
-| worker | Normalizar, transcribir, diarizar, combinar intervenciones, analizar | Artefactos por etapa y metadatos de ejecución | Cola PostgreSQL, audio, modelos | Objetivo |
-| maintenance | Publicar vencidos y purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Objetivo |
-| frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Objetivo |
+| api | Recepción, autorización por clase, validación, consulta, edición y aprobación | Clases, permisos, revisiones y resultados publicados | PostgreSQL, almacenamiento | Actual |
+| worker | Normalizar, transcribir, diarizar, combinar intervenciones, analizar | Artefactos por etapa y metadatos de ejecución | Cola PostgreSQL, audio, modelos | Actual |
+| maintenance | Publicar vencidos y purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Actual |
+| frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Actual |
+
+Los cuatro funcionan de extremo a extremo desde el walking skeleton ([add-walking-skeleton](../openspec/changes/add-walking-skeleton/design.md)), aún con responsabilidades parciales: el worker procesa con `FakePipeline`, que devuelve un resultado sintético, hasta que E3 y E4 traigan los modelos, y maintenance solo registra sus ciclos hasta que E2 y E5 añadan la purga y la publicación al vencer.
 
 API, worker y maintenance comparten paquete de dominio y migraciones; no son microservicios independientes. La IA se encapsula en adaptadores para sustituir modelos sin cambiar la API pública. Ningún modelo decide permisos ni ejecuta instrucciones contenidas en el audio.
 
@@ -60,26 +62,31 @@ Reparto propuesto entre tres personas, sin crear aún historias: persona A, API/
 
 ## 4. Estructura del repositorio
 
-Actual: documentación, OpenSpec, Makefile, Compose de plantilla y workflows de CI; todavía no hay ningún servicio.
-
-Estructura objetivo, que crea el walking skeleton:
+Actual, desde el walking skeleton:
 
 ```text
-backend/                 # Makefile, Dockerfile dev/prod, .env.example
-  app/api/
-  app/domain/
-  app/inference/
-  app/jobs/
-  app/storage/
+backend/                 # Makefile, Dockerfile dev/prod, .env.example; imagen de api, worker y maintenance
+  app/api/               # rutas /v1, /health, /ready y el emisor de pruebas /dev/token
+  app/auth/              # tokens firmados y roles
+  app/contract/          # modelos del contrato; generan backend/openapi.json
+  app/db/                # tablas y migración al arrancar
+  app/jobs/              # JobStore en PostgreSQL
+  app/inference/         # InferencePipeline y FakePipeline
+  app/storage/           # AudioStorage y validación con ffprobe
+  app/worker/            # python -m app.worker
+  app/maintenance/       # python -m app.maintenance
   migrations/
   tests/
 frontend/                # React + TypeScript + Vite; Makefile, Dockerfile dev/prod, .env.example
-  src/
-  tests/
+  src/                   # vistas, cliente tipado (src/api/schema.ts generado) y mocks MSW
+  e2e/                   # Playwright contra el stack levantado (make e2e)
   package.json
-docs/CONTRACTS/           # contratos por aprobar en fase 2
+docs/CONTRACTS/
 docs/ADR/
 openspec/
+compose.yaml             # backend, worker, maintenance, frontend y db
+compose.override.yaml    # desarrollo (make up)
+compose.production.yaml  # producción en local (make up-prod)
 ```
 
 El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios y secretos se almacenan fuera del árbol versionado. `app/storage/` guarda el audio tras la interfaz `AudioStorage` (en disco, bajo `AUDIO_STORAGE_DIR`, con nombres opacos) y lo valida por su contenido con `ffprobe` ([add-class-reception](../openspec/changes/add-class-reception/design.md)). Se conserva un único Makefile raíz y los tres archivos Compose existentes.
@@ -144,7 +151,9 @@ Windows 11 + Git Bash permanece válido para Make, CLI, API e interfaz. Python 3
 
 Advertencia técnica concreta: [Docker Desktop ofrece GPU en Windows mediante backend WSL2](https://docs.docker.com/desktop/features/gpu/). Esto no obliga a mover el checkout ni usar una terminal WSL, pero sí requiere ese backend para GPU en contenedores. Si se evita WSL2 totalmente, evaluar worker GPU nativo Windows o servidor Linux privado; CPU permanece como alternativa de pruebas. No se ha verificado compatibilidad del equipo real.
 
-Puertos candidatos: API 8000, servidor de desarrollo Vite 5173 y PostgreSQL 5432 solo en localhost/red privada; producción expone únicamente TLS por proxy y sirve el artefacto estático del frontend. Si frontend y API usan orígenes distintos en desarrollo, la política CORS se restringirá a los orígenes configurados. Los comandos serán objetivos Makefile según CONTRIBUTING; no se añaden en esta fase.
+Puertos en local, publicados solo en 127.0.0.1: API 8000 (`BACKEND_PORT`) y web 5173 (`FRONTEND_PORT`), con Vite en desarrollo y nginx con el artefacto estático en `make up-prod` (8080 si no se fija `FRONTEND_PORT`). PostgreSQL usa el 5432 solo dentro de la red de Compose; worker y maintenance no publican puertos. En un despliegue real, producción expone únicamente TLS por proxy. Web y API tienen orígenes distintos, así que CORS admite solo `FRONTEND_ORIGIN`, que Compose fija al puerto de la web.
+
+`make up` levanta los cinco servicios; el worker espera a que `backend` esté sano (`/ready`), porque es la API la que aplica las migraciones al arrancar. Con `make up-prod`, el emisor de pruebas está apagado salvo con `AUTH_DEV_ISSUER=true` para una demo local. `make e2e` ejecuta Playwright en el equipo contra lo levantado; no corre en el CI. Todos los comandos están en `make help`.
 
 | Modalidad | Ventajas | Límites y costes | Uso propuesto |
 |---|---|---|---|
