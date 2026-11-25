@@ -19,6 +19,8 @@ Plan de la funcionalidad `add-speaker-diarization` (E3, épica #3). Una sección
 
 ## 2. Etapa DIARIZING en inference pipeline y worker (backend)
 
+**Nota:** el diseño está en [design.md](design.md); la spec del cambio vive en `openspec/changes/add-speaker-diarization/specs/diarization/spec.md` y se aplica al archivar.
+
 **Criterios de aceptación:**
 - El `InferencePipeline` implementa la etapa de diarización y devuelve `Transcript` con `speakers` (`speaker_id`, `participant_id` nullable) y `segments` (`segment_id`, `start_ms`, `end_ms`, `speaker_id`, `text`).
 - El worker avanza un trabajo por la etapa `DIARIZING` y la completa o la mueve a `failed` con un código de error del contrato (`processing_failed`, `invalid_audio`).
@@ -27,10 +29,10 @@ Plan de la funcionalidad `add-speaker-diarization` (E3, épica #3). Una sección
 
 **Depende de:** 1
 
-- [ ] 2.1 Implementar el adaptador de diarización sobre `InferencePipeline` con pyannote.audio y fallback a la alternativa de código abierto.
-- [ ] 2.2 Implementar el cruce de intervalos entre diarización y transcripción para atribuir `speaker_id` a cada segmento.
-- [ ] 2.3 Conectar el worker con la etapa `DIARIZING`: avanzar, completar con `Result` o fallar con `JobError`.
-- [ ] 2.4 Añadir pruebas unitarias de la etapa de diarización con audio sintético y de los casos de error.
+- [x] 2.1 Implementar el adaptador de diarización sobre `InferencePipeline` con pyannote.audio y fallback a la alternativa de código abierto (`backend/app/inference/diarization.py`).
+- [x] 2.2 Implementar el cruce de intervalos entre diarización y transcripción para atribuir `speaker_id` a cada segmento (`RealPipeline`).
+- [x] 2.3 Conectar el worker con la etapa `DIARIZING`: avanzar, completar con `Result` o fallar con `JobError` (`app/worker/__main__.py`).
+- [x] 2.4 Añadir pruebas unitarias de la etapa de diarización con audio sintético y de los casos de error (`tests/test_diarization_pipeline.py`).
 
 ## 3. Pruebas de DER y atribución con audio anotado (backend)
 

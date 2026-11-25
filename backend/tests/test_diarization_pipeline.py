@@ -50,6 +50,17 @@ def test_run_diarization_two_speakers(tmp_path):
         assert seg.speaker_id
 
 
+def test_group_segments_no_zero_length_segments():
+    """Segmentos nunca tienen fin <= inicio (anterior: ValidationError de contrato)."""
+    from app.inference.diarization import group_segments
+
+    for speaker_ids in ([0], [0, 1], [0, 0, 1], [1, 0, 1, 0, 0]):
+        segments = group_segments(speaker_ids, 0.1)
+        assert segments
+        for seg in segments:
+            assert seg.end_s > seg.start_s, seg
+
+
 def test_transcript_from_diarization_complies_with_contract():
     """Transcript v0.1: speakers distintos y segmentos con end_ms > start_ms."""
     transcript = transcript_from_diarization(
