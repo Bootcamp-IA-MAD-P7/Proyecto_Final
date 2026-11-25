@@ -82,13 +82,13 @@ docs/ADR/
 openspec/
 ```
 
-El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios y secretos se almacenan fuera del árbol versionado. Se conserva un único Makefile raíz y los tres archivos Compose existentes.
+El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios y secretos se almacenan fuera del árbol versionado. `app/storage/` guarda el audio tras la interfaz `AudioStorage` (en disco, bajo `AUDIO_STORAGE_DIR`, con nombres opacos) y lo valida por su contenido con `ffprobe` ([add-class-reception](../openspec/changes/add-class-reception/design.md)). Se conserva un único Makefile raíz y los tres archivos Compose existentes.
 
 ## 5. Flujos principales
 
 ### Recepción y procesamiento
 
-1. API autentica al emisor y valida acceso a la clase, referencia del consentimiento, participantes y límites de tamaño/duración configurados. Formatos comprimidos exactos pendientes de muestras.
+1. API autentica al emisor y valida acceso a la clase, referencia del consentimiento, participantes y límites de tamaño/duración configurados. Formatos admitidos y límites por defecto: [contrato](CONTRACTS/coteach-ai-api.md).
 2. Escritura temporal con nombre opaco, validación de contenido y movimiento al almacenamiento privado. Transacción crea clase/audio/trabajo; responder 202 solo tras persistencia. Un limpiador elimina huérfanos de cargas fallidas.
 3. Worker reclama un trabajo mediante transacción corta; transcribe y diariza por separado y cruza intervalos temporales. No mantiene bloqueos de base de datos durante inferencia.
 4. Los hablantes reciben identificadores de sesión. Los nombres aportados no identifican voces por sí solos: proponer asignación manual docente. Solapamientos o asignaciones ambiguas quedan señalados, nunca inventados.
@@ -118,7 +118,7 @@ OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silencio
 | api → frontend, CoTeach | API REST `/v1` (recepción, trabajos, resultado, revisión y aprobación) y `/health`, `/ready` | Contrato [API de CoTeach AI](CONTRACTS/coteach-ai-api.md), con `backend/openapi.json` como artefacto ejecutable |
 | worker → api (mismo paquete) | `JobStore` e `InferencePipeline` | [Diseño de add-walking-skeleton](../openspec/changes/add-walking-skeleton/design.md#interfaces-internas); no es un contrato publicado |
 
-Los campos, estados y errores solo se describen en el contrato. Quedan pendientes los límites de duración, formato y tamaño del audio ([§11](#11-preguntas-abiertas)); las referencias internas a segmentos no constituyen navegación temporal (RF-07).
+Los campos, estados y errores solo se describen en el contrato. Los formatos y los límites de duración y tamaño del audio están en el [contrato](CONTRACTS/coteach-ai-api.md); las referencias internas a segmentos no constituyen navegación temporal (RF-07).
 
 ## 6. Datos, configuración y secretos
 
@@ -195,6 +195,5 @@ Las preguntas de producto (plazo de revisión, retención de derivados, idiomas,
 - **Servidores de pruebas y producción** (equipo y Lay): dónde se despliega cada entorno, con qué recursos y dominios, y si hay presupuesto para GPU remota privada. **Bloquea:** el despliegue en pruebas y producción, que queda fuera hasta entonces ([ADR-0005](ADR/0005-local-only-environment.md)).
 - **Hardware del equipo** (equipo): RAM y GPU reales de cada equipo y si Docker con GPU funciona en ellos. **Bloquea:** la imagen del worker y la elección de modelos.
 - **Modelos** (equipo): ASR, diarizador y LLM definitivos, tras medir calidad y recursos con audio autorizado de 30 y 60 minutos. **Bloquea:** pasar a Objetivo las filas Candidata de [§2](#2-stack).
-- **Límites de carga** (equipo, con muestras de Lay): formatos, tamaño y duración máximos. **Bloquea:** el contrato de recepción.
 - **Emisor de identidad** (CoTeach): quién emite los tokens y cómo se resuelve la pertenencia a una clase. Mientras, la demo usa un emisor de pruebas aislado ([ADR-0004](ADR/0004-access-and-retention.md)). **Bloquea:** producción con usuarios reales.
 - **Licencias** (equipo y CoTeach): licencia del código y revisión de licencias de pesos y dependencias. **Bloquea:** el primer código publicado y aceptar los modelos.
