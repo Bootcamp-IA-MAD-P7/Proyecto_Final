@@ -28,6 +28,18 @@ def _number(env: Mapping[str, str], name: str, default: float, *, zero: bool = F
     return value
 
 
+def _whole(env: Mapping[str, str], name: str, default: int) -> int:
+    """A whole number of the environment above 0."""
+    raw = env.get(name)
+    try:
+        value = int(raw) if raw else default
+    except ValueError:
+        raise ValueError(f"{name} must be a whole number") from None
+    if value <= 0:
+        raise ValueError(f"{name} must be a whole number above 0")
+    return value
+
+
 def _dev_users(value: str) -> dict[str, Role]:
     users: dict[str, Role] = {}
     for entry in filter(None, (item.strip() for item in value.split(","))):
@@ -60,6 +72,20 @@ class Settings:
     """Wait of the worker when the queue is empty or the database is not available."""
     maintenance_interval_seconds: float = 60
     """Time between two maintenance cycles."""
+    upload_max_bytes: int = 150 * 1024 * 1024
+    """Largest audio accepted by POST /v1/classes (413 audio_too_large above it)."""
+    upload_min_seconds: float = 60
+    """Shortest audio accepted (422 invalid_audio_duration below it)."""
+    upload_max_seconds: float = 2 * 60 * 60
+    """Longest audio accepted (422 invalid_audio_duration above it)."""
+    audio_retention_days: float = 14
+    """Days the original audio is kept before maintenance purges it (RNF-02, ADR-0004)."""
+    audio_storage_dir: str = "data/audio"
+    """Private directory of the audio, outside Git. Relative to the working directory."""
+
+    def __post_init__(self) -> None:
+        if self.upload_min_seconds > self.upload_max_seconds:
+            raise ValueError("UPLOAD_MIN_SECONDS cannot be above UPLOAD_MAX_SECONDS")
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
@@ -84,4 +110,13 @@ class Settings:
             maintenance_interval_seconds=_number(
                 env, "MAINTENANCE_INTERVAL_SECONDS", defaults.maintenance_interval_seconds
             ),
+            upload_max_bytes=_whole(env, "UPLOAD_MAX_BYTES", defaults.upload_max_bytes),
+            upload_min_seconds=_number(
+                env, "UPLOAD_MIN_SECONDS", defaults.upload_min_seconds, zero=True
+            ),
+            upload_max_seconds=_number(env, "UPLOAD_MAX_SECONDS", defaults.upload_max_seconds),
+            audio_retention_days=_number(
+                env, "AUDIO_RETENTION_DAYS", defaults.audio_retention_days
+            ),
+            audio_storage_dir=env.get("AUDIO_STORAGE_DIR") or defaults.audio_storage_dir,
         )

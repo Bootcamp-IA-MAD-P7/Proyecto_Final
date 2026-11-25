@@ -1,13 +1,16 @@
-"""Routes of the contract v0.1 under /v1.
+"""Routes of the contract under /v1.
 
 They declare inputs, outputs and errors of the contract and answer from the JobStore. Access to
-each class is resolved on the server (spec api-access). Review and approval answer the contract
+each class is resolved on the server (spec api-access). The audio of a class is validated and kept
+in the private AudioStorage (add-class-reception). Review and approval answer the contract
 examples without saving anything until E5.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+from datetime import UTC, datetime, timedelta
 from functools import cache
 from pathlib import Path as FilePath
 from typing import Annotated, Any
@@ -38,7 +41,26 @@ from app.contract import (
     ReviewRequest,
 )
 from app.db import database_available
-from app.jobs import JobStore, StoredClass
+from app.jobs import (
+    AudioAsset,
+    Idempotency,
+    IdempotencyKeyTakenError,
+    JobStore,
+    StoredClass,
+    Submission,
+)
+from app.jobs.store import new_id
+from app.settings import Settings
+from app.storage import (
+    AudioLimits,
+    AudioProbe,
+    AudioStorage,
+    AudioTooLargeError,
+    InvalidAudioDurationError,
+    ReceivedAudio,
+    UnsupportedAudioError,
+    receive_audio,
+)
 
 EXAMPLES = FilePath(__file__).resolve().parents[1] / "contract" / "examples"
 
@@ -51,6 +73,16 @@ def get_store(request: Request) -> JobStore:
 
 
 Store = Annotated[JobStore, Depends(get_store)]
+
+
+def get_submitter(principal: CurrentPrincipal) -> Principal:
+    """A teacher or the service credential. As a dependency, 403 comes before a 422 of the body."""
+    if not can_submit(principal):
+        raise ApiError(403, ErrorCode.FORBIDDEN)
+    return principal
+
+
+Submitter = Annotated[Principal, Depends(get_submitter)]
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(get_principal)])
 operation_router = APIRouter(tags=["operation"])
@@ -109,14 +141,89 @@ def submit_class(
         ),
     ] = None,
     *,
-    principal: CurrentPrincipal,
+    principal: Submitter,
     store: Store,
+    request: Request,
 ) -> ClassAccepted:
-    # The audio is received and validated in E2; the walking skeleton does not keep it.
-    if not can_submit(principal):
-        raise ApiError(403, ErrorCode.FORBIDDEN)
-    stored = store.create_class(metadata, submitted_by=principal.subject)
+    # Order of the errors (contract): 401 and 403, 422 of the metadata (both before this body
+    # runs), 413, 415, 422 invalid_audio_duration and, last, 409 idempotency_conflict.
+    settings: Settings = request.app.state.settings
+    storage: AudioStorage = request.app.state.storage
+    received = _receive(audio, storage, request.app.state.probe, settings)
+    idempotency = (
+        Idempotency(idempotency_key, _fingerprint(received, metadata)) if idempotency_key else None
+    )
+    try:
+        if idempotency is not None:
+            previous = store.find_submission(principal.subject, idempotency.key)
+            if previous is not None:
+                return _same_submission(store, previous, idempotency)
+        audio_id = new_id("audio")
+        storage_key = storage.commit(received.temporary_key, audio_id)
+    finally:
+        # Still there only when nothing was committed: a replay, a conflict or an error.
+        storage.delete(received.temporary_key)
+
+    received_at = datetime.now(UTC)
+    asset = AudioAsset(
+        audio_id=audio_id,
+        storage_key=storage_key,
+        format=received.format,
+        size_bytes=received.size_bytes,
+        duration_seconds=received.duration_seconds,
+        sha256=received.sha256,
+        received_at=received_at,
+        expires_at=received_at + timedelta(days=settings.audio_retention_days),
+    )
+    try:
+        stored = store.create_class(metadata, principal.subject, asset, idempotency)
+    except IdempotencyKeyTakenError:
+        # An identical request with the same key won the race: answer as a replay of it.
+        storage.delete(storage_key)
+        previous = store.find_submission(principal.subject, idempotency.key)
+        if previous is None:
+            # The winning class disappeared in between: nothing to replay, a 500 is honest.
+            raise
+        return _same_submission(store, previous, idempotency)
+    except BaseException:
+        storage.delete(storage_key)
+        raise
     return ClassAccepted(class_id=stored.class_id, job_id=stored.job_id, state=JobState.QUEUED)
+
+
+def _receive(
+    audio: UploadFile, storage: AudioStorage, probe: AudioProbe, settings: Settings
+) -> ReceivedAudio:
+    limits = AudioLimits(
+        max_bytes=settings.upload_max_bytes,
+        min_seconds=settings.upload_min_seconds,
+        max_seconds=settings.upload_max_seconds,
+    )
+    try:
+        return receive_audio(audio.file, storage, probe, limits)
+    except AudioTooLargeError as error:
+        raise ApiError(413, ErrorCode.AUDIO_TOO_LARGE) from error
+    except UnsupportedAudioError as error:
+        raise ApiError(415, ErrorCode.UNSUPPORTED_AUDIO) from error
+    except InvalidAudioDurationError as error:
+        raise ApiError(422, ErrorCode.INVALID_AUDIO_DURATION) from error
+
+
+def _fingerprint(received: ReceivedAudio, metadata: ClassMetadata) -> str:
+    """sha256 of the audio and of the normalized metadata: what makes two submissions equal."""
+    content = {"audio_sha256": received.sha256, "metadata": metadata.model_dump(mode="json")}
+    normalized = json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _same_submission(
+    store: JobStore, previous: Submission, idempotency: Idempotency
+) -> ClassAccepted:
+    if previous.fingerprint != idempotency.fingerprint:
+        raise ApiError(409, ErrorCode.IDEMPOTENCY_CONFLICT)
+    job = store.get_job(previous.job_id)
+    state = job.state if job is not None else JobState.QUEUED
+    return ClassAccepted(class_id=previous.class_id, job_id=previous.job_id, state=state)
 
 
 @router.get(
