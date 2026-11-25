@@ -49,11 +49,11 @@ Plan de la funcionalidad `add-walking-skeleton` (E1, épica #1). Una sección po
 
 **Depende de:** 1
 
-- [ ] 3.1 Implementar `FakePipeline` sobre `InferencePipeline`: devuelve el resultado sintético de los ejemplos, validado contra el contrato, y espera `FAKE_STAGE_SECONDS` por etapa.
-- [ ] 3.2 Implementar el bucle del worker sobre `JobStore`: reclamar, avanzar de etapa, completar o fallar, con un único worker.
-- [ ] 3.3 Devolver a la cola los trabajos en curso al arrancar y registrarlo en el log.
-- [ ] 3.4 Crear `maintenance` con su ciclo cada `MAINTENANCE_INTERVAL_SECONDS`, que de momento solo registra actividad.
-- [ ] 3.5 Añadir las entradas `python -m app.worker` y `python -m app.maintenance` y sus tests con la `JobStore` en memoria.
+- [x] 3.1 Implementar `FakePipeline` sobre `InferencePipeline`: devuelve el resultado sintético de los ejemplos, validado contra el contrato, y espera `FAKE_STAGE_SECONDS` por etapa.
+- [x] 3.2 Implementar el bucle del worker sobre `JobStore`: reclamar, avanzar de etapa, completar o fallar, con un único worker.
+- [x] 3.3 Devolver a la cola los trabajos en curso al arrancar y registrarlo en el log.
+- [x] 3.4 Crear `maintenance` con su ciclo cada `MAINTENANCE_INTERVAL_SECONDS`, que de momento solo registra actividad.
+- [x] 3.5 Añadir las entradas `python -m app.worker` y `python -m app.maintenance` y sus tests con la `JobStore` en memoria.
 
 ## 4. Web React contra el contrato (frontend) · #37
 
