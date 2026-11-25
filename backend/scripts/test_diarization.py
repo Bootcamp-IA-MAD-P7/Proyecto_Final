@@ -12,6 +12,18 @@ Motores (en orden de preferencia):
 Requisitos:
     - pyannote.audio, torch (motor real; requiere GPU recomendada y acceso a pesos)
     - librosa, scikit-learn, numpy, soundfile (fallback de código abierto, sin GPU)
+
+Instalación del motor real (pyannote.audio):
+
+    pip install pyannote.audio
+    python scripts/test_diarization.py audio.wav --n-speakers 2
+
+En Windows sin GPU: instala las dependencias del fallback (`pip install
+librosa scikit-learn numpy soundfile`) y omite o desinstala pyannote.audio;
+el script lo detecta y usa librosa + scikit-learn. Los pesos de
+pyannote/speaker-diarization-3.1 se descargan automáticamente la primera
+vez que se usa (requiere acceso a Hugging Face y GPU de 8-12 GB VRAM
+recomendada, según el ADR-0003).
 """
 
 from __future__ import annotations
@@ -35,7 +47,12 @@ class Diarizer(Protocol):
 
 
 class PyannoteDiarizer:
-    """Diarización real con pyannote.audio (speaker-diarization-community-1)."""
+    """Diarización real con pyannote.audio.
+
+    Usa ``speaker-diarization-3.1``, que soporta pyannote.audio 3.2.0. Nota:
+    ``speaker-diarization-community-1`` ya no se carga en las versiones actuales
+    de pyannote.audio; se migrará al modelo según evoluciones el ADR-0003.
+    """
 
     def diarize(self, audio_path: str, n_speakers: int) -> list[tuple[float, float, str]]:
         try:
@@ -88,12 +105,10 @@ class SklearnDiarizer:
             )
             labels = clustering.fit_predict(mfcc)
 
-        return group_segments(labels, HOP_SECONDS, n_speakers)
+        return group_segments(labels, HOP_SECONDS)
 
 
-def group_segments(
-    speaker_ids: list[int], hop_seconds: float, n_speakers: int
-) -> list[tuple[float, float, str]]:
+def group_segments(speaker_ids: list[int], hop_seconds: float) -> list[tuple[float, float, str]]:
     """Agrupa frames consecutivos del mismo speaker en segmentos (start_s, end_s, speaker_id)."""
     if len(speaker_ids) == 0:
         return []
@@ -128,12 +143,17 @@ def group_segments(
 
 
 def load_diarizer() -> Diarizer:
-    """Devuelve el mejor motor disponible: pyannote.audio primero, sklearn de fallback."""
+    """Devuelve el mejor motor disponible: pyannote.audio primero, sklearn de fallback.
+
+    El intento de pyannote.audio se trata con una excepción amplia: algunas versiones
+    lanzan AttributeError otro que ImportError (por numpy incompatible o falta de
+    credenciales); en esos casos se usa el fallback SklearnDiarizer.
+    """
     try:
         import pyannote.audio  # noqa: F401  (comprueba que el paquete existe)
 
         return PyannoteDiarizer()
-    except ImportError:
+    except Exception:  # pyannote.audio no importable, versión incompatible o sin acceso a pesos
         pass
 
     try:

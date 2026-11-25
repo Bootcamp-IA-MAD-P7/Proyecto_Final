@@ -32,7 +32,7 @@ def test_group_segments_groups_consecutive_speakers():
     from scripts.test_diarization import group_segments
 
     speaker_ids = [0, 0, 0, 1, 1, 0, 0]
-    segments = group_segments(speaker_ids, hop_seconds=0.1, n_speakers=2)
+    segments = group_segments(speaker_ids, hop_seconds=0.1)
 
     _approx_segments(
         segments,
@@ -47,7 +47,7 @@ def test_group_segments_groups_consecutive_speakers():
 def test_group_segments_empty_returns_empty():
     from scripts.test_diarization import group_segments
 
-    assert group_segments([], hop_seconds=0.1, n_speakers=2) == []
+    assert group_segments([], hop_seconds=0.1) == []
 
 
 def test_sklearn_diarizer_two_speakers_on_synthetic_audio(tmp_path):
