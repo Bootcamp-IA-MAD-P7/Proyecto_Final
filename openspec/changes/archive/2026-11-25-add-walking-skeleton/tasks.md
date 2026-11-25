@@ -89,4 +89,4 @@ Plan de la funcionalidad `add-walking-skeleton` (E1, épica #1). Una sección po
 - [x] 5.3 Añadir la prueba E2E con Playwright en `frontend/e2e/` y el objetivo `make e2e`, y ejecutarla contra `make up`.
 - [x] 5.4 Comprobar `make up-prod` en local y explicar en el README cómo levantar la demo.
 - [x] 5.5 Actualizar ARCHITECTURE §3, §4 y §7.
-- [ ] 5.6 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`).
+- [x] 5.6 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`).
