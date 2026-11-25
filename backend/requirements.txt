@@ -7,3 +7,12 @@ PyJWT==2.15.1
 python-multipart==0.0.34
 SQLAlchemy==2.1.9
 uvicorn==0.54.0
+
+# Diarización (historia 1 de US-012 / #20). Motor de fallback, sin GPU:
+# librosa + scikit-learn para clustering jerárquico sobre MFCC.
+# pyannote.audio (motor real, speaker-diarization-community-1) es opcional:
+# instálalo aparte si tienes acceso a sus pesos y GPU.
+librosa==0.11.0
+numpy==2.4.4
+scikit-learn==1.9.0
+soundfile==0.13.1
