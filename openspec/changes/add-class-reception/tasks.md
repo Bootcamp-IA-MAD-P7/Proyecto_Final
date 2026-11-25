@@ -12,10 +12,10 @@ Plan de la funcionalidad `add-class-reception` (E2, épica #2). Una sección por
 
 **Depende de:** —
 
-- [ ] 1.1 Añadir `ErrorCode.INVALID_AUDIO_DURATION` con su mensaje seguro y declararlo en la respuesta 422 de `POST /v1/classes`.
-- [ ] 1.2 Subir la versión del contrato a 0.2.0 y regenerar `backend/openapi.json` con `make -C backend openapi`.
-- [ ] 1.3 Añadir a `backend/tests/fixtures/contract/` los ejemplos de error de 413, 415 e `invalid_audio_duration`.
-- [ ] 1.4 Actualizar la ficha del contrato (skill `contracts`): formatos, límites, orden de errores, `expired` y la nota de compatibilidad MINOR.
+- [x] 1.1 Añadir `ErrorCode.INVALID_AUDIO_DURATION` con su mensaje seguro y declararlo en la respuesta 422 de `POST /v1/classes`.
+- [x] 1.2 Subir la versión del contrato a 0.2.0 y regenerar `backend/openapi.json` con `make -C backend openapi`.
+- [x] 1.3 Añadir a `backend/tests/fixtures/contract/` los ejemplos de error de 413, 415 e `invalid_audio_duration`.
+- [x] 1.4 Actualizar la ficha del contrato (skill `contracts`): formatos, límites, orden de errores, `expired` y la nota de compatibilidad MINOR.
 
 ## 2. Recepción y almacenamiento del audio (backend) · #46
 
