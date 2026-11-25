@@ -67,9 +67,11 @@ def test_ready_without_the_database_names_it_without_the_url():
     assert "secret" not in response.text
 
 
-def test_submitted_class_is_followed_and_read_from_postgres(pg):
+def test_submitted_class_is_followed_and_read_from_postgres(pg, audio_storage, probe):
     store = PostgresJobStore(pg)
-    client = TestClient(create_app(SETTINGS, store=store, engine=pg))
+    client = TestClient(
+        create_app(SETTINGS, store=store, engine=pg, storage=audio_storage, probe=probe)
+    )
 
     accepted = submit(client, load_fixture("valid/class-metadata.json"), headers=auth()).json()
     job = client.get(f"/v1/jobs/{accepted['job_id']}", headers=auth("demo-student", "student"))

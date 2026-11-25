@@ -15,6 +15,8 @@ from app.db.migrate import upgrade
 from app.jobs import InMemoryJobStore
 from app.main import create_app
 from app.settings import Settings
+from app.storage import AudioInfo, DiskAudioStorage
+from tests.audio import synthetic_audio  # noqa: F401  (fixture shared by the audio tests)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "contract"
 SETTINGS = Settings(auth_secret="test-secret-with-enough-length-for-hs256")
@@ -37,9 +39,35 @@ def store() -> InMemoryJobStore:
     return InMemoryJobStore()
 
 
+VALID_AUDIO = AudioInfo("opus", 1800)
+
+
+class FixedProbe:
+    """AudioProbe that answers the same for every file, or raises the error it was given."""
+
+    def __init__(self, info: AudioInfo | Exception = VALID_AUDIO) -> None:
+        self.info = info
+
+    def probe(self, path: Path) -> AudioInfo:
+        if isinstance(self.info, Exception):
+            raise self.info
+        return self.info
+
+
 @pytest.fixture
-def client(store: InMemoryJobStore) -> TestClient:
-    return TestClient(create_app(SETTINGS, store=store))
+def audio_storage(tmp_path: Path) -> DiskAudioStorage:
+    return DiskAudioStorage(tmp_path / "audio")
+
+
+@pytest.fixture
+def probe() -> FixedProbe:
+    """Accepts any file as 30 minutes of Opus: tests of the real ffprobe use synthetic audio."""
+    return FixedProbe()
+
+
+@pytest.fixture
+def client(store: InMemoryJobStore, audio_storage: DiskAudioStorage, probe) -> TestClient:
+    return TestClient(create_app(SETTINGS, store=store, storage=audio_storage, probe=probe))
 
 
 # --- PostgreSQL ------------------------------------------------------------------------------

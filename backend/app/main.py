@@ -13,6 +13,7 @@ from app.contract import CONTRACT_VERSION
 from app.db import make_engine
 from app.jobs import JobStore, PostgresJobStore
 from app.settings import Settings
+from app.storage import AudioProbe, AudioStorage, DiskAudioStorage, FfprobeAudioProbe
 
 DESCRIPTION = """\
 Contract between the CoTeach AI service and its consumers (the web and CoTeach).
@@ -25,8 +26,14 @@ def create_app(
     settings: Settings | None = None,
     store: JobStore | None = None,
     engine: Engine | None = None,
+    storage: AudioStorage | None = None,
+    probe: AudioProbe | None = None,
 ) -> FastAPI:
-    """Build the api. Without a store or an engine they come from DATABASE_URL, if set."""
+    """Build the api. Without a store or an engine they come from DATABASE_URL, if set.
+
+    The audio goes to AUDIO_STORAGE_DIR and is checked with ffprobe unless a storage or a probe
+    is given.
+    """
     settings = settings or Settings.from_env()
     if engine is None and settings.database_url:
         engine = make_engine(settings.database_url)
@@ -37,6 +44,8 @@ def create_app(
     app.state.settings = settings
     app.state.engine = engine
     app.state.store = store
+    app.state.storage = storage or DiskAudioStorage(settings.audio_storage_dir)
+    app.state.probe = probe or FfprobeAudioProbe()
     install_error_handling(app)
     if settings.frontend_origin:
         app.add_middleware(
