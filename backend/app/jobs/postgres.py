@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import Connection, Engine, Row, func, insert, select, update
+from sqlalchemy.exc import IntegrityError
 
 from app.contract import (
     ClassMetadata,
@@ -16,13 +17,17 @@ from app.contract import (
     Participant,
     Result,
 )
-from app.db.tables import classes, jobs, participants, results
+from app.db.tables import audio_assets, classes, jobs, participants, results
 from app.jobs.store import (
     IN_PROGRESS_STATES,
     STAGE_ORDER,
+    AudioAsset,
+    Idempotency,
+    IdempotencyKeyTakenError,
     InvalidJobTransitionError,
     JobNotFoundError,
     StoredClass,
+    Submission,
     new_id,
 )
 
@@ -36,45 +41,115 @@ class PostgresJobStore:
         self._engine = engine
         self._new_id = new_id
 
-    def create_class(self, metadata: ClassMetadata, submitted_by: str) -> StoredClass:
+    def create_class(
+        self,
+        metadata: ClassMetadata,
+        submitted_by: str,
+        audio: AudioAsset | None = None,
+        idempotency: Idempotency | None = None,
+    ) -> StoredClass:
         stored = StoredClass(
             class_id=self._new_id("class"),
             job_id=self._new_id("job"),
             metadata=metadata,
             submitted_by=submitted_by,
         )
-        with self._engine.begin() as connection:
-            connection.execute(
-                insert(classes).values(
-                    class_id=stored.class_id,
-                    external_class_id=metadata.external_class_id,
-                    participant_count=metadata.participant_count,
-                    consent_reference=metadata.consent_reference,
-                    submitted_by=submitted_by,
-                )
-            )
-            connection.execute(
-                insert(participants),
-                [
-                    {
-                        "class_id": stored.class_id,
-                        "participant_id": participant.participant_id,
-                        "position": position,
-                        "role": participant.role.value,
-                        "display_name": participant.display_name,
-                    }
-                    for position, participant in enumerate(metadata.participants)
-                ],
-            )
-            connection.execute(
-                insert(jobs).values(
-                    job_id=stored.job_id,
-                    class_id=stored.class_id,
-                    state=JobState.QUEUED.value,
-                    attempt=0,
-                )
-            )
+        try:
+            with self._engine.begin() as connection:
+                self._insert_class(connection, stored, audio, idempotency)
+        except IntegrityError as error:
+            constraint = getattr(getattr(error.orig, "diag", None), "constraint_name", None)
+            if idempotency is not None and constraint == "classes_idempotency_key":
+                raise IdempotencyKeyTakenError(idempotency.key) from error
+            raise
         return stored
+
+    def _insert_class(
+        self,
+        connection: Connection,
+        stored: StoredClass,
+        audio: AudioAsset | None,
+        idempotency: Idempotency | None,
+    ) -> None:
+        metadata = stored.metadata
+        connection.execute(
+            insert(classes).values(
+                class_id=stored.class_id,
+                external_class_id=metadata.external_class_id,
+                participant_count=metadata.participant_count,
+                consent_reference=metadata.consent_reference,
+                submitted_by=stored.submitted_by,
+                idempotency_key=idempotency.key if idempotency else None,
+                request_fingerprint=idempotency.fingerprint if idempotency else None,
+            )
+        )
+        if audio is not None:
+            connection.execute(
+                insert(audio_assets).values(
+                    audio_id=audio.audio_id,
+                    class_id=stored.class_id,
+                    storage_key=audio.storage_key,
+                    format=audio.format,
+                    size_bytes=audio.size_bytes,
+                    duration_seconds=audio.duration_seconds,
+                    sha256=audio.sha256,
+                    received_at=audio.received_at,
+                    expires_at=audio.expires_at,
+                    deleted_at=audio.deleted_at,
+                )
+            )
+        connection.execute(
+            insert(participants),
+            [
+                {
+                    "class_id": stored.class_id,
+                    "participant_id": participant.participant_id,
+                    "position": position,
+                    "role": participant.role.value,
+                    "display_name": participant.display_name,
+                }
+                for position, participant in enumerate(metadata.participants)
+            ],
+        )
+        connection.execute(
+            insert(jobs).values(
+                job_id=stored.job_id,
+                class_id=stored.class_id,
+                state=JobState.QUEUED.value,
+                attempt=0,
+            )
+        )
+
+    def find_submission(self, submitted_by: str, idempotency_key: str) -> Submission | None:
+        with self._engine.connect() as connection:
+            row = connection.execute(
+                select(classes.c.class_id, jobs.c.job_id, classes.c.request_fingerprint)
+                .join(jobs, jobs.c.class_id == classes.c.class_id)
+                .where(
+                    classes.c.submitted_by == submitted_by,
+                    classes.c.idempotency_key == idempotency_key,
+                )
+            ).first()
+        return Submission(row.class_id, row.job_id, row.request_fingerprint) if row else None
+
+    def get_audio(self, class_id: str) -> AudioAsset | None:
+        with self._engine.connect() as connection:
+            row = connection.execute(
+                select(audio_assets).where(audio_assets.c.class_id == class_id)
+            ).first()
+        if row is None:
+            return None
+        return AudioAsset(
+            audio_id=row.audio_id,
+            storage_key=row.storage_key,
+            format=row.format,
+            size_bytes=row.size_bytes,
+            duration_seconds=row.duration_seconds,
+            sha256=row.sha256,
+            received_at=row.received_at,
+            expires_at=row.expires_at,
+            deleted_at=row.deleted_at,
+        )
 
     def get_class(self, class_id: str) -> StoredClass | None:
         with self._engine.connect() as connection:

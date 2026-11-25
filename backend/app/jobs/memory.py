@@ -9,9 +9,13 @@ from app.contract import ClassMetadata, Job, JobError, JobStage, JobState, Resul
 from app.jobs.store import (
     IN_PROGRESS_STATES,
     STAGE_ORDER,
+    AudioAsset,
+    Idempotency,
+    IdempotencyKeyTakenError,
     InvalidJobTransitionError,
     JobNotFoundError,
     StoredClass,
+    Submission,
     new_id,
 )
 
@@ -26,9 +30,19 @@ class InMemoryJobStore:
         self._jobs: dict[str, Job] = {}
         self._queue: list[str] = []
         self._results: dict[str, Result] = {}
+        self._audio: dict[str, AudioAsset] = {}
+        self._submissions: dict[tuple[str, str], Submission] = {}
 
-    def create_class(self, metadata: ClassMetadata, submitted_by: str) -> StoredClass:
+    def create_class(
+        self,
+        metadata: ClassMetadata,
+        submitted_by: str,
+        audio: AudioAsset | None = None,
+        idempotency: Idempotency | None = None,
+    ) -> StoredClass:
         with self._lock:
+            if idempotency and (submitted_by, idempotency.key) in self._submissions:
+                raise IdempotencyKeyTakenError(idempotency.key)
             stored = StoredClass(
                 class_id=self._new_id("class"),
                 job_id=self._new_id("job"),
@@ -45,7 +59,21 @@ class InMemoryJobStore:
                 error=None,
             )
             self._queue.append(stored.job_id)
+            if audio is not None:
+                self._audio[stored.class_id] = audio
+            if idempotency is not None:
+                self._submissions[(submitted_by, idempotency.key)] = Submission(
+                    stored.class_id, stored.job_id, idempotency.fingerprint
+                )
             return stored
+
+    def find_submission(self, submitted_by: str, idempotency_key: str) -> Submission | None:
+        with self._lock:
+            return self._submissions.get((submitted_by, idempotency_key))
+
+    def get_audio(self, class_id: str) -> AudioAsset | None:
+        with self._lock:
+            return self._audio.get(class_id)
 
     def get_class(self, class_id: str) -> StoredClass | None:
         with self._lock:

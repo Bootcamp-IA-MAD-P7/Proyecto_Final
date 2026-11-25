@@ -13,6 +13,7 @@ Lifecycle of a job, with a single worker:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 from uuid import uuid4
 
@@ -40,6 +41,44 @@ class StoredClass:
     """Subject of the token that submitted the class: a teacher or the CoTeach service."""
 
 
+@dataclass(frozen=True)
+class AudioAsset:
+    """The audio of a class in the private storage (ADR-0004). Never sent to a client."""
+
+    audio_id: str
+    storage_key: str
+    """Opaque name of the file in the AudioStorage."""
+    format: str
+    size_bytes: int
+    duration_seconds: float
+    sha256: str
+    received_at: datetime
+    expires_at: datetime
+    """Purge date: received_at plus AUDIO_RETENTION_DAYS (spec audio-retention)."""
+    deleted_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class Idempotency:
+    """Idempotency-Key of a submission and the fingerprint of its audio and metadata."""
+
+    key: str
+    fingerprint: str
+
+
+@dataclass(frozen=True)
+class Submission:
+    """A class found by the Idempotency-Key of whoever submitted it."""
+
+    class_id: str
+    job_id: str
+    fingerprint: str
+
+
+class IdempotencyKeyTakenError(Exception):
+    """Another submission saved the same submitted_by and Idempotency-Key first."""
+
+
 class JobNotFoundError(LookupError):
     """No job with that job_id."""
 
@@ -50,9 +89,25 @@ class InvalidJobTransitionError(ValueError):
 
 @runtime_checkable
 class JobStore(Protocol):
-    def create_class(self, metadata: ClassMetadata, submitted_by: str) -> StoredClass:
-        """Create the class and its job in `queued`, in a single step."""
+    def create_class(
+        self,
+        metadata: ClassMetadata,
+        submitted_by: str,
+        audio: AudioAsset | None = None,
+        idempotency: Idempotency | None = None,
+    ) -> StoredClass:
+        """Create the class, its audio and its job in `queued`, in a single transaction.
+
+        Raises IdempotencyKeyTakenError, creating nothing, when `submitted_by` already used the
+        key of `idempotency`.
+        """
         ...
+
+    def find_submission(self, submitted_by: str, idempotency_key: str) -> Submission | None:
+        """The class created by `submitted_by` with that Idempotency-Key, if any."""
+        ...
+
+    def get_audio(self, class_id: str) -> AudioAsset | None: ...
 
     def get_class(self, class_id: str) -> StoredClass | None: ...
 
