@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from app.inference.fake import FakePipeline
+from app.inference.real_pipeline import RealPipeline
 from app.logs import configure_logging
 from app.processes import open_store, stop_on_signals
 from app.settings import Settings
@@ -16,7 +16,7 @@ def main() -> None:
     settings = Settings.from_env()
     worker = Worker(
         open_store(settings),
-        FakePipeline(settings.fake_stage_seconds),
+        RealPipeline(),
         review_period=timedelta(hours=settings.review_period_hours),
     )
     worker.run(stop_on_signals(), poll_seconds=settings.worker_poll_seconds)
