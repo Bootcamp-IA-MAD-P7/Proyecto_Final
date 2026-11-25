@@ -28,12 +28,12 @@ Plan de la funcionalidad `add-class-reception` (E2, épica #2). Una sección por
 
 **Depende de:** 1
 
-- [ ] 2.1 Añadir FFmpeg a la imagen de `backend` y un helper de tests que genere audios sintéticos con `ffmpeg`, que salta los tests con un aviso si no está instalado.
-- [ ] 2.2 Crear `app/storage/` con `AudioStorage` y su implementación en disco bajo `AUDIO_STORAGE_DIR` (temporal, confirmar con nombre opaco, borrar, listar), con tests.
-- [ ] 2.3 Validar el audio: copia por bloques con corte a `UPLOAD_MAX_BYTES`, y formato y duración con `ffprobe`, con tests de cada error.
-- [ ] 2.4 Migración de Alembic con `audio_assets` y la clave y la huella de idempotencia en `classes`; ampliar `JobStore` (memoria y PostgreSQL) para crear clase, audio y trabajo juntos.
-- [ ] 2.5 Conectar la ruta: orden de errores del diseño, borrar el archivo si la transacción falla, e idempotencia por quien envía y su clave, con tests de los escenarios de la spec.
-- [ ] 2.6 Añadir `UPLOAD_MAX_BYTES`, `UPLOAD_MIN_SECONDS`, `UPLOAD_MAX_SECONDS`, `AUDIO_RETENTION_DAYS` y `AUDIO_STORAGE_DIR` a `Settings` y a `backend/.env.example`, y ARCHITECTURE §4 (`app/storage/`) y §11 (límites de carga cerrados).
+- [x] 2.1 Añadir FFmpeg a la imagen de `backend` y un helper de tests que genere audios sintéticos con `ffmpeg`, que salta los tests con un aviso si no está instalado.
+- [x] 2.2 Crear `app/storage/` con `AudioStorage` y su implementación en disco bajo `AUDIO_STORAGE_DIR` (temporal, confirmar con nombre opaco, borrar, listar), con tests.
+- [x] 2.3 Validar el audio: copia por bloques con corte a `UPLOAD_MAX_BYTES`, y formato y duración con `ffprobe`, con tests de cada error.
+- [x] 2.4 Migración de Alembic con `audio_assets` y la clave y la huella de idempotencia en `classes`; ampliar `JobStore` (memoria y PostgreSQL) para crear clase, audio y trabajo juntos.
+- [x] 2.5 Conectar la ruta: orden de errores del diseño, borrar el archivo si la transacción falla, e idempotencia por quien envía y su clave, con tests de los escenarios de la spec.
+- [x] 2.6 Añadir `UPLOAD_MAX_BYTES`, `UPLOAD_MIN_SECONDS`, `UPLOAD_MAX_SECONDS`, `AUDIO_RETENTION_DAYS` y `AUDIO_STORAGE_DIR` a `Settings` y a `backend/.env.example`, y ARCHITECTURE §4 (`app/storage/`) y §11 (límites de carga cerrados).
 
 ## 3. Purga del audio y trabajos caducados (backend) · #47
 
