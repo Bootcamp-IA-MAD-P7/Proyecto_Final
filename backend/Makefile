@@ -4,7 +4,7 @@
 PYTHON ?= python3
 PORT ?= 8000
 
-.PHONY: help install migrate dev test lint format openapi
+.PHONY: help install migrate dev worker maintenance test lint format openapi
 
 help: ## List the backend commands
 	@grep -hE '^[a-z][a-z0-9-]*:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -17,6 +17,12 @@ migrate: ## Apply the database migrations to DATABASE_URL
 
 dev: migrate ## Apply the migrations and run the API with hot reload
 	$(PYTHON) -m uvicorn app.main:app --reload --host 0.0.0.0 --port $(PORT)
+
+worker: ## Run the worker (the API applies the migrations)
+	$(PYTHON) -m app.worker
+
+maintenance: ## Run the maintenance cycles
+	$(PYTHON) -m app.maintenance
 
 test: ## Run the tests
 	$(PYTHON) -m pytest
