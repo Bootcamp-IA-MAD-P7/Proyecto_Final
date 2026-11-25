@@ -11,6 +11,10 @@ SHELL := bash
 .DEFAULT_GOAL := help
 
 SERVICES := $(patsubst %/Makefile,%,$(wildcard */Makefile))
+# Ports of the root .env (the same ones Compose publishes), for make e2e.
+-include .env
+export BACKEND_PORT FRONTEND_PORT
+
 COMPOSE := docker compose
 COMPOSE_PROD := docker compose -f compose.yaml -f compose.production.yaml
 
@@ -74,7 +78,8 @@ e2e-install: ## Install the browser of the end-to-end tests (once per machine)
 	$(MAKE) -C frontend e2e-install
 
 e2e: ## Run the end-to-end tests against `make up` (first time: make e2e-install)
-	@curl -fsS -o /dev/null "http://localhost:$${BACKEND_PORT:-8000}/ready" || { echo "The stack is not ready: run make up first."; exit 1; }
+	@curl -fsS -o /dev/null "http://localhost:$${BACKEND_PORT:-8000}/ready" || { echo "The API is not ready: run make up first."; exit 1; }
+	@curl -fsS -o /dev/null "http://localhost:$${FRONTEND_PORT:-5173}/" || { echo "The web is not up: run make up first."; exit 1; }
 	$(MAKE) -C frontend e2e
 
 # --- Docker: development ---
