@@ -4,7 +4,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM base AS dev
-RUN apk add --no-cache make
+RUN apk add --no-cache git make
 COPY . .
 EXPOSE 5173
 CMD ["make", "dev"]
