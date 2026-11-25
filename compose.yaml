@@ -32,5 +32,10 @@ services:
       timeout: 3s
       retries: 30
 
+  frontend:
+    build:
+      context: ./frontend
+    env_file: ./frontend/.env
+
 volumes:
   db-data:

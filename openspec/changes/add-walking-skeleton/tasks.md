@@ -66,12 +66,12 @@ Plan de la funcionalidad `add-walking-skeleton` (E1, épica #1). Una sección po
 
 **Depende de:** 1
 
-- [ ] 4.1 Crear `frontend/` (Vite, React, TypeScript, React Router y TanStack Query) con su `Makefile`, ESLint, Vitest y Testing Library (skill `add-service`).
-- [ ] 4.2 Generar los tipos con openapi-typescript y un cliente tipado con openapi-fetch, con la comprobación de desviación en `lint`.
-- [ ] 4.3 Añadir mocks con MSW a partir de los ejemplos del contrato, activables con `VITE_API_MOCKS=true`.
-- [ ] 4.4 Crear las pantallas: entrada con usuario sintético, subir una clase, progreso del trabajo, resultado con transcripción y repaso, y aprobar.
-- [ ] 4.5 Añadir el `Dockerfile` (`dev` y `prod`), el servicio `frontend` en Compose con `backend/openapi.json` montado en solo lectura y `frontend/.env.example` con la URL de la API.
-- [ ] 4.6 Añadir tests de componentes y del cliente con los mocks.
+- [x] 4.1 Crear `frontend/` (Vite, React, TypeScript, React Router y TanStack Query) con su `Makefile`, ESLint, Vitest y Testing Library (skill `add-service`).
+- [x] 4.2 Generar los tipos con openapi-typescript y un cliente tipado con openapi-fetch, con la comprobación de desviación en `lint`.
+- [x] 4.3 Añadir mocks con MSW a partir de los ejemplos del contrato, activables con `VITE_API_MOCKS=true`.
+- [x] 4.4 Crear las pantallas: entrada con usuario sintético, subir una clase, progreso del trabajo, resultado con transcripción y repaso, y aprobar.
+- [x] 4.5 Añadir el `Dockerfile` (`dev` y `prod`), el servicio `frontend` en Compose con `backend/openapi.json` montado en solo lectura y `frontend/.env.example` con la URL de la API.
+- [x] 4.6 Añadir tests de componentes y del cliente con los mocks.
 
 ## 5. Skeleton de extremo a extremo en local (integración) · #38
 

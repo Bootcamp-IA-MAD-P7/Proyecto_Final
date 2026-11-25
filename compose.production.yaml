@@ -14,3 +14,12 @@ services:
 
   db:
     restart: unless-stopped
+
+  frontend:
+    build:
+      target: prod
+      args:
+        VITE_API_MOCKS: "false"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:8080"

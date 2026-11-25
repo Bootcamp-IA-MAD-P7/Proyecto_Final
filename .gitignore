@@ -22,6 +22,11 @@
 *.sqlite3
 *.db
 
+# JavaScript dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
 # Operating system
 .DS_Store
 Thumbs.db

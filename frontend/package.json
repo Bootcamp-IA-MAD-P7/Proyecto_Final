@@ -1,0 +1,45 @@
+{
+  "name": "coteach-ai-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "lint": "eslint . && tsc -b && npm run check:api",
+    "test": "vitest run",
+    "generate:api": "openapi-typescript ../backend/openapi.json -o src/api/schema.ts",
+    "check:api": "npm run generate:api && git diff --exit-code -- src/api/schema.ts"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.66.8",
+    "openapi-fetch": "^0.14.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.20.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.18",
+    "jsdom": "^26.0.0",
+    "msw": "^2.7.0",
+    "openapi-typescript": "^7.6.1",
+    "typescript": "~5.7.3",
+    "typescript-eslint": "^8.24.0",
+    "vite": "^6.1.0",
+    "vitest": "^3.0.5"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}
