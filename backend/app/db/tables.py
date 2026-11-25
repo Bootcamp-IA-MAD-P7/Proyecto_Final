@@ -74,3 +74,17 @@ results = Table(
     Column("body", JSONB, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
 )
+
+audio_assets = Table(
+    "audio_assets",
+    metadata,
+    Column("audio_id", ID, primary_key=True),
+    Column("class_id", ID, ForeignKey("classes.class_id", ondelete="CASCADE"), nullable=False, unique=True),
+    Column("storage_path", String(512), nullable=False),
+    Column("original_filename", String(255), nullable=False),
+    Column("content_type", String(64), nullable=False),
+    Column("size_bytes", Integer, nullable=False),
+    Column("received_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    Column("expires_at", DateTime(timezone=True), nullable=False),  # RD-01: 14 días desde recepción
+    Column("purged_at", DateTime(timezone=True)),  # NULL hasta que se purga
+)
