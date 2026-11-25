@@ -13,6 +13,7 @@ test("a teacher signs in, uploads a class, follows its progress and sees the res
   await page.getByRole("button", { name: /enviar a procesar/i }).click();
 
   await expect(page.getByRole("heading", { name: /estamos preparando el repaso/i })).toBeVisible();
+  // FakePipeline waits FAKE_STAGE_SECONDS per stage (2 by default); with 0 this step is skipped.
   await expect(page.getByText(/etapa actual: (normalizing|transcribing|diarizing|analyzing)/i)).toBeVisible();
 
   await expect(page.getByRole("heading", { name: /repaso de la clase/i })).toBeVisible({ timeout: 30_000 });
