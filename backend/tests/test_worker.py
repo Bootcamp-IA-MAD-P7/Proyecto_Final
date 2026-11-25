@@ -224,3 +224,32 @@ def test_run_processes_until_stopped_and_survives_an_unavailable_store(metadata)
     assert not thread.is_alive()
     assert store.calls == 2
     assert store.get_job(stored.job_id).state is JobState.READY_FOR_REVIEW
+
+
+def test_a_store_failure_during_a_stage_does_not_fail_the_job(metadata):
+    class BlinkingStore(InMemoryJobStore):
+        """The database drops once while the pipeline records a stage, then comes back."""
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.dropped = False
+
+        def advance(self, job_id, stage):
+            if stage is JobStage.DIARIZING and not self.dropped:
+                self.dropped = True
+                raise ConnectionError("database down")
+            return super().advance(job_id, stage)
+
+    store = BlinkingStore()
+    stored = store.create_class(metadata, "demo-teacher")
+    processing = worker(store)
+
+    with pytest.raises(ConnectionError):
+        processing.run_once()
+    assert store.get_job(stored.job_id).state is not JobState.FAILED
+
+    processing.start()
+    job = processing.run_once()
+
+    assert job.state is JobState.READY_FOR_REVIEW
+    assert job.attempt == 2

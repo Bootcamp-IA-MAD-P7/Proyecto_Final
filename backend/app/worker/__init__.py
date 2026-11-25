@@ -24,11 +24,15 @@ from app.contract import (
     ReviewStatus,
 )
 from app.inference import InferencePipeline, PipelineError, PipelineInput, PipelineOutput
-from app.jobs import JobStore
+from app.jobs import JobStore, StoredClass
 
 logger = logging.getLogger("app.worker")
 
 FAILED_MESSAGE = "No se ha podido procesar la clase."
+
+
+class StoreError(Exception):
+    """The JobStore failed while the pipeline was running: the job is not to blame."""
 
 
 def _now() -> datetime:
@@ -60,9 +64,15 @@ class Worker:
         if job is None:
             return None
         logger.info("job claimed", extra={"job_id": job.job_id, "stage": job.stage})
+        stored = self._store.get_class(job.class_id)
         try:
-            output = self._run_pipeline(job)
+            if stored is None:
+                raise LookupError(f"Class of {job.job_id} not found")
+            output = self._run_pipeline(job, stored)
             result = self._result(job, output)
+        except StoreError as error:
+            # Not a failure of the class: run() retries and the job goes back to the queue.
+            raise error.__cause__ from None
         except PipelineError as error:
             return self._fail(job, error.error, type(error).__name__)
         except Exception as error:
@@ -88,18 +98,19 @@ class Worker:
                 if self.run_once() is not None:
                     continue
             except Exception as error:
+                # Usually the database is not available. Retries have no limit for now: a real
+                # retry policy (retry_wait) arrives with E2.
                 started = False
-                logger.error("job store unavailable", extra={"error_type": type(error).__name__})
+                logger.error("worker loop failed", extra={"error_type": type(error).__name__})
             stop.wait(poll_seconds)
         logger.info("worker stopped")
 
-    def _run_pipeline(self, job: Job) -> PipelineOutput:
-        stored = self._store.get_class(job.class_id)
-        if stored is None:
-            raise LookupError(f"Class of {job.job_id} not found")
-
+    def _run_pipeline(self, job: Job, stored: StoredClass) -> PipelineOutput:
         def on_stage(stage):
-            self._store.advance(job.job_id, stage)
+            try:
+                self._store.advance(job.job_id, stage)
+            except Exception as error:
+                raise StoreError from error
             logger.info("job stage", extra={"job_id": job.job_id, "stage": stage})
 
         job_input = PipelineInput(class_id=job.class_id, metadata=stored.metadata, audio_path=None)

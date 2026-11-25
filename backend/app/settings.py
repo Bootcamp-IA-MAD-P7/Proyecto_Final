@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -15,10 +16,15 @@ def _flag(value: str | None) -> bool:
     return (value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _number(env: Mapping[str, str], name: str, default: float) -> float:
-    value = float(env.get(name) or default)
-    if value < 0:
-        raise ValueError(f"{name} cannot be negative")
+def _number(env: Mapping[str, str], name: str, default: float, *, zero: bool = False) -> float:
+    """A finite number of the environment: positive, or also 0 when `zero` allows it."""
+    raw = env.get(name)
+    try:
+        value = float(raw) if raw else default
+    except ValueError:
+        raise ValueError(f"{name} must be a number") from None
+    if not math.isfinite(value) or value < 0 or (value == 0 and not zero):
+        raise ValueError(f"{name} must be a finite number above 0{' or 0' if zero else ''}")
     return value
 
 
@@ -47,7 +53,7 @@ class Settings:
     frontend_origin: str | None = None
     """Only origin allowed by CORS. Without it, no cross-origin request is allowed."""
     review_period_hours: float = 24
-    """Time the teacher has to review a result before it is published (PRD RF-05, provisional)."""
+    """Time the teacher has to review a result before it is published (PRD DEC-05, provisional)."""
     fake_stage_seconds: float = 2
     """Wait of FakePipeline in each stage, to see the progress in the web."""
     worker_poll_seconds: float = 1
@@ -71,7 +77,9 @@ class Settings:
             auth_dev_users=_dev_users(env.get("AUTH_DEV_USERS") or DEFAULT_DEV_USERS),
             frontend_origin=env.get("FRONTEND_ORIGIN") or None,
             review_period_hours=_number(env, "REVIEW_PERIOD_HOURS", defaults.review_period_hours),
-            fake_stage_seconds=_number(env, "FAKE_STAGE_SECONDS", defaults.fake_stage_seconds),
+            fake_stage_seconds=_number(
+                env, "FAKE_STAGE_SECONDS", defaults.fake_stage_seconds, zero=True
+            ),
             worker_poll_seconds=_number(env, "WORKER_POLL_SECONDS", defaults.worker_poll_seconds),
             maintenance_interval_seconds=_number(
                 env, "MAINTENANCE_INTERVAL_SECONDS", defaults.maintenance_interval_seconds
