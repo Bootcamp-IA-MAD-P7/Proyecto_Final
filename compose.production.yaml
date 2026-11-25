@@ -9,8 +9,19 @@ services:
     environment:
       # Off in production; set AUTH_DEV_ISSUER=true in .env only for a local demo (spec api-access).
       AUTH_DEV_ISSUER: ${AUTH_DEV_ISSUER:-false}
+      FRONTEND_ORIGIN: http://localhost:${FRONTEND_PORT:-8080}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+
+  worker:
+    build:
+      target: prod
+    restart: unless-stopped
+
+  maintenance:
+    build:
+      target: prod
+    restart: unless-stopped
 
   db:
     restart: unless-stopped
@@ -19,6 +30,7 @@ services:
     build:
       target: prod
       args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-8000}
         VITE_API_MOCKS: "false"
     restart: unless-stopped
     ports:

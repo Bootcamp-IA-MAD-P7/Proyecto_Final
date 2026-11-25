@@ -17,6 +17,36 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Ready once the migrations are applied and the database answers (GET /ready).
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready')"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  # Same image as `backend`, another command (ADR-0001). JobStore in PostgreSQL and FakePipeline.
+  worker:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.worker"]
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-coteach}:${POSTGRES_PASSWORD:-coteach}@db:5432/${POSTGRES_DB:-coteach}
+    # `backend` applies the migrations when it starts; the worker needs its tables.
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  maintenance:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.maintenance"]
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-coteach}:${POSTGRES_PASSWORD:-coteach}@db:5432/${POSTGRES_DB:-coteach}
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:17
