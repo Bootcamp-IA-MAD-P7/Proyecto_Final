@@ -24,6 +24,7 @@ class ErrorCode(StrEnum):
     RESULT_VERSION_CONFLICT = "result_version_conflict"
     AUDIO_TOO_LARGE = "audio_too_large"
     UNSUPPORTED_AUDIO = "unsupported_audio"
+    INVALID_AUDIO_DURATION = "invalid_audio_duration"
     SERVICE_UNAVAILABLE = "service_unavailable"
     INTERNAL_ERROR = "internal_error"
 
@@ -41,6 +42,7 @@ DEFAULT_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.RESULT_VERSION_CONFLICT: "La versión del resultado ha cambiado",
     ErrorCode.AUDIO_TOO_LARGE: "El audio supera el tamaño permitido",
     ErrorCode.UNSUPPORTED_AUDIO: "El formato del audio no está admitido",
+    ErrorCode.INVALID_AUDIO_DURATION: "La duración del audio está fuera de los límites permitidos",
     ErrorCode.SERVICE_UNAVAILABLE: "Servicio temporalmente no disponible",
     ErrorCode.INTERNAL_ERROR: "Error interno del servicio",
 }
