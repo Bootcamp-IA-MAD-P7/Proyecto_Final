@@ -1,67 +1,128 @@
-"""Prueba básica de diarización con pyannote.audio.
+"""Prueba básica de diarización con librerías open source (sin pyannote.audio).
 
 Uso:
     python scripts/test_diarization.py <audio1.wav> [audio2.wav ...]
 
 Imprime, para cada segmento detectado: inicio - fin: speaker_id
 
-Requiere:
-    - Variable de entorno HF_TOKEN con un token de Hugging Face
-    - Haber aceptado las condiciones del modelo en
-      https://huggingface.co/pyannote/speaker-diarization-community-1
+Método:
+    1. Cargar audio con librosa (backend soundfile, sin torchcodec)
+    2. Extraer MFCC en ventanas de 32 ms
+    3. Clustering jerárquico con 2 clusters (2 hablantes) mediante scikit-learn
+    4. Agrupar frames consecutivos del mismo hablante en segmentos
 
-Nota sobre Windows + Python 3.14 + NumPy 2.0:
-    pyannote.audio 3.x usa np.NaN (eliminado en NumPy 2.0). Se añade un
-    parche al inicio para asignar np.NaN = np.nan y poder importarlo.
+Requisitos:
+    - librosa, scikit-learn, numpy, soundfile (open source, funcionan en Windows)
 """
 
 from __future__ import annotations
 
-import os
 import sys
+from pathlib import Path
 
+import librosa
 import numpy as np
-
-# Parche para NumPy 2.0: np.NaN fue eliminado, usar np.nan
-if not hasattr(np, "NaN"):
-    np.NaN = np.nan  # type: ignore[attr-defined]
-
-import soundfile as sf
-import torch
-from pyannote.audio import Pipeline
+from sklearn.cluster import AgglomerativeClustering
 
 
-def diarize(audio_path: str, token: str | None = None) -> None:
-    """Ejecuta la diarización sobre un archivo de audio e imprime los resultados.
+WINDOW_SECONDS = 0.5   # tamaño de cada ventana para clustering
+HOP_SECONDS = 0.1      # salto entre ventanas
+N_SPEAKERS = 2         # número de hablantes a detectar
 
-    Si no se pasa token, se usa el guardado en la caché de huggingface_hub
-    (después de hacer `hf auth login`).
+
+def load_audio(audio_path: str):
+    """Carga audio mono a 16 kHz con librosa (backend soundfile)."""
+    waveform, sr = librosa.load(audio_path, sr=16000, mono=True)
+    return waveform, sr
+
+
+def extract_mfcc(waveform: np.ndarray, sr: int) -> np.ndarray:
+    """Extrae coeficientes MFCC: forma (n_frames, n_mfcc)."""
+    mfcc = librosa.feature.mfcc(
+        y=waveform,
+        sr=sr,
+        n_mfcc=13,
+        hop_length=int(sr * HOP_SECONDS),
+        n_fft=int(sr * 0.032),
+    )
+    return mfcc.T  # (n_frames, n_mfcc)
+
+
+def cluster_speakers(mfcc: np.ndarray, n_speakers: int = N_SPEAKERS) -> np.ndarray:
+    """Aplica clustering jerárquico con n_speakers clusters sobre los MFCC.
+
+    Devuelve un array con el speaker_id asignado a cada frame.
     """
-    token = token or os.environ.get("HF_TOKEN")
+    if len(mfcc) < n_speakers:
+        return np.zeros(len(mfcc), dtype=int)
 
+    clustering = AgglomerativeClustering(
+        n_clusters=n_speakers,
+        linkage="average",
+        metric="euclidean",
+    )
+    return clustering.fit_predict(mfcc)
+
+
+def group_segments(speaker_ids: np.ndarray, hop_seconds: float) -> list[tuple[float, float, int]]:
+    """Agrupa frames consecutivos del mismo speaker en segmentos.
+
+    Devuelve lista de (inicio, fin, speaker_id).
+    """
+    if len(speaker_ids) == 0:
+        return []
+
+    segments = []
+    current_speaker = speaker_ids[0]
+    start_frame = 0
+
+    for i in range(1, len(speaker_ids)):
+        if speaker_ids[i] != current_speaker:
+            end_frame = i - 1
+            segments.append((
+                start_frame * hop_seconds,
+                end_frame * hop_seconds,
+                current_speaker,
+            ))
+            current_speaker = speaker_ids[i]
+            start_frame = i
+
+    # Último segmento
+    segments.append((
+        start_frame * hop_seconds,
+        (len(speaker_ids) - 1) * hop_seconds,
+        current_speaker,
+    ))
+
+    return segments
+
+
+def diarize(audio_path: str) -> None:
+    """Ejecuta la diarización sobre un archivo de audio e imprime los resultados."""
     print(f"\n=== Procesando: {audio_path} ===")
 
-    pipeline = Pipeline.from_pretrained(
-        "pyannote/speaker-diarization-community-1",
-        use_auth_token=token,
-    )
+    waveform, sr = load_audio(audio_path)
+    duration = len(waveform) / sr
+    print(f"Duración: {duration:.1f}s, muestreo: {sr} Hz")
 
-    # Cargar audio con soundfile para evitar torchcodec en Windows
-    data, sample_rate = sf.read(audio_path)
+    mfcc = extract_mfcc(waveform, sr)
+    print(f"Frames extraídos: {len(mfcc)}")
 
-    # soundfile devuelve (samples,) para mono o (samples, channels) para estéreo
-    if data.ndim == 1:
-        audio_mono = data
-    else:
-        audio_mono = np.mean(data, axis=1)
+    speaker_ids = cluster_speakers(mfcc, N_SPEAKERS)
 
-    # pyannote.audio 3.x acepta dict con tensor de audio
-    waveform = torch.from_numpy(audio_mono).float().unsqueeze(0)  # (1, samples)
+    segments = group_segments(speaker_ids, HOP_SECONDS)
 
-    diarization = pipeline({"audio": waveform, "sample_rate": sample_rate})
+    # Unir segmentos cortos consecutivos del mismo speaker (menor a 1 segundo)
+    merged = []
+    for start, end, speaker in segments:
+        if merged and merged[-1][2] == speaker and (start - merged[-1][1]) < 1.0:
+            # Fusionar con el segmento anterior del mismo speaker si hay poca pausa
+            merged[-1] = (merged[-1][0], end, speaker)
+        else:
+            merged.append((start, end, speaker))
 
-    for segment, track, speaker in diarization.itertracks(yield_label=True):
-        print(f"{segment.start:6.1f}s - {segment.end:6.1f}s: {speaker}")
+    for start, end, speaker in merged:
+        print(f"{start:6.1f}s - {end:6.1f}s: speaker_{speaker}")
 
 
 def main() -> None:
