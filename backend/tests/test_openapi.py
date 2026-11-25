@@ -24,7 +24,7 @@ def test_check_mode_reports_up_to_date():
 
 def test_contract_version_and_operations():
     spec = create_app().openapi()
-    assert spec["info"]["version"] == CONTRACT_VERSION == "0.1.0"
+    assert spec["info"]["version"] == CONTRACT_VERSION == "0.2.0"
     operations = {(method, path) for path, item in spec["paths"].items() for method in item}
     assert operations == CONTRACT_OPERATIONS | OPERATION_ROUTES
 
@@ -62,3 +62,9 @@ def test_submit_class_takes_metadata_as_json_and_an_idempotency_key():
     assert {"409", "413", "415"} <= operation["responses"].keys()
     headers = [param["name"] for param in operation["parameters"] if param["in"] == "header"]
     assert headers == ["Idempotency-Key"]
+
+
+def test_submit_class_documents_the_duration_error():
+    spec = create_app().openapi()
+    assert "`invalid_audio_duration`" in spec["paths"]["/v1/classes"]["post"]["description"]
+    assert "invalid_audio_duration" in spec["components"]["schemas"]["ErrorCode"]["enum"]

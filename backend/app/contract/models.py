@@ -21,7 +21,7 @@ from pydantic import (
 )
 from pydantic_core import PydanticCustomError
 
-CONTRACT_VERSION = "0.1.0"
+CONTRACT_VERSION = "0.2.0"
 """Version of the API contract. Also the `schema_version` of the results it produces."""
 
 Identifier = Annotated[

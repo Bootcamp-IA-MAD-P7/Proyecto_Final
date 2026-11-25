@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from app.contract import (
+    CONTRACT_VERSION,
     ClassMetadata,
     JobErrorCode,
     JobStage,
@@ -88,7 +89,7 @@ def test_saves_a_first_draft_that_complies_with_the_contract(store, metadata):
     result = store.get_result(stored.class_id)
     draft = load_fixture("valid/result-draft.json")
     assert result.class_id == stored.class_id
-    assert result.schema_version == "0.1.0"
+    assert result.schema_version == CONTRACT_VERSION
     assert result.result_version == 1
     assert result.review.status is ReviewStatus.PENDING
     assert result.review.review_due_at == NOW + timedelta(hours=24)

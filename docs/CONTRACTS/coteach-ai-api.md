@@ -1,7 +1,7 @@
 # API de CoTeach AI
 
 - **Estado:** Propuesto
-- **Versión:** 0.1.0
+- **Versión:** 0.2.0
 - **Productor → consumidores:** backend (componente api) → frontend y CoTeach
 - **Artefacto ejecutable:** [`backend/openapi.json`](../../backend/openapi.json)
 
@@ -30,19 +30,35 @@ Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está 
 - Todo error usa el sobre `ErrorResponse`: `error.code`, `error.message` seguro, `error.retryable` y `request_id`, que también va en la cabecera `X-Request-ID`. Nunca lleva trazas, tokens, audio, transcripciones ni datos de la petición.
 - Un fallo inesperado responde 500 `internal_error`, sin detalles.
 - Solo los errores transitorios (`service_unavailable`) llevan `retryable=true`. Los 409 de corrección y aprobación piden releer el resultado y resolver, no repetir a ciegas.
-- En un 422 de `POST /v1/classes`, `invalid_consent_reference` prevalece sobre `invalid_participants`, y ambos sobre `invalid_request`.
+- En un 422 de metadatos de `POST /v1/classes`, `invalid_consent_reference` prevalece sobre `invalid_participants`, y ambos sobre `invalid_request`.
+- Un envío de `POST /v1/classes` con varios problemas recibe siempre el primero de este orden: 401 y 403; 422 de metadatos; 413 `audio_too_large`; 415 `unsupported_audio`; 422 `invalid_audio_duration`; 409 `idempotency_conflict`.
 - Un trabajo fallido o en espera de reintento se consulta con 200 y lleva su propio `error` con un código de `JobErrorCode`.
+
+### Audio de la clase
+
+- **Formatos admitidos:** Opus (en Ogg o en WebM), MP3 y AAC (en M4A o MP4, solo con audio). El servicio los reconoce por su contenido; el nombre del archivo y su `Content-Type` no cuentan. Un archivo que no se puede leer, sin pista de audio o con vídeo recibe 415 `unsupported_audio`.
+- **Límites configurables** por despliegue, con estos valores por defecto: 150 MB de tamaño máximo (`UPLOAD_MAX_BYTES`, 413 `audio_too_large`) y una duración de 1 minuto a 2 horas (`UPLOAD_MIN_SECONDS` y `UPLOAD_MAX_SECONDS`, 422 `invalid_audio_duration`). Los consumidores no deben fijar estos valores: la API es quien decide.
+- El cliente envía el audio ya comprimido. Un envío rechazado no deja ni clase, ni trabajo, ni audio guardado.
+- El audio se guarda de forma privada y nunca se devuelve: ni su ruta ni su contenido salen en el contrato. Se conserva 14 días por defecto (`AUDIO_RETENTION_DAYS`, [ADR-0004](../ADR/0004-access-and-retention.md)).
+- `Idempotency-Key` es opcional. Con la misma clave de quien envía, el mismo audio y los mismos metadatos, se responde 202 con la clase y el trabajo existentes; con otro contenido, 409 `idempotency_conflict`. La clave de otra persona no choca. Sin la cabecera, cada envío crea una clase nueva.
 
 ### Comportamiento
 
 - `POST /v1/classes` responde 202 sin esperar al procesamiento. Recibir `consent_reference` y validar su forma no prueba que exista el consentimiento; cómo se verifica sigue pendiente (PRD §14).
-- Estados del trabajo: `queued` → `normalizing` → `transcribing` → `diarizing` → `analyzing` → `ready_for_review`, con `failed` como salida. `retry_wait`, `published` y `expired` están declarados, pero no se producen hasta E2 y E5.
+- Estados del trabajo: `queued` → `normalizing` → `transcribing` → `diarizing` → `analyzing` → `ready_for_review`, con `failed` como salida. Desde v0.2, un trabajo sin terminar cuyo audio vence pasa a `expired`: no se procesa más, se consulta con ese estado y no lleva `error`. Un trabajo terminado conserva su resultado aunque se purgue el audio. `retry_wait` (reintentos automáticos, E3) y `published` (E5) están declarados, pero todavía no se producen.
 - En `PATCH .../review`, cada sección enviada reemplaza la sección completa y las ausentes se conservan; la respuesta es la nueva versión del resultado. No se editan la identidad de la clase, los permisos, la publicación ni el plazo.
 - Fechas en UTC con zona horaria (ISO 8601). El plazo de revisión no se fija en el contrato: lo calcula el servicio (PRD DEC-05, pendiente de Lay).
 
-### Estado en el walking skeleton
+### Estado por versión
 
-En v0.1 todas las rutas responden ([tasks.md](../../openspec/changes/add-walking-skeleton/tasks.md), sección 2): recepción, consulta del trabajo y del resultado leen y escriben en PostgreSQL; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La recepción todavía no guarda el audio, que llega en E2. La idempotencia y los límites de tamaño y formato del audio (409, 413 y 415) se declaran ya y llegan en E2.
+En v0.1 (walking skeleton) todas las rutas responden ([tasks.md](../../openspec/changes/add-walking-skeleton/tasks.md), sección 2): recepción, consulta del trabajo y del resultado leen y escriben en PostgreSQL; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La recepción todavía no guardaba el audio, y la idempotencia y los límites del audio (409, 413 y 415) solo estaban declarados.
+
+v0.2 ([add-class-reception](../../openspec/changes/add-class-reception/design.md)) documenta la recepción real: los formatos y límites del audio, el error nuevo `invalid_audio_duration`, el orden de los errores de la recepción y el estado `expired`. La API los aplica a partir de la historia de backend del mismo cambio.
+
+## Historial
+
+- **0.2.0** (MINOR, compatible): añade `ErrorCode.invalid_audio_duration` (422) en `POST /v1/classes` y documenta los formatos y límites del audio y el estado `expired`. Ningún campo cambia. Los consumidores regeneran sus tipos; un cliente de v0.1 que trate los códigos desconocidos como genéricos sigue funcionando. Los resultados producidos antes conservan `schema_version` 0.1.0.
+- **0.1.0**: versión inicial del walking skeleton.
 
 ## Compatibilidad
 

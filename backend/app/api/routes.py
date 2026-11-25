@@ -88,8 +88,11 @@ def _errors(*statuses: int) -> dict[int | str, dict[str, Any]]:
     description=(
         "Creates the class and its processing job and answers without waiting for the "
         "processing. Allowed to a teacher or to the CoTeach service credential. 409 "
-        "`idempotency_conflict` when the Idempotency-Key was used with other content; 422 "
-        "`invalid_participants`, `invalid_consent_reference` or `invalid_request`."
+        "`idempotency_conflict` when the Idempotency-Key was used with other content; 413 "
+        "`audio_too_large` above the configured size; 415 `unsupported_audio` when the content "
+        "is not Opus, MP3 or AAC audio; 422 `invalid_participants`, `invalid_consent_reference` "
+        "or `invalid_request` for the metadata, and `invalid_audio_duration` when the audio is "
+        "shorter or longer than the configured limits."
     ),
     responses=_errors(403, 409, 413, 415),
 )
