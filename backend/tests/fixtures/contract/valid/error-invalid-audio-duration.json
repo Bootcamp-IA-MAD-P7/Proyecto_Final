@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "invalid_audio_duration",
+    "message": "La duración del audio está fuera de los límites permitidos",
+    "retryable": false
+  },
+  "request_id": "request-demo-07"
+}
