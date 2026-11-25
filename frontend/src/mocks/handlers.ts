@@ -13,6 +13,12 @@ let polls = 0;
 const classSubmitters = new Set(["Bearer synthetic-demo-teacher", "Bearer synthetic-coteach-service"]);
 
 export const handlers = [
+  // Test issuer (spec api-access): not part of the contract, so it has no generated types.
+  http.post(`${apiUrl}/dev/token`, async ({ request }) => {
+    const { user } = await request.json() as { user: string };
+    const role = user === "demo-teacher" ? "teacher" : "student";
+    return HttpResponse.json({ access_token: `synthetic-${user}`, token_type: "bearer", expires_in: 3600, subject: user, role });
+  }),
   http.post(`${apiUrl}/v1/classes`, ({ request }) => {
     if (!classSubmitters.has(request.headers.get("authorization") ?? "")) {
       return HttpResponse.json({ error: { code: "forbidden", message: "No tienes permiso para enviar una clase.", retryable: false }, request_id: "request-demo-04" }, { status: 403 });
