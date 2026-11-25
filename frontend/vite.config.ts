@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    setupFiles: "./src/test/setup.ts"
+    setupFiles: "./src/test/setup.ts",
+    // e2e/ belongs to Playwright, against the real stack (make e2e).
+    include: ["src/**/*.test.{ts,tsx}"]
   }
 });

@@ -14,7 +14,7 @@ SERVICES := $(patsubst %/Makefile,%,$(wildcard */Makefile))
 COMPOSE := docker compose
 COMPOSE_PROD := docker compose -f compose.yaml -f compose.production.yaml
 
-.PHONY: help setup env hooks install dev test lint ci up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
+.PHONY: help setup env hooks install dev test lint ci e2e e2e-install up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
 
 help: ## List every available command
 	@echo "Usage: make <command>"
@@ -67,6 +67,15 @@ ci: env ## Run every service lint and tests in its dev image, then build the pro
 		$(COMPOSE) --progress quiet run --rm --build $$service make lint test || exit 1; \
 	done; \
 	$(COMPOSE_PROD) --progress quiet build
+
+# --- End-to-end: Playwright on this machine against the running stack ---
+
+e2e-install: ## Install the browser of the end-to-end tests (once per machine)
+	$(MAKE) -C frontend e2e-install
+
+e2e: ## Run the end-to-end tests against `make up` (first time: make e2e-install)
+	@curl -fsS -o /dev/null "http://localhost:$${BACKEND_PORT:-8000}/ready" || { echo "The stack is not ready: run make up first."; exit 1; }
+	$(MAKE) -C frontend e2e
 
 # --- Docker: development ---
 
