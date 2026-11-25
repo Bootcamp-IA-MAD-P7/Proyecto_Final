@@ -16,7 +16,8 @@ export const handlers = [
   // Test issuer (spec api-access): not part of the contract, so it has no generated types.
   http.post(`${apiUrl}/dev/token`, async ({ request }) => {
     const { user } = await request.json() as { user: string };
-    const role = user === "demo-teacher" ? "teacher" : "student";
+    const role = ({ "demo-teacher": "teacher", "demo-student": "student", "coteach-service": "service" } as Record<string, string>)[user];
+    if (!role) return HttpResponse.json({ error: { code: "resource_not_available", message: "Not available.", retryable: false }, request_id: "request-demo-06" }, { status: 404 });
     return HttpResponse.json({ access_token: `synthetic-${user}`, token_type: "bearer", expires_in: 3600, subject: user, role });
   }),
   http.post(`${apiUrl}/v1/classes`, ({ request }) => {
