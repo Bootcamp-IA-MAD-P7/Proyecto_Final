@@ -86,6 +86,24 @@ make up      # levanta todo con Docker
 make help    # todos los comandos
 ```
 
+### Demo en local
+
+`make up` levanta `backend`, `worker`, `maintenance`, `frontend` y `db` en modo desarrollo. La web queda en <http://localhost:5173> y la API en <http://localhost:8000>. Entra con un usuario de prueba (el docente puede subir clases), sube un audio de entre 1 minuto y 2 horas (Opus, MP3 o AAC) y sigue su avance hasta el resultado sintético, que de momento genera un pipeline simulado.
+
+Con la configuración de producción, el emisor de tokens de prueba está apagado. Para una demo local, actívalo de forma explícita al levantarla. La web queda en el puerto `FRONTEND_PORT` del `.env` de la raíz (5173 en el de ejemplo; 8080 si no está):
+
+```sh
+AUTH_DEV_ISSUER=true make up-prod   # o AUTH_DEV_ISSUER=true en el .env de la raíz
+make down-prod
+```
+
+La prueba E2E recorre ese camino con Playwright en tu equipo, contra lo que esté levantado:
+
+```sh
+make e2e-install   # una vez por equipo: descarga Chromium
+make e2e           # contra make up o make up-prod; otro puerto con FRONTEND_PORT=<puerto> make e2e
+```
+
 ## Contribuir
 
 - [`WORKFLOW.md`](WORKFLOW.md): el flujo de trabajo de principio a fin y el mapa de documentación.
