@@ -7,7 +7,7 @@
 
 ## Propósito
 
-Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está vivo y disponible, enviar una clase con su audio y sus metadatos, seguir su trabajo de procesamiento, consultar el resultado (transcripción y repaso pedagógico por separado), corregirlo y aprobarlo. Permite que la API, el procesamiento y la web avancen en paralelo desde el walking skeleton ([add-walking-skeleton](../../openspec/changes/add-walking-skeleton/design.md)).
+Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está vivo y disponible, enviar una clase con su audio y sus metadatos, seguir su trabajo de procesamiento, consultar el resultado (transcripción y repaso pedagógico por separado), corregirlo y aprobarlo. Permite que la API, el procesamiento y la web avancen en paralelo desde el walking skeleton ([add-walking-skeleton](../../openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md)).
 
 ## Fuente de verdad
 
@@ -19,8 +19,8 @@ Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está 
 
 ### Autenticación y acceso
 
-- `GET /health` y `GET /ready` no llevan credencial ni datos de clases; `/ready` nombra las dependencias caídas sin credenciales ni cadenas de conexión ([spec service-operation](../../openspec/changes/add-walking-skeleton/specs/service-operation/spec.md)).
-- Toda petición a `/v1` lleva `Authorization: Bearer <token>`, firmado por el emisor configurado. El rol y el sujeto salen del token, nunca del cuerpo: los objetos de petición rechazan campos desconocidos ([spec api-access](../../openspec/changes/add-walking-skeleton/specs/api-access/spec.md), [ADR-0004](../ADR/0004-access-and-retention.md)).
+- `GET /health` y `GET /ready` no llevan credencial ni datos de clases; `/ready` nombra las dependencias caídas sin credenciales ni cadenas de conexión ([spec service-operation](../../openspec/specs/service-operation/spec.md)).
+- Toda petición a `/v1` lleva `Authorization: Bearer <token>`, firmado por el emisor configurado. El rol y el sujeto salen del token, nunca del cuerpo: los objetos de petición rechazan campos desconocidos ([spec api-access](../../openspec/specs/api-access/spec.md), [ADR-0004](../ADR/0004-access-and-retention.md)).
 - El servidor resuelve el acceso a cada clase: la crea una docente o la credencial de servicio de CoTeach, y la consultan las personas cuyo `participant_id` coincide con el sujeto del token. Una clase o un trabajo ajenos, inexistentes o con un identificador mal formado responden 404 `resource_not_available`, para no revelar que existen; 403 `forbidden` es solo para una operación no permitida sobre una clase que sí se ve.
 - El alumnado solo ve la versión publicada de un resultado; ante un borrador recibe 404.
 - Mientras CoTeach no defina su emisor, la demo usa un emisor de pruebas aislado que no forma parte del contrato (PRD §14).
@@ -51,7 +51,7 @@ Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está 
 
 ### Estado por versión
 
-En v0.1 (walking skeleton) todas las rutas responden ([tasks.md](../../openspec/changes/add-walking-skeleton/tasks.md), sección 2): recepción, consulta del trabajo y del resultado leen y escriben en PostgreSQL; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La recepción todavía no guardaba el audio, y la idempotencia y los límites del audio (409, 413 y 415) solo estaban declarados.
+En v0.1 (walking skeleton) todas las rutas responden ([tasks.md](../../openspec/changes/archive/2026-11-25-add-walking-skeleton/tasks.md), sección 2): recepción, consulta del trabajo y del resultado leen y escriben en PostgreSQL; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La recepción todavía no guardaba el audio, y la idempotencia y los límites del audio (409, 413 y 415) solo estaban declarados.
 
 v0.2 ([add-class-reception](../../openspec/changes/add-class-reception/design.md)) documenta la recepción real: los formatos y límites del audio, el error nuevo `invalid_audio_duration`, el orden de los errores de la recepción y el estado `expired`. La API los aplica a partir de la historia de backend del mismo cambio.
 

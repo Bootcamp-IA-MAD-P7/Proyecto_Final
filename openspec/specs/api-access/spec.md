@@ -1,7 +1,7 @@
 # api-access Specification
 
 ## Purpose
-Que solo las personas autenticadas accedan a la API y cada una vea solo sus clases. El emisor de identidad real de CoTeach está pendiente; mientras, un emisor de pruebas aislado firma los tokens de la demo ([ADR-0004](../../../../../docs/ADR/0004-access-and-retention.md)). El contrato está en [CONTRACTS](../../../../../docs/CONTRACTS/README.md).
+Que solo las personas autenticadas accedan a la API y cada una vea solo sus clases. El emisor de identidad real de CoTeach está pendiente; mientras, un emisor de pruebas aislado firma los tokens de la demo ([ADR-0004](../../../docs/ADR/0004-access-and-retention.md)). El contrato está en [CONTRACTS](../../../docs/CONTRACTS/README.md).
 
 ## Requirements
 
