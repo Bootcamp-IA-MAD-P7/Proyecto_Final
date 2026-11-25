@@ -21,7 +21,7 @@ El servicio SHALL procesar cada trabajo de forma diferida, recorriendo las etapa
 - **WHEN** falla por un error transitorio el último intento permitido de un trabajo
 - **THEN** el trabajo pasa a `failed` con un código de error del contrato que ya no es reintentable, y no queda ningún resultado consultable.
 
-#### Scenario: Fallo que no es transitorio
+#### Scenario: Fallo de una etapa
 - **WHEN** una etapa falla por un error que no se arregla reintentando, como un audio que no se puede decodificar
 - **THEN** el trabajo pasa a `failed` sin reintentarse, con un código de error del contrato, y no queda ningún resultado consultable.
 
