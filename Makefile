@@ -11,8 +11,10 @@ SHELL := bash
 .DEFAULT_GOAL := help
 
 SERVICES := $(patsubst %/Makefile,%,$(wildcard */Makefile))
-# Ports of the root .env (the same ones Compose publishes), for make e2e.
--include .env
+# Ports of the root .env (the same ones Compose publishes), for make e2e. Only these two are read,
+# and the shell wins: `FRONTEND_PORT=8080 make e2e`.
+BACKEND_PORT ?= $(shell sed -n 's/^BACKEND_PORT=//p' .env 2>/dev/null)
+FRONTEND_PORT ?= $(shell sed -n 's/^FRONTEND_PORT=//p' .env 2>/dev/null)
 export BACKEND_PORT FRONTEND_PORT
 
 COMPOSE := docker compose
