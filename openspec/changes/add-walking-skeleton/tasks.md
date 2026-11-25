@@ -84,9 +84,9 @@ Plan de la funcionalidad `add-walking-skeleton` (E1, épica #1). Una sección po
 
 **Depende de:** 1, 2, 3, 4
 
-- [ ] 5.1 Añadir `worker` y `maintenance` a los tres archivos de Compose con la imagen de `backend`, conectados a la `JobStore` de PostgreSQL y a `FakePipeline`.
-- [ ] 5.2 Conectar la web a la API real: URL, CORS y emisor de pruebas activado en desarrollo.
-- [ ] 5.3 Añadir la prueba E2E con Playwright en `frontend/e2e/` y el objetivo `make e2e`, y ejecutarla contra `make up`.
-- [ ] 5.4 Comprobar `make up-prod` en local y explicar en el README cómo levantar la demo.
-- [ ] 5.5 Actualizar ARCHITECTURE §3, §4 y §7.
+- [x] 5.1 Añadir `worker` y `maintenance` a los tres archivos de Compose con la imagen de `backend`, conectados a la `JobStore` de PostgreSQL y a `FakePipeline`.
+- [x] 5.2 Conectar la web a la API real: URL, CORS y emisor de pruebas activado en desarrollo.
+- [x] 5.3 Añadir la prueba E2E con Playwright en `frontend/e2e/` y el objetivo `make e2e`, y ejecutarla contra `make up`.
+- [x] 5.4 Comprobar `make up-prod` en local y explicar en el README cómo levantar la demo.
+- [x] 5.5 Actualizar ARCHITECTURE §3, §4 y §7.
 - [ ] 5.6 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`).
