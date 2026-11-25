@@ -10,8 +10,9 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function Login() {
   const { user, signIn } = useAuth();
+  const enter = useMutation({ mutationFn: signIn });
   if (user) return <Navigate to="/upload" replace />;
-  return <Layout><section className="hero"><p className="eyebrow">DEMO SINTÉTICA</p><h1>La clase, lista para repasar.</h1><p>Entra con una identidad de prueba. La autorización siempre corresponde a la API.</p><div className="user-grid">{demoUsers.map((candidate) => <button key={candidate.id} onClick={() => signIn(candidate)}><strong>{candidate.name}</strong><small>{candidate.role === "teacher" ? "Docente" : "Estudiante"}</small></button>)}</div></section></Layout>;
+  return <Layout><section className="hero"><p className="eyebrow">DEMO SINTÉTICA</p><h1>La clase, lista para repasar.</h1><p>Entra con una identidad de prueba. La autorización siempre corresponde a la API.</p><div className="user-grid">{demoUsers.map((candidate) => <button key={candidate.id} disabled={enter.isPending} onClick={() => enter.mutate(candidate)}><strong>{candidate.name}</strong><small>{candidate.role === "teacher" ? "Docente" : "Estudiante"}</small></button>)}</div>{enter.isError && <p role="alert">No se pudo entrar: el emisor de pruebas no está disponible.</p>}</section></Layout>;
 }
 
 function Upload() {

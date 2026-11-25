@@ -1,7 +1,7 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./schema";
 
-const baseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+export const baseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export function createApiClient(token?: string) {
   return createClient<paths>({
