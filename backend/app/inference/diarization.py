@@ -98,22 +98,18 @@ def group_segments(speaker_ids: list[int], hop_seconds: float) -> list[DiaronSeg
 
     for i in range(1, len(speaker_ids)):
         if speaker_ids[i] != current_speaker:
+            start_s = start_frame * hop_seconds
+            end_s = max((i - 1) * hop_seconds, start_s + hop_seconds)
             segments.append(
-                DiaronSegment(
-                    start_s=start_frame * hop_seconds,
-                    end_s=(i - 1) * hop_seconds,
-                    speaker_id=f"speaker_{current_speaker}",
-                )
+                DiaronSegment(start_s=start_s, end_s=end_s, speaker_id=f"speaker_{current_speaker}")
             )
             current_speaker = speaker_ids[i]
             start_frame = i
 
+    start_s = start_frame * hop_seconds
+    end_s = max((len(speaker_ids) - 1) * hop_seconds, start_s + hop_seconds)
     segments.append(
-        DiaronSegment(
-            start_s=start_frame * hop_seconds,
-            end_s=(len(speaker_ids) - 1) * hop_seconds,
-            speaker_id=f"speaker_{current_speaker}",
-        )
+        DiaronSegment(start_s=start_s, end_s=end_s, speaker_id=f"speaker_{current_speaker}")
     )
     return segments
 
