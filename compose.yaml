@@ -1,7 +1,7 @@
 # Base configuration shared by every environment (CONTRIBUTING §10).
 #   Development: `make up`      -> compose.yaml + compose.override.yaml (loaded automatically)
 #   Production:  `make up-prod` -> compose.yaml + compose.production.yaml
-# Services of the walking skeleton (openspec/changes/add-walking-skeleton/design.md).
+# Services of the walking skeleton (openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md).
 
 name: ${COMPOSE_PROJECT_NAME:-app}
 

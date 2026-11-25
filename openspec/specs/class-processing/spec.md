@@ -1,7 +1,7 @@
 # class-processing Specification
 
 ## Purpose
-Que una clase enviada a la API se procese de forma diferida, por etapas, y su resultado estructurado se pueda consultar al terminar. En este cambio el procesamiento es simulado y el resultado, sintético: los modelos reales llegan en E3 y E4, y la recepción completa del audio en E2. El contrato está en [CONTRACTS](../../../../../docs/CONTRACTS/README.md).
+Que una clase enviada a la API se procese de forma diferida, por etapas, y su resultado estructurado se pueda consultar al terminar. En este cambio el procesamiento es simulado y el resultado, sintético: los modelos reales llegan en E3 y E4, y la recepción completa del audio en E2. El contrato está en [CONTRACTS](../../../docs/CONTRACTS/README.md).
 
 ## Requirements
 

@@ -54,7 +54,7 @@ Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prue
 | maintenance | Publicar vencidos y purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Actual |
 | frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Actual |
 
-Los cuatro funcionan de extremo a extremo desde el walking skeleton ([add-walking-skeleton](../openspec/changes/add-walking-skeleton/design.md)), aún con responsabilidades parciales: el worker procesa con `FakePipeline`, que devuelve un resultado sintético, hasta que E3 y E4 traigan los modelos, y maintenance solo registra sus ciclos hasta que E2 y E5 añadan la purga y la publicación al vencer.
+Los cuatro funcionan de extremo a extremo desde el walking skeleton ([add-walking-skeleton](../openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md)), aún con responsabilidades parciales: el worker procesa con `FakePipeline`, que devuelve un resultado sintético, hasta que E3 y E4 traigan los modelos, y maintenance solo registra sus ciclos hasta que E2 y E5 añadan la purga y la publicación al vencer.
 
 API, worker y maintenance comparten paquete de dominio y migraciones; no son microservicios independientes. La IA se encapsula en adaptadores para sustituir modelos sin cambiar la API pública. Ningún modelo decide permisos ni ejecuta instrucciones contenidas en el audio.
 
@@ -123,7 +123,7 @@ OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silencio
 | Productor → consumidores | Interfaz | Dónde se define |
 |---|---|---|
 | api → frontend, CoTeach | API REST `/v1` (recepción, trabajos, resultado, revisión y aprobación) y `/health`, `/ready` | Contrato [API de CoTeach AI](CONTRACTS/coteach-ai-api.md), con `backend/openapi.json` como artefacto ejecutable |
-| worker → api (mismo paquete) | `JobStore` e `InferencePipeline` | [Diseño de add-walking-skeleton](../openspec/changes/add-walking-skeleton/design.md#interfaces-internas); no es un contrato publicado |
+| worker → api (mismo paquete) | `JobStore` e `InferencePipeline` | [Diseño de add-walking-skeleton](../openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md#interfaces-internas); no es un contrato publicado |
 
 Los campos, estados y errores solo se describen en el contrato. Los formatos y los límites de duración y tamaño del audio están en el [contrato](CONTRACTS/coteach-ai-api.md); las referencias internas a segmentos no constituyen navegación temporal (RF-07).
 
