@@ -104,6 +104,10 @@ make e2e-install   # una vez por equipo: descarga Chromium
 make e2e           # contra make up o make up-prod, con los puertos del .env de la raíz
 ```
 
+El audio original se guarda en el volumen con nombre `audio-data`, montado en `/app/data/audio` en `backend`, `worker` y `maintenance`. No está dentro de Git ni se incluye en copias de seguridad. La ruta la fija `AUDIO_STORAGE_DIR` en el `.env` de la raíz (o `backend/.env`), y el plazo de conservación, `AUDIO_RETENTION_DAYS` en `backend/.env`.
+
+Para comprobar la purga sin esperar 14 días, edita `backend/.env` con `AUDIO_RETENTION_DAYS=0.001` (unas 86 segundos) y `MAINTENANCE_INTERVAL_SECONDS=5`, y levanta de nuevo con `make up`. Sube una clase y detén el worker (`docker compose stop worker`) para que el trabajo quede sin terminar: en el siguiente ciclo, `maintenance` lo deja en `expired` y borra el audio del volumen. Recuerda restaurar los valores después. La web y la API no fijan ese plazo: el servicio es quien decide.
+
 ## Contribuir
 
 - [`WORKFLOW.md`](WORKFLOW.md): el flujo de trabajo de principio a fin y el mapa de documentación.
