@@ -155,7 +155,7 @@ Puertos en local, publicados solo en 127.0.0.1: API 8000 (`BACKEND_PORT`) y web 
 
 `make up` levanta los cinco servicios; el worker espera a que `backend` esté sano (`/ready`), porque es la API la que aplica las migraciones al arrancar. Con `make up-prod`, el emisor de pruebas está apagado salvo con `AUTH_DEV_ISSUER=true` para una demo local. `make e2e` ejecuta Playwright en el equipo contra lo levantado; no corre en el CI. Todos los comandos están en `make help`.
 
-El audio original vive en el volumen con nombre `audio-data`, montado en `/app/data/audio` en `backend`, `worker` y `maintenance` tanto con `make up` como con `make up-prod`. `AUDIO_STORAGE_DIR` fija la ruta y el plazo de conservación se configura con `AUDIO_RETENTION_DAYS`. El volumen y sus archivos quedan fuera de Git y de copias de seguridad ([ADR-0004](ADR/0004-access-and-retention.md)): sin el volumen compartido, cada contenedor tendría su propia capa y la purga no podría borrar lo que otro servicio escribió.
+El audio original vive en el volumen con nombre `audio-data`, montado en `/app/data/audio` en `backend`, `worker` y `maintenance` tanto con `make up` como con `make up-prod`. `AUDIO_STORAGE_DIR`, en el `.env` de la raíz y como ruta absoluta dentro del contenedor, fija a la vez la ruta del montaje y la variable de los tres servicios; el plazo de conservación se configura con `AUDIO_RETENTION_DAYS` en `backend/.env`. El volumen y sus archivos quedan fuera de Git y de copias de seguridad ([ADR-0004](ADR/0004-access-and-retention.md)): sin el volumen compartido, cada contenedor tendría su propia capa y la purga no podría borrar lo que otro servicio escribió.
 
 | Modalidad | Ventajas | Límites y costes | Uso propuesto |
 |---|---|---|---|
