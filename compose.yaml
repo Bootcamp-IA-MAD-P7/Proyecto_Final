@@ -14,6 +14,9 @@ services:
       # Inside Compose the database is the `db` service; backend/.env points to localhost.
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-coteach}:${POSTGRES_PASSWORD:-coteach}@db:5432/${POSTGRES_DB:-coteach}
       TEST_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-coteach}:${POSTGRES_PASSWORD:-coteach}@db:5432/${POSTGRES_DB:-coteach}_test
+      AUDIO_STORAGE_DIR: ${AUDIO_STORAGE_DIR:-data/audio}
+    volumes:
+      - audio-data:/app/data/audio
     depends_on:
       db:
         condition: service_healthy
@@ -32,6 +35,9 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-coteach}:${POSTGRES_PASSWORD:-coteach}@db:5432/${POSTGRES_DB:-coteach}
+      AUDIO_STORAGE_DIR: ${AUDIO_STORAGE_DIR:-data/audio}
+    volumes:
+      - audio-data:/app/data/audio
     # `backend` applies the migrations when it starts; the worker needs its tables.
     depends_on:
       backend:
@@ -44,6 +50,9 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-coteach}:${POSTGRES_PASSWORD:-coteach}@db:5432/${POSTGRES_DB:-coteach}
+      AUDIO_STORAGE_DIR: ${AUDIO_STORAGE_DIR:-data/audio}
+    volumes:
+      - audio-data:/app/data/audio
     depends_on:
       db:
         condition: service_healthy
@@ -69,3 +78,5 @@ services:
 
 volumes:
   db-data:
+  # Private audio of the classes, shared by backend, worker and maintenance (ADR-0004).
+  audio-data:
