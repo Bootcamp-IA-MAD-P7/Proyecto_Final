@@ -23,3 +23,20 @@ test("a teacher signs in, uploads a class, follows its progress and sees the res
   await page.getByRole("button", { name: /aprobar resultado/i }).click();
   await expect(page.getByRole("status")).toHaveText(/resultado aprobado/i);
 });
+
+test("a teacher sees a clear error when the uploaded audio is not admitted", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /docente de prueba/i }).click();
+
+  await expect(page.getByRole("heading", { name: /sube una grabación/i })).toBeVisible();
+  // A text payload named .wav: the API rejects it by content, not by extension (contract 0.2).
+  await page.getByLabel("Audio").setInputFiles({
+    name: "not-audio.wav",
+    mimeType: "audio/wav",
+    buffer: Buffer.from("this is not an audio file"),
+  });
+  await page.getByRole("button", { name: /enviar a procesar/i }).click();
+
+  await expect(page.getByRole("alert")).toHaveText(/formato del audio no está admitido/i);
+  await expect(page.getByRole("heading", { name: /sube una grabación/i })).toBeVisible();
+});
