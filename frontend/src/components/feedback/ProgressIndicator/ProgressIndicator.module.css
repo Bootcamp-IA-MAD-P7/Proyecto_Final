@@ -1,0 +1,6 @@
+@import "../../../styles/tokens.css";
+
+.container { display: grid; gap: var(--ct-space-2); }
+.label { color: var(--ct-color-ink); display: flex; font: 700 .875rem/1.2 var(--ct-font-sans); justify-content: space-between; }
+.progress { accent-color: var(--ct-color-primary-strong); block-size: .625rem; inline-size: 100%; }
+@media (prefers-reduced-motion: reduce) { .progress { transition: none; } }

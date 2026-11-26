@@ -1,0 +1,7 @@
+@import "../../../styles/tokens.css";
+
+.notice { align-items: flex-start; border: 1px solid currentcolor; border-radius: var(--ct-radius-control); display: flex; gap: var(--ct-space-2); padding: var(--ct-space-3) var(--ct-space-4); }
+.info { background: var(--ct-color-info-soft); color: var(--ct-color-primary-strong); }
+.success { background: var(--ct-color-success-soft); color: var(--ct-color-success); }
+.warning { background: var(--ct-color-warning-soft); color: var(--ct-color-warning); }
+.error { background: var(--ct-color-danger-soft); color: var(--ct-color-danger); }
