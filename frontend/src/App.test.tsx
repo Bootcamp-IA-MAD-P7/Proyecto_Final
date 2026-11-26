@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { expect, it } from "vitest";
 import { App } from "./App";
 import { AuthProvider, demoUsers, type DemoUser } from "./auth";
-import { expiredJob, expiredSubmissionHandler, receptionRejections } from "./mocks/handlers";
+import { diarizedResult, expiredJob, expiredSubmissionHandler, failedJob, noVoiceResult, receptionRejections, retryWaitJobHandler } from "./mocks/handlers";
 import { server } from "./mocks/server";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -128,6 +128,35 @@ it("shows each processing stage only once", async () => {
   renderAuthenticatedApp(demoUsers[0], ["/jobs/job-stage-test"]);
   expect(await screen.findByText("Transcribiendo")).toBeVisible();
   expect(screen.getAllByText("Transcribiendo")).toHaveLength(1);
+});
+
+it("explains retry and failure states from the job response", async () => {
+  server.use(retryWaitJobHandler);
+  renderAuthenticatedApp(demoUsers[0], ["/jobs/job-demo-retry"]);
+  expect(await screen.findByRole("heading", { name: /se reintentará/i })).toBeInTheDocument();
+  expect(screen.getByText(/en espera de reintento/i)).toBeVisible();
+  expect(screen.getByText(/intento 2. el servicio de transcripción no está disponible/i)).toBeVisible();
+});
+
+it("shows the failed job message from the API", async () => {
+  server.use(http.get(`${apiUrl}/v1/jobs/job-demo-failed`, () => HttpResponse.json(failedJob)));
+  renderAuthenticatedApp(demoUsers[0], ["/jobs/job-demo-failed"]);
+  expect(await screen.findByRole("heading", { name: /no se pudo procesar/i })).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent(/no se pudo identificar las voces/i);
+});
+
+it("shows empty transcript and analysis messages from synthetic results", async () => {
+  server.use(http.get(`${apiUrl}/v1/classes/class-demo-01/result`, () => HttpResponse.json(noVoiceResult)));
+  renderAuthenticatedApp(demoUsers[0], ["/classes/class-demo-01/result"]);
+  expect(await screen.findByText(/no se ha detectado voz/i)).toBeVisible();
+  expect(screen.getByText(/repaso pedagógico todavía no contiene elementos/i)).toBeVisible();
+});
+
+it("renders the synthetic diarized result through the API contract", async () => {
+  server.use(http.get(`${apiUrl}/v1/classes/class-demo-01/result`, () => HttpResponse.json(diarizedResult)));
+  renderAuthenticatedApp(demoUsers[0], ["/classes/class-demo-01/result"]);
+  expect(await screen.findByText("Hablante 1")).toBeVisible();
+  expect(screen.getByText("Hablante 2")).toBeVisible();
 });
 
 it("signs in with a token of the test issuer and explains when the issuer is off", async () => {

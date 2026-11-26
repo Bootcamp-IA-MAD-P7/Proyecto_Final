@@ -8,6 +8,7 @@ import { Card } from "./ui/Card/Card";
 import { FilePicker } from "./ui/FilePicker/FilePicker";
 import { StatusBadge } from "./ui/StatusBadge/StatusBadge";
 import { TopBar } from "./navigation/TopBar/TopBar";
+import { TranscriptPanel } from "./results/TranscriptPanel/TranscriptPanel";
 
 it("renders button variants as accessible buttons", () => {
   render(<><Button>Continuar</Button><Button disabled variant="secondary">Cancelar</Button><Button variant="text">Volver</Button></>);
@@ -50,6 +51,20 @@ it("keeps the file picker accessible through its associated label", () => {
   const input = screen.getByLabelText("Audio") as HTMLInputElement;
   expect(input).toBeRequired();
   expect(input.accept).toBe(".mp3");
+});
+
+it("groups consecutive segments by speaker and formats timestamps", () => {
+  render(<TranscriptPanel transcript={{ speakers: [{ speaker_id: "speaker-01", participant_id: null }, { speaker_id: "speaker-02", participant_id: null }], segments: [{ segment_id: "segment-01", start_ms: 62000, end_ms: 64000, speaker_id: "speaker-01", text: "Buenos" }, { segment_id: "segment-02", start_ms: 64000, end_ms: 66000, speaker_id: "speaker-01", text: "días." }, { segment_id: "segment-03", start_ms: 3723000, end_ms: 3725000, speaker_id: "speaker-02", text: "Hola." }] }} />);
+  expect(screen.getByText("Hablante 1")).toBeVisible();
+  expect(screen.getByText("Buenos días.")).toBeVisible();
+  expect(screen.getByText("01:02")).toBeVisible();
+  expect(screen.getByText("Hablante 2")).toBeVisible();
+  expect(screen.getByText("1:02:03")).toBeVisible();
+});
+
+it("explains when a transcript has no detected voice", () => {
+  render(<TranscriptPanel transcript={{ speakers: [], segments: [] }} />);
+  expect(screen.getByText(/no se ha detectado voz/i)).toBeVisible();
 });
 
 it("uses router navigation for the signed-in brand", () => {
