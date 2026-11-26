@@ -19,9 +19,9 @@ const reject = (code: string, message: string, status: 413 | 415 | 422) =>
   HttpResponse.json({ error: { code, message, retryable: false }, request_id: "request-demo-reception" }, { status });
 
 export const receptionRejections = ([
-  { fileName: "audio-too-large.mp3", status: 413, code: "audio_too_large", message: "El audio supera el tamaño permitido" },
-  { fileName: "audio-unsupported.wav", status: 415, code: "unsupported_audio", message: "El formato del audio no está admitido" },
-  { fileName: "audio-too-short.mp3", status: 422, code: "invalid_audio_duration", message: "La duración del audio está fuera de los límites permitidos" }
+  { fileName: "audio-too-large.mp3", status: 413, code: "audio_too_large", message: "El archivo excede el límite configurado en el servicio" },
+  { fileName: "audio-unsupported.wav", status: 415, code: "unsupported_audio", message: "Contenido no reconocido por el servicio" },
+  { fileName: "audio-too-short.mp3", status: 422, code: "invalid_audio_duration", message: "Duración no válida según la API" }
 ] as const).map((rejection) => ({
   ...rejection,
   handler: http.post(`${apiUrl}/v1/classes`, () => reject(rejection.code, rejection.message, rejection.status))

@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { expect, it } from "vitest";
 import { App } from "./App";
 import { AuthProvider } from "./auth";
-import { expiredJobHandler, expiredSubmissionHandler, receptionRejections } from "./mocks/handlers";
+import { expiredJob, expiredSubmissionHandler, receptionRejections } from "./mocks/handlers";
 import { server } from "./mocks/server";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -58,22 +58,36 @@ it("offers only the audio formats admitted by the contract in the file picker", 
   }
 });
 
-it.each(receptionRejections)("explains the reception error for $fileName", async ({ handler, message }) => {
+const uiMessages: Record<string, RegExp> = {
+  audio_too_large: /supera el tamaño permitido\. reduce el tamaño/i,
+  unsupported_audio: /formato del audio no está admitido\. usa opus/i,
+  invalid_audio_duration: /duración del audio está fuera de los límites permitidos/i
+};
+
+it.each(receptionRejections)("explains the reception error for $fileName", async ({ handler, code, message }) => {
   server.use(handler);
   renderApp();
   signInAsDemoTeacher();
   expect(await screen.findByRole("heading", { name: /sube una grabación/i })).toBeInTheDocument();
   uploadNamedAudio("class.mp3");
-  expect(await screen.findByRole("alert")).toHaveTextContent(message);
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent(uiMessages[code]);
+  expect(alert).not.toHaveTextContent(message);
   expect(screen.queryByRole("heading", { name: /repaso de la clase/i })).not.toBeInTheDocument();
 });
 
 it("explains that the audio is no longer available when the job expired", async () => {
-  server.use(expiredSubmissionHandler, expiredJobHandler);
+  let jobPolls = 0;
+  server.use(expiredSubmissionHandler, http.get(`${apiUrl}/v1/jobs/job-demo-expired`, () => {
+    jobPolls += 1;
+    return HttpResponse.json(expiredJob);
+  }));
   renderApp();
   signInAsDemoTeacher();
   expect(await screen.findByRole("heading", { name: /sube una grabación/i })).toBeInTheDocument();
   uploadNamedAudio("class.mp3");
   expect(await screen.findByText(/el audio ya no está disponible/i, {}, { timeout: 3000 })).toBeInTheDocument();
+  await new Promise((resolve) => setTimeout(resolve, 1800));
+  expect(jobPolls).toBe(1);
   expect(screen.queryByRole("heading", { name: /repaso de la clase/i })).not.toBeInTheDocument();
 });
