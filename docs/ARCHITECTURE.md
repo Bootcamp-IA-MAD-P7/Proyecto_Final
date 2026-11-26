@@ -54,7 +54,7 @@ Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prue
 | maintenance | Publicar vencidos y purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Actual |
 | frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Actual |
 
-Los cuatro funcionan de extremo a extremo desde el walking skeleton ([add-walking-skeleton](../openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md)), aún con responsabilidades parciales: el worker procesa con `FakePipeline`, que devuelve un resultado sintético, hasta que E3 y E4 traigan los modelos, y maintenance solo registra sus ciclos hasta que E2 y E5 añadan la purga y la publicación al vencer.
+Los cuatro funcionan de extremo a extremo desde el walking skeleton ([add-walking-skeleton](../openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md)), aún con responsabilidades parciales: el worker procesa con `FakePipeline`, que devuelve un resultado sintético, hasta que E3 y E4 traigan los modelos. Maintenance ya purga el audio vencido y caduca los trabajos sin terminar (E2); la publicación automática al vencer llega en E5.
 
 API, worker y maintenance comparten paquete de dominio y migraciones; no son microservicios independientes. La IA se encapsula en adaptadores para sustituir modelos sin cambiar la API pública. Ningún modelo decide permisos ni ejecuta instrucciones contenidas en el audio.
 
@@ -154,6 +154,8 @@ Advertencia técnica concreta: [Docker Desktop ofrece GPU en Windows mediante ba
 Puertos en local, publicados solo en 127.0.0.1: API 8000 (`BACKEND_PORT`) y web 5173 (`FRONTEND_PORT`), con Vite en desarrollo y nginx con el artefacto estático en `make up-prod` (8080 si no se fija `FRONTEND_PORT`). PostgreSQL usa el 5432 solo dentro de la red de Compose; worker y maintenance no publican puertos. En un despliegue real, producción expone únicamente TLS por proxy. Web y API tienen orígenes distintos, así que CORS admite solo `FRONTEND_ORIGIN`, que Compose fija al puerto de la web.
 
 `make up` levanta los cinco servicios; el worker espera a que `backend` esté sano (`/ready`), porque es la API la que aplica las migraciones al arrancar. Con `make up-prod`, el emisor de pruebas está apagado salvo con `AUTH_DEV_ISSUER=true` para una demo local. `make e2e` ejecuta Playwright en el equipo contra lo levantado; no corre en el CI. Todos los comandos están en `make help`.
+
+El audio original vive en el volumen con nombre `audio-data`, montado en `/app/data/audio` en `backend`, `worker` y `maintenance` tanto con `make up` como con `make up-prod`. `AUDIO_STORAGE_DIR` fija la ruta y el plazo de conservación se configura con `AUDIO_RETENTION_DAYS`. El volumen y sus archivos quedan fuera de Git y de copias de seguridad ([ADR-0004](ADR/0004-access-and-retention.md)): sin el volumen compartido, cada contenedor tendría su propia capa y la purga no podría borrar lo que otro servicio escribió.
 
 | Modalidad | Ventajas | Límites y costes | Uso propuesto |
 |---|---|---|---|
