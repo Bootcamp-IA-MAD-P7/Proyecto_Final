@@ -15,25 +15,32 @@ function Login() {
   return <Layout><section className="hero"><p className="eyebrow">DEMO SINTÉTICA</p><h1>La clase, lista para repasar.</h1><p>Entra con una identidad de prueba. La autorización siempre corresponde a la API.</p><div className="user-grid">{demoUsers.map((candidate) => <button key={candidate.id} disabled={enter.isPending} onClick={() => enter.mutate(candidate)}><strong>{candidate.name}</strong><small>{candidate.role === "teacher" ? "Docente" : "Estudiante"}</small></button>)}</div>{enter.isError && <p role="alert">No se pudo entrar. Comprueba que la API está levantada y con el emisor de pruebas activado.</p>}</section></Layout>;
 }
 
+const receptionMessages: Record<string, string> = {
+  audio_too_large: "El audio supera el tamaño permitido. Reduce el tamaño del archivo y vuelve a intentarlo.",
+  unsupported_audio: "El formato del audio no está admitido. Usa Opus (Ogg o WebM), MP3 o AAC (M4A o MP4).",
+  invalid_audio_duration: "La duración del audio está fuera de los límites permitidos."
+};
+
 function Upload() {
   const { token, user } = useAuth(); const navigate = useNavigate();
   const submit = useMutation({ mutationFn: async (form: FormData) => {
     // FastAPI exposes multipart fields as strings in OpenAPI 3.1; FormData is the runtime representation.
     const { data, error, response } = await createApiClient(token ?? undefined).POST("/v1/classes", { body: form as never });
     if (response.status === 403) throw new Error("No tienes permisos para subir grabaciones. Esta acción está reservada al profesorado");
-    if (error || !data) throw new Error("No se pudo enviar la clase.");
+    if (error || !data) throw new Error(receptionMessages[error?.error.code ?? ""] ?? error?.error.message ?? "No se pudo enviar la clase.");
     return data;
   }, onSuccess: ({ job_id }) => navigate(`/jobs/${job_id}`) });
   if (!user) return <Navigate to="/" replace />;
-  return <Layout><section className="panel"><p className="eyebrow">NUEVA CLASE</p><h1>Sube una grabación</h1><p>El audio de esta demo no se conserva; se usa un resultado sintético del contrato.</p><form onSubmit={(event) => { event.preventDefault(); submit.mutate(new FormData(event.currentTarget)); }}><label>Audio<input required name="audio" type="file" accept="audio/*" /></label><input type="hidden" name="metadata" value={JSON.stringify({ external_class_id: "demo-class-01", participant_count: 2, participants: [{ participant_id: "demo-teacher", role: "teacher" }, { participant_id: "demo-student", role: "student" }], consent_reference: "synthetic-fixture-01" })} /><button disabled={submit.isPending}>{submit.isPending ? "Enviando…" : "Enviar a procesar"}</button>{submit.isError && <p role="alert">{submit.error.message}</p>}</form></section></Layout>;
+  return <Layout><section className="panel"><p className="eyebrow">NUEVA CLASE</p><h1>Sube una grabación</h1><p>El audio se conserva solo durante el plazo configurado y después se elimina; el resultado de esta demo es sintético.</p><form onSubmit={(event) => { event.preventDefault(); submit.mutate(new FormData(event.currentTarget)); }}><label>Audio<input required name="audio" type="file" accept=".ogg,.opus,.webm,.mp3,.m4a,.mp4,audio/ogg,audio/webm,audio/mpeg,audio/mp4" /></label><input type="hidden" name="metadata" value={JSON.stringify({ external_class_id: "demo-class-01", participant_count: 2, participants: [{ participant_id: "demo-teacher", role: "teacher" }, { participant_id: "demo-student", role: "student" }], consent_reference: "synthetic-fixture-01" })} /><button disabled={submit.isPending}>{submit.isPending ? "Enviando…" : "Enviar a procesar"}</button>{submit.isError && <p role="alert">{submit.error.message}</p>}</form></section></Layout>;
 }
 
 function Job() {
   const { token } = useAuth(); const { jobId = "" } = useParams(); const navigate = useNavigate();
-  const job = useQuery({ queryKey: ["job", jobId], queryFn: async () => { const { data, error } = await createApiClient(token ?? undefined).GET("/v1/jobs/{job_id}", { params: { path: { job_id: jobId } } }); if (error || !data) throw new Error("No se pudo consultar el trabajo."); return data; }, refetchInterval: (query) => query.state.data?.state === "ready_for_review" ? false : 800 });
+  const job = useQuery({ queryKey: ["job", jobId], queryFn: async () => { const { data, error } = await createApiClient(token ?? undefined).GET("/v1/jobs/{job_id}", { params: { path: { job_id: jobId } } }); if (error || !data) throw new Error("No se pudo consultar el trabajo."); return data; }, refetchInterval: (query) => { const state = query.state.data?.state; return state === "ready_for_review" || state === "expired" ? false : 800; } });
   if (!token) return <Navigate to="/" replace />;
   if (job.data?.state === "ready_for_review") return <Navigate to={`/classes/${job.data.class_id}/result`} replace />;
-  return <Layout><section className="panel"><p className="eyebrow">PROCESAMIENTO</p><h1>Estamos preparando el repaso</h1><div className="progress" aria-label="Progreso de procesamiento"><i /></div><p>{job.isError ? job.error.message : `Etapa actual: ${job.data?.stage ?? "en cola"}`}</p><button className="quiet" onClick={() => navigate(0)}>Actualizar ahora</button></section></Layout>;
+  const expired = job.data?.state === "expired";
+  return <Layout><section className="panel"><p className="eyebrow">PROCESAMIENTO</p><h1>Estamos preparando el repaso</h1><div className="progress" aria-label="Progreso de procesamiento"><i /></div><p role={expired ? "alert" : undefined}>{job.isError ? job.error.message : expired ? "El audio ya no está disponible porque ha caducado el plazo de conservación." : `Etapa actual: ${job.data?.stage ?? "en cola"}`}</p><button className="quiet" onClick={() => navigate(0)}>Actualizar ahora</button></section></Layout>;
 }
 
 function Result() {
