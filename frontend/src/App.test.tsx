@@ -197,14 +197,14 @@ it("offers only the audio formats admitted by the contract in the file picker", 
   renderApp();
   signInAsDemoTeacher();
   const input = (await screen.findByLabelText("Audio")) as HTMLInputElement;
-  for (const extension of [".ogg", ".opus", ".webm", ".mp3", ".m4a", ".mp4"]) {
+  for (const extension of [".ogg", ".opus", ".webm", ".mkv", ".mp3", ".m4a", ".mp4", ".mov", ".3gp"]) {
     expect(input.accept).toContain(extension);
   }
 });
 
 const uiMessages: Record<string, RegExp> = {
   audio_too_large: /supera el tamaño permitido\. reduce el tamaño/i,
-  unsupported_audio: /formato del audio no está admitido\. usa opus/i,
+  unsupported_audio: /formato del audio no está admitido\. usa opus \(ogg, webm o matroska\), mp3 o aac \(m4a, mp4, mov o 3gp\)/i,
   invalid_audio_duration: /duración del audio está fuera de los límites permitidos/i
 };
 

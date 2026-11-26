@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security.utils import get_authorization_scheme_param
 from pydantic import BaseModel, ConfigDict
 
 from app.api.errors import ApiError
@@ -33,6 +34,17 @@ def get_principal(
         raise ApiError(401, ErrorCode.UNAUTHENTICATED)
     try:
         return verify_token(get_settings(request), credentials.credentials)
+    except InvalidTokenError as error:
+        raise ApiError(401, ErrorCode.UNAUTHENTICATED) from error
+
+
+def principal_from_authorization(settings: Settings, authorization: str | None) -> Principal:
+    """Authenticate an Authorization header before a large multipart body is read."""
+    scheme, token = get_authorization_scheme_param(authorization)
+    if scheme.lower() != "bearer" or not token:
+        raise ApiError(401, ErrorCode.UNAUTHENTICATED)
+    try:
+        return verify_token(settings, token)
     except InvalidTokenError as error:
         raise ApiError(401, ErrorCode.UNAUTHENTICATED) from error
 

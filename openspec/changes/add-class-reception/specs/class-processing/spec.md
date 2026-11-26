@@ -25,6 +25,10 @@ La API SHALL aceptar el envío de una clase con audio y metadatos válidos segú
 - **WHEN** el audio supera el tamaño máximo configurado
 - **THEN** recibe 413 `audio_too_large`, no se crea ningún trabajo y no queda ningún archivo guardado.
 
+#### Scenario: Cuerpo multipart demasiado grande
+- **WHEN** una persona autorizada declara o transmite en `POST /v1/classes` un cuerpo multipart mayor que el límite de audio más el margen de metadatos
+- **THEN** recibe 413 `audio_too_large` antes de analizar el formulario, el servidor deja de recibir el cuerpo y no quedan temporales, clases ni trabajos.
+
 #### Scenario: Formato no admitido
 - **WHEN** el contenido del archivo no es audio en uno de los formatos admitidos, aunque su nombre o su tipo declarado lo sean
 - **THEN** recibe 415 `unsupported_audio`, no se crea ningún trabajo y no queda ningún archivo guardado.
@@ -34,6 +38,17 @@ La API SHALL aceptar el envío de una clase con audio y metadatos válidos segú
 - **THEN** recibe 422 `invalid_audio_duration`, no se crea ningún trabajo y no queda ningún archivo guardado.
 
 ## ADDED Requirements
+
+### Requirement: Recepción acotada antes del análisis multipart
+La API SHALL limitar la recepción de `POST /v1/classes` antes de que el analizador multipart consuma todo el cuerpo. SHALL autenticar y autorizar primero, SHALL rechazar con 413 `audio_too_large` un `Content-Length` mayor que `UPLOAD_MAX_BYTES` más un margen fijo para la envolvente multipart y SHALL contar los fragmentos cuando la cabecera falte o sea menor que los bytes reales. El margen no SHALL alterar la validación exacta del archivo ni permitir bytes adicionales de audio (RF-01, RNF-05).
+
+#### Scenario: Archivo en el límite exacto
+- **WHEN** el archivo de audio mide exactamente `UPLOAD_MAX_BYTES` y la envolvente multipart cabe en su margen
+- **THEN** se conserva para la validación normal del contenido, formato y duración.
+
+#### Scenario: Autorización antes del límite temprano
+- **WHEN** una petición sin credencial válida o sin rol para enviar clases declara un cuerpo mayor que el límite de recepción
+- **THEN** responde 401 o 403 respectivamente sin consumir el cuerpo.
 
 ### Requirement: Recepción idempotente
 Cuando un envío lleva `Idempotency-Key`, la API SHALL tratar como el mismo envío los que repiten la clave de quien envía con el mismo audio y los mismos metadatos, y SHALL rechazar la misma clave con otro contenido. Sin la cabecera, cada envío crea una clase nueva (RF-01).

@@ -82,3 +82,19 @@ Plan de la funcionalidad `add-class-reception` (E2, épica #2). Una sección por
 - [x] 5.3 Comprobar la purga en local con un plazo corto y documentar cómo hacerlo en el README.
 - [x] 5.4 Actualizar ARCHITECTURE §7 (volumen del audio) y marcar como Actual lo que corresponda en §3.
 - [ ] 5.5 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`), después del archive de `add-walking-skeleton`.
+
+## 6. Límite temprano y formatos de recepción (backend/frontend) · #54
+
+**Criterios de aceptación:**
+- `POST /v1/classes` rechaza con 413 `audio_too_large` antes de analizar todo el multipart cuando `Content-Length` supera el límite del audio más un margen documentado para metadatos, y corta transmisiones sin cabecera o con valor inferior al cuerpo real.
+- El límite exacto de `UPLOAD_MAX_BYTES` se mantiene sobre el archivo, sin dejar temporales, clases, trabajos ni registros residuales al rechazar.
+- La autenticación y autorización conservan su prioridad; idempotencia y los demás errores de recepción existentes siguen cubiertos.
+- Matroska con Opus y MOV/3GP con AAC se aceptan por contenido; los códecs, contenedores y vídeos no admitidos se rechazan. El selector y mensajes web reflejan exactamente esos formatos.
+- La ficha `docs/CONTRACTS/coteach-ai-api.md` describe el comportamiento sin variar la versión 0.2.0 ni el esquema OpenAPI.
+
+**Depende de:** 1 y 2.
+
+- [x] 6.1 Añadir el middleware de límite multipart temprano, con margen documentado, autenticación/autorización previa y respuesta de contrato 413.
+- [x] 6.2 Mantener la validación exacta del archivo y cubrir `Content-Length`, transmisión real, interrupción, limpieza y prioridades de error con pruebas de regresión.
+- [x] 6.3 Ampliar los audios sintéticos y pruebas de recepción para Matroska/Opus y MOV/3GP/AAC, manteniendo los rechazados.
+- [x] 6.4 Actualizar la ficha del contrato y, solo si procede, el selector y mensajes web para los formatos admitidos; ejecutar las validaciones de las capas afectadas.

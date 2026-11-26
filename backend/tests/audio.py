@@ -16,9 +16,12 @@ import pytest
 ENCODERS = {
     "ogg": ["-c:a", "libopus", "-b:a", "16k"],
     "webm": ["-c:a", "libopus", "-b:a", "16k"],
+    "mkv": ["-c:a", "libopus", "-b:a", "16k"],
     "mp3": ["-c:a", "libmp3lame", "-b:a", "32k"],
     "m4a": ["-c:a", "aac", "-b:a", "32k"],
     "mp4": ["-c:a", "aac", "-b:a", "32k"],
+    "mov": ["-c:a", "aac", "-b:a", "32k"],
+    "3gp": ["-c:a", "aac", "-b:a", "32k"],
     "wav": ["-c:a", "pcm_s16le"],
     "flac": ["-c:a", "flac"],
 }
