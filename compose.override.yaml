@@ -10,7 +10,7 @@ services:
       FRONTEND_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
     volumes:
       - ./backend:/app
-      - audio-data:/app/data/audio
+      - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
   worker:
@@ -18,13 +18,13 @@ services:
       target: dev
     volumes:
       - ./backend:/app
-      - audio-data:/app/data/audio
+      - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
   maintenance:
     build:
       target: dev
     volumes:
       - ./backend:/app
-      - audio-data:/app/data/audio
+      - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
   frontend:
     build:
       target: dev

@@ -13,21 +13,21 @@ services:
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     volumes:
-      - audio-data:/app/data/audio
+      - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
 
   worker:
     build:
       target: prod
     restart: unless-stopped
     volumes:
-      - audio-data:/app/data/audio
+      - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
 
   maintenance:
     build:
       target: prod
     restart: unless-stopped
     volumes:
-      - audio-data:/app/data/audio
+      - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
 
   db:
     restart: unless-stopped
