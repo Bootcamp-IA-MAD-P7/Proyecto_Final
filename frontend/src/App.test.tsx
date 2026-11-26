@@ -5,11 +5,19 @@ import { MemoryRouter } from "react-router-dom";
 import { expect, it } from "vitest";
 import { App } from "./App";
 import { AuthProvider } from "./auth";
+import { expiredJobHandler, expiredSubmissionHandler, receptionRejections } from "./mocks/handlers";
 import { server } from "./mocks/server";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 function renderApp() { render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><AuthProvider><App /></AuthProvider></MemoryRouter></QueryClientProvider>); }
+
+function signInAsDemoTeacher() { fireEvent.click(screen.getByRole("button", { name: /docente de prueba/i })); }
+
+function uploadNamedAudio(name: string) {
+  fireEvent.change(screen.getByLabelText("Audio"), { target: { files: [new File(["audio"], name, { type: "audio/mpeg" })] } });
+  fireEvent.submit(screen.getByRole("button", { name: /enviar a procesar/i }).closest("form")!);
+}
 
 it("runs the synthetic teacher flow with MSW", async () => {
   renderApp();
@@ -39,4 +47,33 @@ it("signs in with a token of the test issuer and explains when the issuer is off
   fireEvent.click(screen.getByRole("button", { name: /docente de prueba/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo entrar/i);
   expect(screen.queryByRole("heading", { name: /sube una grabación/i })).not.toBeInTheDocument();
+});
+
+it("offers only the audio formats admitted by the contract in the file picker", async () => {
+  renderApp();
+  signInAsDemoTeacher();
+  const input = (await screen.findByLabelText("Audio")) as HTMLInputElement;
+  for (const extension of [".ogg", ".opus", ".webm", ".mp3", ".m4a", ".mp4"]) {
+    expect(input.accept).toContain(extension);
+  }
+});
+
+it.each(receptionRejections)("explains the reception error for $fileName", async ({ handler, message }) => {
+  server.use(handler);
+  renderApp();
+  signInAsDemoTeacher();
+  expect(await screen.findByRole("heading", { name: /sube una grabación/i })).toBeInTheDocument();
+  uploadNamedAudio("class.mp3");
+  expect(await screen.findByRole("alert")).toHaveTextContent(message);
+  expect(screen.queryByRole("heading", { name: /repaso de la clase/i })).not.toBeInTheDocument();
+});
+
+it("explains that the audio is no longer available when the job expired", async () => {
+  server.use(expiredSubmissionHandler, expiredJobHandler);
+  renderApp();
+  signInAsDemoTeacher();
+  expect(await screen.findByRole("heading", { name: /sube una grabación/i })).toBeInTheDocument();
+  uploadNamedAudio("class.mp3");
+  expect(await screen.findByText(/el audio ya no está disponible/i, {}, { timeout: 3000 })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /repaso de la clase/i })).not.toBeInTheDocument();
 });
