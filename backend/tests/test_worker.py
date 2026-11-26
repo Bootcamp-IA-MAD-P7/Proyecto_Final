@@ -77,6 +77,14 @@ class ExpiringStore(InMemoryJobStore):
         return super().complete(job_id, result)
 
 
+class ExpiringOnAdvanceStore(InMemoryJobStore):
+    """Expires the job while a stage is being recorded (maintenance ran mid-pipeline)."""
+
+    def advance(self, job_id, stage):
+        self.expire_jobs(NOW)
+        return super().advance(job_id, stage)
+
+
 def expired_audio() -> AudioAsset:
     received_at = datetime(2026, 11, 20, 12, tzinfo=UTC)
     return AudioAsset(
@@ -109,6 +117,30 @@ def test_discards_a_result_that_arrived_after_the_job_expired(metadata, caplog):
     assert done.state is JobState.EXPIRED
     assert store.get_result(stored.class_id) is None
     assert "expired job result discarded" in [record.message for record in caplog.records]
+
+
+def test_discards_a_job_that_expired_during_a_stage(metadata, caplog):
+    store = ExpiringOnAdvanceStore()
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
+
+    with caplog.at_level(logging.INFO, logger="app.worker"):
+        done = worker(store).run_once()
+
+    assert done.state is JobState.EXPIRED
+    assert store.get_result(stored.class_id) is None
+    assert "expired job result discarded" in [record.message for record in caplog.records]
+
+
+def test_a_job_with_expired_audio_is_not_resumed_after_a_restart(metadata):
+    store = InMemoryJobStore()
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
+    job = store.claim_next()
+    restarted = worker(store)
+
+    assert restarted.start() == 0
+    assert store.get_job(job.job_id).state is JobState.EXPIRED
+    assert restarted.run_once() is None
+    assert store.get_result(stored.class_id) is None
 
 
 def test_takes_a_queued_job_through_every_stage_to_ready_for_review(metadata):
