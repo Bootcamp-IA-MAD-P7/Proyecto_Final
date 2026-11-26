@@ -61,10 +61,10 @@ Plan de la funcionalidad `add-class-reception` (E2, épica #2). Una sección por
 
 **Depende de:** 1
 
-- [ ] 4.1 Regenerar los tipos desde `backend/openapi.json`.
-- [ ] 4.2 Limitar el selector a los formatos admitidos y mostrar los mensajes de error de la recepción.
-- [ ] 4.3 Mostrar el estado `expired` en el progreso del trabajo.
-- [ ] 4.4 Añadir a los mocks de MSW los errores de la recepción y un trabajo caducado, con sus tests.
+- [x] 4.1 Regenerar los tipos desde `backend/openapi.json`.
+- [x] 4.2 Limitar el selector a los formatos admitidos y mostrar los mensajes de error de la recepción.
+- [x] 4.3 Mostrar el estado `expired` en el progreso del trabajo.
+- [x] 4.4 Añadir a los mocks de MSW los errores de la recepción y un trabajo caducado, con sus tests.
 
 ## 5. Recepción de extremo a extremo en local (integración) · #49
 
