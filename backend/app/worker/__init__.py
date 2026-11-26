@@ -55,7 +55,12 @@ class Worker:
         self._clock = clock
 
     def start(self) -> int:
-        """Return the jobs left in progress to the queue and log that the worker is ready."""
+        """Expire jobs whose audio is past its date, then requeue those still in progress.
+
+        Maintenance purges at startup too, but the worker must not resume an expired job even
+        if it starts first (ADR-0004).
+        """
+        self._store.expire_jobs(self._clock())
         requeued = self._store.requeue_in_progress()
         logger.info("worker ready", extra={"count": requeued})
         return requeued
@@ -73,6 +78,10 @@ class Worker:
             output = self._run_pipeline(job, stored)
             result = self._result(job, output)
         except StoreError as error:
+            if isinstance(error.__cause__, InvalidJobTransitionError):
+                discarded = self._discarded(job.job_id)
+                if discarded is not None:
+                    return discarded
             # Not a failure of the class: run() retries and the job goes back to the queue.
             raise error.__cause__ from None
         except InvalidJobTransitionError:
@@ -164,7 +173,14 @@ class Worker:
         )
 
     def _fail(self, job: Job, error: JobError, error_type: str) -> Job:
-        failed = self._store.fail(job.job_id, error)
+        try:
+            failed = self._store.fail(job.job_id, error)
+        except InvalidJobTransitionError:
+            # Maintenance may have expired it while the pipeline was failing.
+            discarded = self._discarded(job.job_id)
+            if discarded is not None:
+                return discarded
+            raise
         logger.warning(
             "job failed",
             extra={"job_id": job.job_id, "error_code": error.code, "error_type": error_type},
