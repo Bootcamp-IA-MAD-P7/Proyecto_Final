@@ -15,14 +15,13 @@ function Login() {
   return <Layout><section className="hero"><p className="eyebrow">DEMO SINTÉTICA</p><h1>La clase, lista para repasar.</h1><p>Entra con una identidad de prueba. La autorización siempre corresponde a la API.</p><div className="user-grid">{demoUsers.map((candidate) => <button key={candidate.id} disabled={enter.isPending} onClick={() => enter.mutate(candidate)}><strong>{candidate.name}</strong><small>{candidate.role === "teacher" ? "Docente" : "Estudiante"}</small></button>)}</div>{enter.isError && <p role="alert">No se pudo entrar. Comprueba que la API está levantada y con el emisor de pruebas activado.</p>}</section></Layout>;
 }
 
-const receptionMessages: Record<string, string> = {
-  audio_too_large: "El audio supera el tamaño permitido. Reduce el tamaño del archivo y vuelve a intentarlo.",
-  unsupported_audio: "El formato del audio no está admitido. Usa Opus (Ogg o WebM), MP3 o AAC (M4A o MP4).",
-  invalid_audio_duration: "La duración del audio está fuera de los límites permitidos."
-};
-
 function Upload() {
   const { token, user } = useAuth(); const navigate = useNavigate();
+  const receptionMessages: Record<string, string> = {
+    audio_too_large: "El audio supera el tamaño permitido. Reduce el tamaño del archivo y vuelve a intentarlo.",
+    unsupported_audio: "El formato del audio no está admitido. Usa Opus (Ogg o WebM), MP3 o AAC (M4A o MP4).",
+    invalid_audio_duration: "La duración del audio está fuera de los límites permitidos."
+  };
   const submit = useMutation({ mutationFn: async (form: FormData) => {
     // FastAPI exposes multipart fields as strings in OpenAPI 3.1; FormData is the runtime representation.
     const { data, error, response } = await createApiClient(token ?? undefined).POST("/v1/classes", { body: form as never });
@@ -40,7 +39,7 @@ function Job() {
   if (!token) return <Navigate to="/" replace />;
   if (job.data?.state === "ready_for_review") return <Navigate to={`/classes/${job.data.class_id}/result`} replace />;
   const expired = job.data?.state === "expired";
-  return <Layout><section className="panel"><p className="eyebrow">PROCESAMIENTO</p><h1>Estamos preparando el repaso</h1><div className="progress" aria-label="Progreso de procesamiento"><i /></div><p role={expired ? "alert" : undefined}>{job.isError ? job.error.message : expired ? "El audio ya no está disponible porque ha caducado el plazo de conservación." : `Etapa actual: ${job.data?.stage ?? "en cola"}`}</p><button className="quiet" onClick={() => navigate(0)}>Actualizar ahora</button></section></Layout>;
+  return <Layout><section className="panel"><p className="eyebrow">PROCESAMIENTO</p><h1>{expired ? "Repaso no disponible" : "Estamos preparando el repaso"}</h1>{!expired && <div className="progress" aria-label="Progreso de procesamiento"><i /></div>}<p role={expired ? "alert" : undefined}>{job.isError ? job.error.message : expired ? "El audio ya no está disponible porque ha caducado el plazo de conservación." : `Etapa actual: ${job.data?.stage ?? "en cola"}`}</p><button className="quiet" onClick={() => navigate(0)}>Actualizar ahora</button></section></Layout>;
 }
 
 function Result() {
