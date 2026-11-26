@@ -1,5 +1,6 @@
 """Behaviour shared by every JobStore: in memory and on PostgreSQL (ADR-0002)."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -247,3 +248,70 @@ def test_classes_without_a_key_never_collide(store, metadata):
     second = store.create_class(metadata, "demo-teacher")
 
     assert first.class_id != second.class_id
+
+
+# --- Caducidad y purga (audio-retention) -----------------------------------------------------
+
+
+NOW = datetime(2026, 11, 27, 12, tzinfo=UTC)
+
+
+def expired_audio(audio_id: str = "audio-expired") -> AudioAsset:
+    return replace(audio_asset(audio_id), expires_at=datetime(2026, 11, 26, 12, tzinfo=UTC))
+
+
+def test_expiration_marks_unfinished_jobs_with_expired_audio(store, metadata):
+    old = store.create_class(metadata, "demo-teacher", audio=expired_audio("audio-old"))
+    recent = store.create_class(metadata, "coteach-service", audio=audio_asset("audio-recent"))
+    assert store.claim_next().job_id == old.job_id
+
+    assert store.expire_jobs(NOW) == 1
+    assert store.get_job(old.job_id).state is JobState.EXPIRED
+    assert store.get_job(old.job_id).error is None
+    assert store.get_job(recent.job_id).state is JobState.QUEUED
+    assert store.claim_next().job_id == recent.job_id
+
+
+def test_an_expired_job_is_not_claimed(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
+    store.expire_jobs(NOW)
+
+    assert store.claim_next() is None
+    assert store.get_job(stored.job_id).state is JobState.EXPIRED
+
+
+def test_complete_and_advance_reject_an_expired_job(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher", audio=audio_asset("audio-recent"))
+    job = store.claim_next()
+    store.expire_jobs(datetime(2027, 1, 1, tzinfo=UTC))
+
+    with pytest.raises(InvalidJobTransitionError):
+        store.advance(job.job_id, JobStage.TRANSCRIBING)
+    with pytest.raises(InvalidJobTransitionError):
+        store.complete(job.job_id, result_for(stored.class_id))
+
+    assert store.get_result(stored.class_id) is None
+
+
+def test_audios_to_purge_are_listed_and_marked(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
+    assert store.audios_to_purge(NOW) == [expired_audio()]
+    assert store.stored_audio_keys() == {"audio-expired"}
+
+    store.mark_audio_purged(expired_audio().audio_id, NOW)
+
+    assert store.audios_to_purge(NOW) == []
+    assert store.get_audio(stored.class_id).deleted_at == NOW
+    assert store.stored_audio_keys() == {"audio-expired"}
+
+
+def test_a_finished_job_keeps_its_result_when_its_audio_expires(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
+    job = store.claim_next()
+    result = result_for(stored.class_id)
+    store.complete(job.job_id, result)
+
+    assert store.expire_jobs(NOW) == 0
+    assert store.get_job(job.job_id).state is JobState.READY_FOR_REVIEW
+    assert store.get_result(stored.class_id) == result
+    assert store.audios_to_purge(NOW) == [expired_audio()]
