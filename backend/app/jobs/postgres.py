@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import Connection, Engine, Row, func, insert, select, update
@@ -21,6 +22,7 @@ from app.db.tables import audio_assets, classes, jobs, participants, results
 from app.jobs.store import (
     IN_PROGRESS_STATES,
     STAGE_ORDER,
+    UNFINISHED_STATES,
     AudioAsset,
     Idempotency,
     IdempotencyKeyTakenError,
@@ -32,6 +34,7 @@ from app.jobs.store import (
 )
 
 _IN_PROGRESS = [state.value for state in IN_PROGRESS_STATES]
+_UNFINISHED = [state.value for state in UNFINISHED_STATES]
 
 
 class PostgresJobStore:
@@ -137,19 +140,7 @@ class PostgresJobStore:
             row = connection.execute(
                 select(audio_assets).where(audio_assets.c.class_id == class_id)
             ).first()
-        if row is None:
-            return None
-        return AudioAsset(
-            audio_id=row.audio_id,
-            storage_key=row.storage_key,
-            format=row.format,
-            size_bytes=row.size_bytes,
-            duration_seconds=row.duration_seconds,
-            sha256=row.sha256,
-            received_at=row.received_at,
-            expires_at=row.expires_at,
-            deleted_at=row.deleted_at,
-        )
+        return _audio(row) if row is not None else None
 
     def get_class(self, class_id: str) -> StoredClass | None:
         with self._engine.connect() as connection:
@@ -269,6 +260,41 @@ class PostgresJobStore:
             )
             return moved.rowcount
 
+    def expire_jobs(self, now: datetime) -> int:
+        with self._engine.begin() as connection:
+            expired = connection.execute(
+                update(jobs)
+                .where(jobs.c.state.in_(_UNFINISHED))
+                .where(
+                    jobs.c.class_id.in_(
+                        select(audio_assets.c.class_id).where(audio_assets.c.expires_at <= now)
+                    )
+                )
+                .values(state=JobState.EXPIRED.value, stage=None, updated_at=now)
+            )
+            return expired.rowcount
+
+    def audios_to_purge(self, now: datetime) -> list[AudioAsset]:
+        with self._engine.connect() as connection:
+            rows = connection.execute(
+                select(audio_assets)
+                .where(audio_assets.c.expires_at <= now, audio_assets.c.deleted_at.is_(None))
+                .order_by(audio_assets.c.audio_id)
+            ).all()
+        return [_audio(row) for row in rows]
+
+    def mark_audio_purged(self, audio_id: str, when: datetime) -> None:
+        with self._engine.begin() as connection:
+            connection.execute(
+                update(audio_assets)
+                .where(audio_assets.c.audio_id == audio_id, audio_assets.c.deleted_at.is_(None))
+                .values(deleted_at=when)
+            )
+
+    def stored_audio_keys(self) -> set[str]:
+        with self._engine.connect() as connection:
+            return set(connection.execute(select(audio_assets.c.storage_key)).scalars())
+
     def _in_progress(self, connection: Connection, job_id: str) -> Job:
         row = connection.execute(
             select(jobs).where(jobs.c.job_id == job_id).with_for_update()
@@ -292,6 +318,20 @@ class PostgresJobStore:
 
 def _no_error() -> dict[str, None]:
     return {"error_code": None, "error_message": None, "error_retryable": None}
+
+
+def _audio(row: Row) -> AudioAsset:
+    return AudioAsset(
+        audio_id=row.audio_id,
+        storage_key=row.storage_key,
+        format=row.format,
+        size_bytes=row.size_bytes,
+        duration_seconds=row.duration_seconds,
+        sha256=row.sha256,
+        received_at=row.received_at,
+        expires_at=row.expires_at,
+        deleted_at=row.deleted_at,
+    )
 
 
 def _job(row: Row) -> Job:
