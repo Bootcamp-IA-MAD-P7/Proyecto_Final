@@ -2,7 +2,7 @@
 
 Plan de la funcionalidad `add-pedagogical-analysis` (E4, épica #4). La evaluación preliminar y la web pueden empezar sin esperar a E3; el adaptador del worker espera la interfaz de #55 y una selección explícita basada en la evaluación. La última sección integra E4 solo después de E3.
 
-## 1. Evaluación preliminar de candidatos de análisis (inferencia)
+## 1. Evaluación preliminar de candidatos de análisis (inferencia) · #74
 
 **Criterios de aceptación:**
 
@@ -16,7 +16,7 @@ Plan de la funcionalidad `add-pedagogical-analysis` (E4, épica #4). La evaluaci
 - [ ] 1.2 Implementar el ejecutor de evaluación de candidatos desacoplado del worker, con dobles para tests y captura de versión, configuración, validez, latencia y memoria; verificar sus pruebas unitarias sin descargar modelos.
 - [ ] 1.3 Documentar un formato de informe reproducible, ejecutar al menos una evaluación preliminar permitida y registrar sus limitaciones y la decisión requerida, verificando que no versiona textos ni audio reales.
 
-## 2. Generación y validación del análisis en el worker (backend)
+## 2. Generación y validación del análisis en el worker (backend) · #75
 
 **Criterios de aceptación:**
 
@@ -24,14 +24,14 @@ Plan de la funcionalidad `add-pedagogical-analysis` (E4, épica #4). La evaluaci
 - Las categorías sin hallazgos permanecen vacías; no hay fallback silencioso, contenido fijo ni resultado parcial si el modelo falla o entrega una estructura inválida.
 - Los errores se integran con el procesamiento y reintentos de E3 sin publicar un resultado inválido.
 
-**Depende de:** 1 y de la historia #55 de E3; la integración de errores se coordina con #58.
+**Depende de:** #74 y la historia #55 de E3; la integración de errores se coordina con #58.
 
 - [ ] 2.1 Tras la decisión aprobada del equipo, incorporar la dependencia y configuración local del candidato seleccionado siguiendo ADR-0003 o actualizar/crear el ADR si la elección lo exige; verificar carga sin red durante el procesamiento.
 - [ ] 2.2 Implementar el adaptador de análisis sobre la interfaz `Analyzer` de #55, fragmentando transcripciones que excedan el contexto, consolidando todos los fragmentos sin duplicados y tratando las instrucciones maliciosas de la transcripción como datos; validar su salida como `Analysis` y verificar con transcripciones sintéticas los seis valores contractuales, listas vacías, identificadores únicos, cobertura de fragmentos e inyección de instrucciones.
 - [ ] 2.3 **Depende de:** #58. Conectar el adaptador a la etapa `analyzing` sin modificar adaptadores de ASR o diarización, y cubrir con tests los fallos de modelo, salida inválida y ausencia de resultado persistido/publicable conforme a la política de #58.
 - [ ] 2.4 Documentar la configuración, licencia/revisión del modelo seleccionado y la medición técnica correspondiente sin incluir datos de clases; verificar los comandos documentados en el equipo autorizado.
 
-## 3. Presentación del repaso pedagógico (frontend)
+## 3. Presentación del repaso pedagógico (frontend) · #76
 
 **Criterios de aceptación:**
 
@@ -46,7 +46,7 @@ Plan de la funcionalidad `add-pedagogical-analysis` (E4, épica #4). La evaluaci
 - [ ] 3.3 Ampliar los escenarios MSW con análisis sintéticos de varias y ninguna categoría, y verificar que el cliente usa sin cambios `backend/openapi.json` y que no aparecen datos de capacidades fuera del MVP.
 - [ ] 3.4 Verificar responsividad y contraste de la composición de análisis en escritorio, tableta y móvil mediante las pruebas o comprobaciones del frontend establecidas en el repositorio.
 
-## 4. Integración y evidencia de repaso pedagógico (integración)
+## 4. Integración y evidencia de repaso pedagógico (integración) · #77
 
 **Criterios de aceptación:**
 
@@ -54,7 +54,7 @@ Plan de la funcionalidad `add-pedagogical-analysis` (E4, épica #4). La evaluaci
 - La evidencia de la demostración distingue las pruebas técnicas de la revisión pedagógica humana y registra recursos, resultados y limitaciones sin publicar contenido de clase.
 - Las regresiones de autorización, contratos, transcripción, reintentos y presentación existente continúan superándose.
 
-**Depende de:** 1, 2, 3, las historias #55, #56, #57, #58 y #60 de E3.
+**Depende de:** #74, #75, #76 y las historias #55, #56, #57, #58 y #60 de E3.
 
 - [ ] 4.1 Ejecutar el recorrido integrado audio → transcripción → análisis → consulta web con una entrada permitida y verificar resultado contractual, seis categorías posibles y estados de fallo sin resultado parcial.
 - [ ] 4.2 Aplicar la rúbrica humana a la evidencia de integración, registrar cobertura, precisión cualitativa, omisiones, afirmaciones inventadas, latencia y memoria, y documentar límites para la demo sin declarar umbrales no aprobados.
@@ -63,5 +63,5 @@ Plan de la funcionalidad `add-pedagogical-analysis` (E4, épica #4). La evaluaci
 
 ## Workflow follow-up
 
-- Tras la aprobación humana de este plan, crear las Issues desde estas cuatro secciones, añadir sus números y bloqueos, y enlazar `add-pedagogical-analysis` en `docs/ROADMAP.md` conforme a WORKFLOW §5.
+- Historias creadas y vinculadas a la épica #4: #74 (lista), #75 (bloqueada por #74 y #55; #58 solo bloquea 2.3), #76 (lista) y #77 (bloqueada por #74, #75, #76, #55, #56, #57, #58 y #60).
 - El PR de la sección 4 sincroniza las specs y archiva el cambio después de la revisión humana y del CI; no se archiva durante las historias 1 a 3.

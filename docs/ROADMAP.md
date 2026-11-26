@@ -45,7 +45,7 @@ Primero, un esqueleto que se levanta en local con Docker, con el contrato v0.1, 
 - **Resultado:** a partir de la transcripción se generan el repaso por categorías y el resumen general, y la web los muestra junto a la transcripción.
 - **Requisitos:** RF-03, RF-04
 - **Depende de:** E3, porque analiza su transcripción.
-- **Funcionalidades:** pendiente
+- **Funcionalidades:** [`add-pedagogical-analysis`](../openspec/changes/add-pedagogical-analysis/)
 
 ## Hito 2 — Revisión, publicación y entrega (presentación del 15 de diciembre)
 
