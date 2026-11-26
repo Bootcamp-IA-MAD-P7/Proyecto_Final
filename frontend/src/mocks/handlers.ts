@@ -12,6 +12,25 @@ const result = {
 let polls = 0;
 const classSubmitters = new Set(["Bearer synthetic-demo-teacher", "Bearer synthetic-coteach-service"]);
 
+// Reception errors and expired job of the contract v0.2. Tests activate them with
+// server.use(): openapi-fetch serializes FormData as text in jsdom, so the handler
+// cannot decide from the uploaded file name here.
+const reject = (code: string, message: string, status: 413 | 415 | 422) =>
+  HttpResponse.json({ error: { code, message, retryable: false }, request_id: "request-demo-reception" }, { status });
+
+export const receptionRejections = ([
+  { fileName: "audio-too-large.mp3", status: 413, code: "audio_too_large", message: "El audio supera el tamaño permitido" },
+  { fileName: "audio-unsupported.wav", status: 415, code: "unsupported_audio", message: "El formato del audio no está admitido" },
+  { fileName: "audio-too-short.mp3", status: 422, code: "invalid_audio_duration", message: "La duración del audio está fuera de los límites permitidos" }
+] as const).map((rejection) => ({
+  ...rejection,
+  handler: http.post(`${apiUrl}/v1/classes`, () => reject(rejection.code, rejection.message, rejection.status))
+}));
+
+export const expiredJob = { ...accepted, job_id: "job-demo-expired", state: "expired", stage: null, attempt: 1, error: null } as const;
+export const expiredJobHandler = http.get(`${apiUrl}/v1/jobs/job-demo-expired`, () => HttpResponse.json(expiredJob));
+export const expiredSubmissionHandler = http.post(`${apiUrl}/v1/classes`, () => HttpResponse.json({ ...accepted, job_id: expiredJob.job_id }, { status: 202 }));
+
 export const handlers = [
   // Test issuer (spec api-access): not part of the contract, so it has no generated types.
   http.post(`${apiUrl}/dev/token`, async ({ request }) => {
