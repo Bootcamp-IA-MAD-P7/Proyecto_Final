@@ -45,11 +45,11 @@ Plan de la funcionalidad `add-class-reception` (E2, épica #2). Una sección por
 
 **Depende de:** 2
 
-- [ ] 3.1 Añadir a `JobStore` (memoria y PostgreSQL) caducar los trabajos sin terminar con el audio vencido y listar y marcar los audios por purgar, con tests.
-- [ ] 3.2 Hacer que `complete` y `advance` solo actúen sobre trabajos en curso, y que el worker descarte y registre el resultado de un trabajo caducado.
-- [ ] 3.3 Implementar el ciclo de purga en `maintenance`, con la ejecución al arrancar y el reintento de borrados fallidos.
-- [ ] 3.4 Limpiar los archivos huérfanos más antiguos que el margen del diseño.
-- [ ] 3.5 Tests de los escenarios de la spec `audio-retention` con un reloj simulado.
+- [x] 3.1 Añadir a `JobStore` (memoria y PostgreSQL) caducar los trabajos sin terminar con el audio vencido y listar y marcar los audios por purgar, con tests.
+- [x] 3.2 Hacer que `complete` y `advance` solo actúen sobre trabajos en curso, y que el worker descarte y registre el resultado de un trabajo caducado.
+- [x] 3.3 Implementar el ciclo de purga en `maintenance`, con la ejecución al arrancar y el reintento de borrados fallidos.
+- [x] 3.4 Limpiar los archivos huérfanos más antiguos que el margen del diseño.
+- [x] 3.5 Tests de los escenarios de la spec `audio-retention` con un reloj simulado.
 
 ## 4. Subida real y estados del audio en la web (frontend) · #48
 
