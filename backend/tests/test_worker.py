@@ -17,7 +17,7 @@ from app.contract import (
     ReviewStatus,
 )
 from app.inference import FakePipeline, PipelineError, PipelineOutput
-from app.jobs import InMemoryJobStore, JobStore, PostgresJobStore
+from app.jobs import AudioAsset, InMemoryJobStore, JobStore, PostgresJobStore
 from app.logs import JsonFormatter
 from app.worker import Worker
 from tests.conftest import load_fixture
@@ -67,6 +67,48 @@ class RecordingStore(InMemoryJobStore):
         job = super().advance(job_id, stage)
         self.stages.append(job.stage)
         return job
+
+
+class ExpiringStore(InMemoryJobStore):
+    """Expires the job just before the worker saves the result (a late maintenance cycle)."""
+
+    def complete(self, job_id, result):
+        self.expire_jobs(NOW)
+        return super().complete(job_id, result)
+
+
+def expired_audio() -> AudioAsset:
+    received_at = datetime(2026, 11, 20, 12, tzinfo=UTC)
+    return AudioAsset(
+        audio_id="audio-old",
+        storage_key="audio-old",
+        format="opus",
+        size_bytes=1024,
+        duration_seconds=60,
+        sha256="a" * 64,
+        received_at=received_at,
+        expires_at=datetime(2026, 11, 21, 12, tzinfo=UTC),
+    )
+
+
+def test_does_not_claim_an_expired_job(metadata):
+    store = InMemoryJobStore()
+    store.create_class(metadata, "demo-teacher", audio=expired_audio())
+    store.expire_jobs(NOW)
+
+    assert worker(store).run_once() is None
+
+
+def test_discards_a_result_that_arrived_after_the_job_expired(metadata, caplog):
+    store = ExpiringStore()
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
+
+    with caplog.at_level(logging.INFO, logger="app.worker"):
+        done = worker(store).run_once()
+
+    assert done.state is JobState.EXPIRED
+    assert store.get_result(stored.class_id) is None
+    assert "expired job result discarded" in [record.message for record in caplog.records]
 
 
 def test_takes_a_queued_job_through_every_stage_to_ready_for_review(metadata):
