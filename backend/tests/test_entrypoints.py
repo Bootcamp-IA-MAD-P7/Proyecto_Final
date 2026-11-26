@@ -11,6 +11,7 @@ import pytest
 import app.maintenance.__main__ as maintenance_main
 import app.worker.__main__ as worker_main
 from app.jobs import InMemoryJobStore
+from app.storage import DiskAudioStorage
 
 BACKEND = Path(__file__).resolve().parents[1]
 
@@ -38,7 +39,11 @@ def test_worker_entry_point_builds_and_stops(monkeypatch: pytest.MonkeyPatch):
     worker_main.main()
 
 
-def test_maintenance_entry_point_builds_and_stops(monkeypatch: pytest.MonkeyPatch):
+def test_maintenance_entry_point_builds_and_stops(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    monkeypatch.setattr(maintenance_main, "open_store", lambda settings: InMemoryJobStore())
+    monkeypatch.setattr(
+        maintenance_main, "DiskAudioStorage", lambda directory: DiskAudioStorage(tmp_path)
+    )
     monkeypatch.setattr(maintenance_main, "stop_on_signals", stopped)
 
     maintenance_main.main()
