@@ -1,0 +1,9 @@
+@import "../../../styles/tokens.css";
+
+.header { align-items: center; display: flex; justify-content: space-between; padding: var(--ct-space-4) var(--ct-space-6); }
+.account { align-items: center; display: flex; gap: var(--ct-space-2); }
+.account span:not(.avatar) { display: grid; font-size: .875rem; line-height: 1.15; }
+.account small { color: var(--ct-color-text-muted); }
+.avatar { align-items: center; background: var(--ct-gradient-action); border-radius: 50%; color: var(--ct-color-card); display: inline-flex; font-weight: 800; height: 2.5rem; justify-content: center; width: 2.5rem; }
+.signOut { min-height: auto; }
+@media (max-width: 36rem) { .header { padding-inline: var(--ct-space-4); } .account span:not(.avatar) { display: none; } }

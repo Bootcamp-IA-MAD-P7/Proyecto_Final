@@ -1,8 +1,9 @@
 import { createContext, useContext, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { baseUrl } from "./api/client";
 
-type DemoUser = { id: string; name: string; role: "teacher" | "student" };
-type AuthState = { user: DemoUser | null; token: string | null; signIn: (user: DemoUser) => Promise<void>; signOut: () => void };
+export type DemoUser = { id: string; name: string; role: "teacher" | "student" };
+type AuthState = { user: DemoUser | null; token: string | null; signIn: (user: DemoUser) => Promise<void>; signOut: () => Promise<void> };
 
 export const demoUsers: DemoUser[] = [
   { id: "demo-teacher", name: "Docente de prueba", role: "teacher" },
@@ -23,16 +24,22 @@ async function requestDevToken(user: string): Promise<string> {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<DemoUser | null>(null);
+export function AuthProvider({ children, initialToken = null, initialUser = null }: { children: React.ReactNode; initialToken?: string | null; initialUser?: DemoUser | null }) {
+  const queryClient = useQueryClient();
+  const [user, setUser] = useState<DemoUser | null>(initialUser);
   // Only in memory: the token is lost when the page is reloaded (design of add-walking-skeleton).
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(initialToken);
   const value = useMemo(() => ({
     user,
     token,
     async signIn(selected: DemoUser) { const issued = await requestDevToken(selected.id); setToken(issued); setUser(selected); },
-    signOut() { setUser(null); setToken(null); }
-  }), [token, user]);
+    async signOut() {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      setUser(null);
+      setToken(null);
+    }
+  }), [queryClient, token, user]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

@@ -1,0 +1,7 @@
+@import "../../../styles/tokens.css";
+
+.brand { align-items: center; color: var(--ct-color-ink); display: inline-flex; font: 800 clamp(1.35rem, 3vw, 1.75rem)/1 var(--ct-font-sans); gap: .55rem; justify-self: start; letter-spacing: -.04em; text-decoration: none; width: fit-content; }
+.brand:focus-visible { border-radius: var(--ct-radius-control); box-shadow: 0 0 0 3px var(--ct-color-focus); outline: none; }
+.mark { height: 2rem; width: 2rem; }
+.mark path:first-child { fill: var(--ct-color-primary); stroke: var(--ct-color-primary); }
+.mark path:last-child { fill: var(--ct-color-teal); stroke: var(--ct-color-teal); }

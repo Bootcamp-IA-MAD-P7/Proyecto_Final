@@ -2,5 +2,10 @@
 
 .container { display: grid; gap: var(--ct-space-2); }
 .label { color: var(--ct-color-ink); display: flex; font: 700 .875rem/1.2 var(--ct-font-sans); justify-content: space-between; }
-.progress { accent-color: var(--ct-color-primary-strong); block-size: .625rem; inline-size: 100%; }
-@media (prefers-reduced-motion: reduce) { .progress { transition: none; } }
+.progress { appearance: none; block-size: .625rem; inline-size: 100%; overflow: hidden; }
+.progress::-webkit-progress-bar { background: var(--ct-color-border); border-radius: 999px; }
+.progress::-webkit-progress-value { background: var(--ct-gradient-action); border-radius: 999px; }
+.progress::-moz-progress-bar { background: var(--ct-gradient-action); border-radius: 999px; }
+.progress:indeterminate::-webkit-progress-value { animation: load 1.2s ease-in-out infinite; inline-size: 40%; }
+@keyframes load { to { transform: translateX(150%); } }
+@media (prefers-reduced-motion: reduce) { .progress:indeterminate::-webkit-progress-value { animation: none; } }
