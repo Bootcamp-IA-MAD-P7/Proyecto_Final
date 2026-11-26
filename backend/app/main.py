@@ -9,6 +9,7 @@ from sqlalchemy import Engine
 from app.api.auth import dev_router
 from app.api.errors import REQUEST_ID_HEADER, install_error_handling
 from app.api.routes import operation_router, router
+from app.api.upload_limits import UploadSizeLimitMiddleware
 from app.contract import CONTRACT_VERSION
 from app.db import make_engine
 from app.jobs import JobStore, PostgresJobStore
@@ -47,6 +48,7 @@ def create_app(
     app.state.storage = storage or DiskAudioStorage(settings.audio_storage_dir)
     app.state.probe = probe or FfprobeAudioProbe()
     install_error_handling(app)
+    app.add_middleware(UploadSizeLimitMiddleware, settings=settings)
     if settings.frontend_origin:
         app.add_middleware(
             CORSMiddleware,

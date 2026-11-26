@@ -24,7 +24,7 @@ Decididos con el equipo al planificar (cierran la pregunta de ARCHITECTURE §11 
 
 | Límite | Valor por defecto | Variable |
 |---|---|---|
-| Formatos | Opus (Ogg o WebM), MP3 y AAC (M4A/MP4 solo con audio) | lista fija en el código y en el contrato |
+| Formatos | Opus (Ogg, WebM o Matroska), MP3 y AAC (M4A, MP4, MOV o 3GP, solo con audio) | lista fija en el código y en el contrato |
 | Tamaño máximo | 150 MB | `UPLOAD_MAX_BYTES` |
 | Duración mínima | 1 minuto | `UPLOAD_MIN_SECONDS` |
 | Duración máxima | 2 horas | `UPLOAD_MAX_SECONDS` |
@@ -39,6 +39,14 @@ El cliente envía audio ya comprimido (por ejemplo, con FFmpeg); convertir MP4 d
 - **Orden de los errores:** 401 y 403; 422 de metadatos (con la precedencia de v0.1); 413; 415; 422 `invalid_audio_duration`; 409 `idempotency_conflict`. Así un envío con varios problemas recibe siempre el mismo error.
 - **FFmpeg en la imagen:** la imagen de `backend` (que usan también `worker` y `maintenance`) instala FFmpeg, que ARCHITECTURE §2 ya da como Objetivo. Sin Docker, `ffprobe` tiene que estar en el `PATH`; los tests que lo necesitan se saltan con un aviso si falta, y en `make ci` siempre se ejecutan.
 - **Audios de prueba:** los tests generan audios sintéticos (tonos o silencio) con `ffmpeg` al ejecutarse; no se versiona audio en el repositorio.
+
+### Límite temprano de la recepción (#54)
+
+- Antes de que FastAPI analice `multipart/form-data`, un middleware dedicado a `POST /v1/classes` autentica y autoriza al emisor y compara `Content-Length` con `UPLOAD_MAX_BYTES + 64 KiB`. Los 64 KiB cubren las cabeceras, límites multipart y el JSON de metadatos; no son bytes adicionales permitidos para el archivo.
+- Si falta `Content-Length` o declara menos bytes de los enviados, el middleware cuenta los fragmentos ASGI y responde 413 `audio_too_large` al superar ese mismo límite, sin solicitar el resto del cuerpo. Los rechazos tempranos no crean temporales, clases ni trabajos.
+- Tras el margen de la envolvente, `receive_audio` conserva su contador exacto sobre la parte `audio`: un archivo de exactamente `UPLOAD_MAX_BYTES` es válido y uno de un byte más sigue recibiendo 413, aunque el multipart completo caiga dentro del margen.
+- La autenticación y la autorización preceden al límite temprano. Para una persona autorizada, un cuerpo que excede el límite de recepción se rechaza antes de analizar metadatos, porque continuar hasta la validación de formulario anularía la protección frente a cuerpos grandes.
+- Los contenedores ya aceptados por `ffprobe` se expresan de forma completa: Opus en Ogg, WebM o Matroska; MP3; y AAC en M4A, MP4, MOV o 3GP. El contenedor y códec se comprueban por contenido y los vídeos siguen rechazándose.
 
 ### Almacenamiento privado
 

@@ -149,7 +149,16 @@ def test_duration_falls_back_to_the_audio_track():
 
 
 @pytest.mark.parametrize(
-    ("kind", "family"), [("ogg", "opus"), ("webm", "opus"), ("mp3", "mp3"), ("m4a", "aac")]
+    ("kind", "family"),
+    [
+        ("ogg", "opus"),
+        ("webm", "opus"),
+        ("mkv", "opus"),
+        ("mp3", "mp3"),
+        ("m4a", "aac"),
+        ("mov", "aac"),
+        ("3gp", "aac"),
+    ],
 )
 def test_ffprobe_admits_the_contract_formats(synthetic_audio, kind, family):
     info = FfprobeAudioProbe().probe(synthetic_audio(kind, 2))

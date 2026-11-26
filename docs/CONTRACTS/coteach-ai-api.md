@@ -31,14 +31,15 @@ Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está 
 - Un fallo inesperado responde 500 `internal_error`, sin detalles.
 - Solo los errores transitorios (`service_unavailable`) llevan `retryable=true`. Los 409 de corrección y aprobación piden releer el resultado y resolver, no repetir a ciegas.
 - En un 422 de metadatos de `POST /v1/classes`, `invalid_consent_reference` prevalece sobre `invalid_participants`, y ambos sobre `invalid_request`.
-- Un envío de `POST /v1/classes` con varios problemas recibe siempre el primero de este orden: 401 y 403; 422 de metadatos; 413 `audio_too_large`; 415 `unsupported_audio`; 422 `invalid_audio_duration`; 409 `idempotency_conflict`.
+- Un envío de `POST /v1/classes` con varios problemas recibe siempre el primero de este orden: 401 y 403; 413 `audio_too_large` si el cuerpo multipart declarado o recibido excede el límite temprano; 422 de metadatos; 413 `audio_too_large` del archivo; 415 `unsupported_audio`; 422 `invalid_audio_duration`; 409 `idempotency_conflict`.
 - Un trabajo fallido o en espera de reintento se consulta con 200 y lleva su propio `error` con un código de `JobErrorCode`.
 
 ### Audio de la clase
 
-- **Formatos admitidos:** Opus (en Ogg o en WebM), MP3 y AAC (en M4A o MP4, solo con audio). El servicio los reconoce por su contenido; el nombre del archivo y su `Content-Type` no cuentan. Un archivo que no se puede leer, sin pista de audio o con vídeo recibe 415 `unsupported_audio`.
+- **Formatos admitidos:** Opus (en Ogg, WebM o Matroska), MP3 y AAC (en M4A, MP4, MOV o 3GP, solo con audio). El servicio los reconoce por su contenido; el nombre del archivo y su `Content-Type` no cuentan. Un archivo que no se puede leer, sin pista de audio o con vídeo recibe 415 `unsupported_audio`.
 - **Límites configurables** por despliegue, con estos valores por defecto: 150 MB de tamaño máximo (`UPLOAD_MAX_BYTES`, 413 `audio_too_large`) y una duración de 1 minuto a 2 horas (`UPLOAD_MIN_SECONDS` y `UPLOAD_MAX_SECONDS`, 422 `invalid_audio_duration`). Los consumidores no deben fijar estos valores: la API es quien decide.
 - El cliente envía el audio ya comprimido. Un envío rechazado no deja ni clase, ni trabajo, ni audio guardado.
+- Antes de analizar el multipart, el servicio rechaza con 413 los cuerpos por encima de `UPLOAD_MAX_BYTES` más 64 KiB para límites, cabeceras y metadatos multipart. Si no hay `Content-Length` o es inferior a los bytes reales, cuenta la transmisión y la corta al rebasar ese límite. El margen no aumenta el máximo del archivo: ese se sigue contando exactamente sobre la parte `audio`.
 - El audio se guarda de forma privada y nunca se devuelve: ni su ruta ni su contenido salen en el contrato. Se conserva 14 días por defecto (`AUDIO_RETENTION_DAYS`, [ADR-0004](../ADR/0004-access-and-retention.md)).
 - `Idempotency-Key` es opcional. Con la misma clave de quien envía, el mismo audio y los mismos metadatos, se responde 202 con la clase y el trabajo existentes; con otro contenido, 409 `idempotency_conflict`. La clave de otra persona no choca. Sin la cabecera, cada envío crea una clase nueva.
 

@@ -314,7 +314,17 @@ def ffprobe_client(store, audio_storage) -> TestClient:
     return app_client(store, audio_storage, FfprobeAudioProbe(), settings)
 
 
-@pytest.mark.parametrize(("kind", "family"), [("ogg", "opus"), ("mp3", "mp3"), ("m4a", "aac")])
+@pytest.mark.parametrize(
+    ("kind", "family"),
+    [
+        ("ogg", "opus"),
+        ("mp3", "mp3"),
+        ("m4a", "aac"),
+        ("mkv", "opus"),
+        ("mov", "aac"),
+        ("3gp", "aac"),
+    ],
+)
 def test_real_audio_is_accepted(ffprobe_client, store, synthetic_audio, kind, family):
     path = synthetic_audio(kind, 2)
 

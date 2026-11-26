@@ -10,6 +10,7 @@ E2 del [ROADMAP](../../../docs/ROADMAP.md), épica [#2](https://github.com/Bootc
 - **Recepción real del audio:** la API comprueba el tamaño, el formato por su contenido y la duración; guarda el audio en un almacenamiento privado con nombre opaco y crea la clase, el audio y el trabajo en la misma transacción antes de responder 202. `Idempotency-Key`, que sigue siendo opcional, devuelve la misma clase ante un reenvío idéntico y 409 si el contenido es otro.
 - **Conservación limitada:** cada audio registra su recepción y su fecha de purga. `maintenance` borra a los 14 días el audio y sus temporales, deja en `expired` los trabajos sin terminar y elimina los archivos huérfanos de cargas fallidas.
 - **Web:** la subida admite los formatos del contrato, muestra los errores de tamaño, formato y duración, y el estado `expired`.
+- **Recepción acotada (#54):** la API rechaza antes de analizar el multipart los envíos cuyo cuerpo supera el tamaño del audio más un margen fijo para la envolvente. También corta una transmisión que declara un tamaño menor al real. Se aclaran Matroska, MOV y 3GP entre los contenedores ya admitidos por contenido, sin modificar el esquema ni la versión pública.
 
 Fuera de alcance: los reintentos automáticos (`retry_wait` y `MAX_ATTEMPTS`), que llegan en E3 con los fallos reales de los modelos; la conversión de vídeo (MP4) a audio en el cliente; la conservación de transcripciones y resultados (PRD §14); la descarga del audio, y el despliegue ([ADR-0005](../../../docs/ADR/0005-local-only-environment.md)).
 
