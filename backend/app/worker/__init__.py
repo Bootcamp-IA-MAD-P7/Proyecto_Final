@@ -17,6 +17,7 @@ from app.contract import (
     Job,
     JobError,
     JobErrorCode,
+    JobState,
     Publication,
     PublicationStatus,
     Result,
@@ -25,6 +26,7 @@ from app.contract import (
 )
 from app.inference import InferencePipeline, PipelineError, PipelineInput, PipelineOutput
 from app.jobs import JobStore, StoredClass
+from app.jobs.store import InvalidJobTransitionError
 
 logger = logging.getLogger("app.worker")
 
@@ -73,15 +75,38 @@ class Worker:
         except StoreError as error:
             # Not a failure of the class: run() retries and the job goes back to the queue.
             raise error.__cause__ from None
+        except InvalidJobTransitionError:
+            discarded = self._discarded(job.job_id)
+            if discarded is not None:
+                return discarded
+            raise
         except PipelineError as error:
             return self._fail(job, error.error, type(error).__name__)
         except Exception as error:
             # An invalid result or an unexpected error. Only its type is logged: the message
             # could carry data of the class.
             return self._fail(job, _processing_failed(), type(error).__name__)
-        done = self._store.complete(job.job_id, result)
+        discarded = self._discarded(job.job_id)
+        if discarded is not None:
+            return discarded
+        try:
+            done = self._store.complete(job.job_id, result)
+        except InvalidJobTransitionError:
+            # Maintenance may have expired it between the check and the write (ADR-0002).
+            discarded = self._discarded(job.job_id)
+            if discarded is not None:
+                return discarded
+            raise
         logger.info("job ready for review", extra={"job_id": job.job_id, "state": done.state})
         return done
+
+    def _discarded(self, job_id: str) -> Job | None:
+        """The job if maintenance expired it; the late result is never saved (ADR-0002)."""
+        current = self._store.get_job(job_id)
+        if current is not None and current.state is JobState.EXPIRED:
+            logger.info("expired job result discarded", extra={"job_id": job_id})
+            return current
+        return None
 
     def run(self, stop: threading.Event, poll_seconds: float = 1) -> None:
         """Process jobs until `stop` is set.
