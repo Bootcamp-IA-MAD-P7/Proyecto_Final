@@ -1,0 +1,7 @@
+@import "../../styles/tokens.css";
+
+.shell { background: var(--ct-color-surface); color: var(--ct-color-ink); min-height: 100vh; }
+.body { display: grid; gap: clamp(var(--ct-space-6), 4vw, var(--ct-space-12)); grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr); margin: 0 auto; max-width: 88rem; padding: var(--ct-space-2) var(--ct-space-6) var(--ct-space-8); }
+.content { min-width: 0; }
+@media (max-width: 60rem) { .body { grid-template-columns: minmax(10rem, 12rem) minmax(0, 1fr); } }
+@media (max-width: 44rem) { .body { display: grid; grid-template-columns: 1fr; padding-inline: var(--ct-space-4); } }

@@ -41,6 +41,6 @@ Plan de la funcionalidad `add-frontend-design-system` para la Issue #66, transve
 
 **Depende de:** 1, 2 y las rutas funcionales que correspondan al flujo MVP
 
-- [ ] 3.1 Incorporar el shell y la navegación configurada por rol para rutas implementadas, sin representar capacidades futuras como disponibles.
-- [ ] 3.2 Verificar responsive y accesibilidad del flujo disponible en los tres rangos de pantalla.
-- [ ] 3.3 Ejecutar `verify` completo, sincronizar las specs y archivar el cambio desde el PR de integración.
+- [x] 3.1 Incorporar el shell y la navegación configurada por rol para rutas implementadas, sin representar capacidades futuras como disponibles.
+- [x] 3.2 Verificar responsive y accesibilidad del flujo disponible en los tres rangos de pantalla.
+- [x] 3.3 Ejecutar `verify` completo, sincronizar las specs y archivar el cambio desde el PR de integración.

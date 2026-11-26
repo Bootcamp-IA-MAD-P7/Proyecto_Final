@@ -1,0 +1,9 @@
+@import "../../../styles/tokens.css";
+
+.navigation { background: var(--ct-color-card); border: 1px solid var(--ct-color-border); border-radius: var(--ct-radius-card); padding: var(--ct-space-4); }
+.title { color: var(--ct-color-ink); font-size: .875rem; font-weight: 800; letter-spacing: .04em; margin: 0; text-transform: uppercase; }
+.list { display: grid; gap: var(--ct-space-1); list-style: none; margin: var(--ct-space-4) 0 0; padding: 0; }
+.link, .active { align-items: center; border-radius: var(--ct-radius-control); display: flex; font-weight: 700; gap: var(--ct-space-2); padding: var(--ct-space-3); text-decoration: none; }
+.link { color: var(--ct-color-ink); }
+.active { background: var(--ct-gradient-action); color: var(--ct-color-card); }
+@media (max-width: 44rem) { .list { display: flex; margin-top: var(--ct-space-2); } .link, .active { white-space: nowrap; } }
