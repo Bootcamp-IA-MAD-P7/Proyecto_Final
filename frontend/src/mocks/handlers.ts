@@ -9,6 +9,12 @@ const result = {
   review: { status: "pending", review_due_at: "2026-12-11T10:00:00Z" },
   publication: { status: "unpublished", result_version: null, published_at: null, mode: null }
 } as const;
+export const diarizedResult = {
+  ...result,
+  transcript: { speakers: [{ speaker_id: "speaker-01", participant_id: null }, { speaker_id: "speaker-02", participant_id: null }], segments: [{ segment_id: "segment-01", start_ms: 62000, end_ms: 64000, speaker_id: "speaker-01", text: "Buenos" }, { segment_id: "segment-02", start_ms: 64000, end_ms: 66000, speaker_id: "speaker-01", text: "días." }, { segment_id: "segment-03", start_ms: 3723000, end_ms: 3725000, speaker_id: "speaker-02", text: "Hola." }] },
+  analysis: { general_summary: "", items: [] }
+} as const;
+export const noVoiceResult = { ...diarizedResult, transcript: { speakers: [], segments: [] } } as const;
 let polls = 0;
 const classSubmitters = new Set(["Bearer synthetic-demo-teacher", "Bearer synthetic-coteach-service"]);
 
@@ -28,8 +34,11 @@ export const receptionRejections = ([
 }));
 
 export const expiredJob = { ...accepted, job_id: "job-demo-expired", state: "expired", stage: null, attempt: 1, error: null } as const;
+export const retryWaitJob = { ...accepted, job_id: "job-demo-retry", state: "retry_wait", stage: "transcribing", attempt: 2, error: { code: "processing_unavailable", message: "El servicio de transcripción no está disponible.", retryable: true } } as const;
+export const failedJob = { ...accepted, job_id: "job-demo-failed", state: "failed", stage: "diarizing", attempt: 3, error: { code: "processing_failed", message: "No se pudo identificar las voces de la grabación.", retryable: false } } as const;
 export const expiredJobHandler = http.get(`${apiUrl}/v1/jobs/job-demo-expired`, () => HttpResponse.json(expiredJob));
 export const expiredSubmissionHandler = http.post(`${apiUrl}/v1/classes`, () => HttpResponse.json({ ...accepted, job_id: expiredJob.job_id }, { status: 202 }));
+export const retryWaitJobHandler = http.get(`${apiUrl}/v1/jobs/job-demo-retry`, () => HttpResponse.json(retryWaitJob));
 
 export const handlers = [
   // Test issuer (spec api-access): not part of the contract, so it has no generated types.

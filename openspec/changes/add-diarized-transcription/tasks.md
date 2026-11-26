@@ -82,10 +82,10 @@ Plan de la funcionalidad `add-diarized-transcription` (E3, épica #3). Una secci
 
 **Depende de:** —
 
-- [ ] 5.1 Mostrar la transcripción por persona hablante, con las intervenciones seguidas de la misma voz juntas y las marcas en `mm:ss` (`h:mm:ss` desde una hora), con tests de componentes.
-- [ ] 5.2 Mostrar los mensajes de transcripción sin voz y de análisis vacío, con tests.
-- [ ] 5.3 Mostrar `retry_wait` y `failed` en el progreso del trabajo, con tests.
-- [ ] 5.4 Añadir a los mocks de MSW un resultado con varias personas hablantes, uno sin voz y un trabajo en `retry_wait`, sin datos reales.
+- [x] 5.1 Mostrar la transcripción por persona hablante, con las intervenciones seguidas de la misma voz juntas y las marcas en `mm:ss` (`h:mm:ss` desde una hora), con tests de componentes.
+- [x] 5.2 Mostrar los mensajes de transcripción sin voz y de análisis vacío, con tests.
+- [x] 5.3 Mostrar `retry_wait` y `failed` en el progreso del trabajo, con tests.
+- [x] 5.4 Añadir a los mocks de MSW un resultado con varias personas hablantes, uno sin voz y un trabajo en `retry_wait`, sin datos reales.
 
 ## 6. Transcripción diarizada de extremo a extremo en local (integración) · #60
 
