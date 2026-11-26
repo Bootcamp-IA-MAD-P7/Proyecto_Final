@@ -77,8 +77,8 @@ Plan de la funcionalidad `add-class-reception` (E2, épica #2). Una sección por
 
 **Depende de:** 1, 2, 3, 4 y la integración del skeleton (#38)
 
-- [ ] 5.1 Añadir el volumen del audio y `AUDIO_STORAGE_DIR` a los tres archivos de Compose y a `.env.example`.
-- [ ] 5.2 Ampliar la prueba E2E con la subida de un audio sintético válido y de uno no admitido.
-- [ ] 5.3 Comprobar la purga en local con un plazo corto y documentar cómo hacerlo en el README.
-- [ ] 5.4 Actualizar ARCHITECTURE §7 (volumen del audio) y marcar como Actual lo que corresponda en §3.
+- [x] 5.1 Añadir el volumen del audio y `AUDIO_STORAGE_DIR` a los tres archivos de Compose y a `.env.example`.
+- [x] 5.2 Ampliar la prueba E2E con la subida de un audio sintético válido y de uno no admitido.
+- [x] 5.3 Comprobar la purga en local con un plazo corto y documentar cómo hacerlo en el README.
+- [x] 5.4 Actualizar ARCHITECTURE §7 (volumen del audio) y marcar como Actual lo que corresponda en §3.
 - [ ] 5.5 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`), después del archive de `add-walking-skeleton`.
