@@ -28,9 +28,9 @@ Plan de la funcionalidad `add-frontend-design-system` para la Issue #66, transve
 
 **Depende de:** 1 y la integración de la Issue #48 en `dev`
 
-- [ ] 2.1 Reconciliar los estados y pruebas que aporte #48 con los componentes visuales.
-- [ ] 2.2 Adaptar las rutas existentes al shell y a los componentes reutilizables, conservando su comportamiento y mensajes.
-- [ ] 2.3 Añadir regresiones visuales y de accesibilidad proporcionadas al comportamiento ya disponible.
+- [x] 2.1 Reconciliar los estados y pruebas que aporte #48 con los componentes visuales.
+- [x] 2.2 Adaptar las rutas existentes al shell y a los componentes reutilizables, conservando su comportamiento y mensajes.
+- [x] 2.3 Añadir regresiones visuales y de accesibilidad proporcionadas al comportamiento ya disponible.
 
 ## 3. Navegación visual por rol e integración (frontend)
 

@@ -1,1 +1,25 @@
-:root { color: #16322f; background: #f7f8f4; font: 16px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; } * { box-sizing: border-box; } body { margin: 0; } main { max-width: 1080px; margin: auto; padding: 1.5rem; } header { display:flex; justify-content:space-between; align-items:center; padding-bottom:4rem; } .brand { color:#16322f; font-weight:800; text-decoration:none; font-size:1.25rem; } .brand span, .eyebrow { color:#d9643a; } .hero, .panel, .result { max-width: 780px; } .hero h1, h1 { font-size:clamp(2.4rem, 7vw, 5rem); letter-spacing:-.06em; line-height:.96; margin:.2rem 0 1rem; } .eyebrow { font-size:.75rem; font-weight:800; letter-spacing:.12em; } .user-grid, .columns { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin-top:2rem; } button { border:0; border-radius:.6rem; background:#16322f; color:white; padding:.85rem 1rem; cursor:pointer; font:inherit; } button:hover { background:#254f4a; } button:focus-visible, input:focus-visible { outline:3px solid #d9643a; outline-offset:3px; } .user-grid button { text-align:left; min-height:100px; } button small { display:block; opacity:.75; margin-top:.4rem; } .quiet { background:transparent; color:#16322f; border:1px solid #16322f; } .panel, .result article { background:#fff; padding:2rem; border-radius:1rem; box-shadow:0 12px 28px #16322f12; } form { display:grid; gap:1.25rem; margin-top:2rem; } label { display:grid; gap:.5rem; font-weight:700; } input { font:inherit; } .progress { height:.6rem; border-radius:1rem; background:#dce7df; overflow:hidden; margin:2rem 0 1rem; } .progress i { display:block; width:65%; height:100%; background:#d9643a; animation:load 1.2s ease-in-out infinite alternate; } @keyframes load { to { transform:translateX(55%); } } .columns h2 { margin-top:0; } time { display:inline-block; min-width:3rem; color:#5c706c; font-size:.85rem; } .actions { margin:2rem 0; } @media (max-width:600px) { header { padding-bottom:2rem; } main { padding:1rem; } }
+@import "./styles/global.css";
+
+.app-content { margin: 0 auto; max-width: 74rem; padding: var(--ct-space-6); }
+.app-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: var(--ct-space-12); }
+.brand { color: var(--ct-color-ink); font: 800 clamp(1.35rem, 3vw, 1.75rem)/1 var(--ct-font-sans); letter-spacing: -.04em; text-decoration: none; }
+.sign-out { min-height: auto; }
+.hero, .panel, .result { max-width: 50rem; }
+.hero h1, h1 { font-size: clamp(2.35rem, 6vw, 4.75rem); letter-spacing: -.055em; line-height: .98; margin: var(--ct-space-1) 0 var(--ct-space-4); }
+h2 { color: var(--ct-color-ink); font-size: 1.25rem; margin-top: 0; }
+.eyebrow { color: var(--ct-color-primary-strong); font-size: .75rem; font-weight: 800; letter-spacing: .12em; margin: 0; text-transform: uppercase; }
+.user-grid, .columns { display: grid; gap: var(--ct-space-4); margin-top: var(--ct-space-8); }
+.user-grid { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.columns { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.user-choice { align-items: flex-start; flex-direction: column; min-height: 6.5rem; text-align: left; }
+.user-choice small { font-weight: 500; opacity: .9; }
+.panel { display: grid; gap: var(--ct-space-4); }
+form { display: grid; gap: var(--ct-space-4); margin-top: var(--ct-space-4); }
+label { color: var(--ct-color-ink); display: grid; font-weight: 700; gap: var(--ct-space-2); }
+input[type="file"] { background: var(--ct-color-card); border: 1px solid var(--ct-color-border); border-radius: var(--ct-radius-control); color: var(--ct-color-text-muted); padding: var(--ct-space-3); }
+.result { display: grid; gap: var(--ct-space-4); }
+.result .columns { margin-top: 0; }
+.result p { margin: 0 0 var(--ct-space-3); }
+time { color: var(--ct-color-text-muted); display: inline-block; font-size: .875rem; min-width: 3.25rem; }
+.actions { align-items: center; display: flex; flex-wrap: wrap; gap: var(--ct-space-3); margin: var(--ct-space-4) 0; }
+@media (max-width: 40rem) { .app-content { padding: var(--ct-space-4); } .app-header { margin-bottom: var(--ct-space-8); } .hero h1, h1 { font-size: clamp(2.25rem, 12vw, 3.5rem); } .panel { padding: var(--ct-space-4); } }

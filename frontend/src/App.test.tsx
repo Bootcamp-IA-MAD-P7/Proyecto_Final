@@ -49,6 +49,14 @@ it("signs in with a token of the test issuer and explains when the issuer is off
   expect(screen.queryByRole("heading", { name: /sube una grabación/i })).not.toBeInTheDocument();
 });
 
+it("keeps the existing entry and upload flow in labelled landmarks", async () => {
+  renderApp();
+  expect(screen.getByRole("main")).toBeInTheDocument();
+  signInAsDemoTeacher();
+  expect(await screen.findByRole("region", { name: /sube una grabación/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /enviar a procesar/i })).toBeEnabled();
+});
+
 it("offers only the audio formats admitted by the contract in the file picker", async () => {
   renderApp();
   signInAsDemoTeacher();
