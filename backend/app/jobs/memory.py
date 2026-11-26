@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
+from datetime import datetime
 from threading import Lock
 
 from app.contract import ClassMetadata, Job, JobError, JobStage, JobState, Result
 from app.jobs.store import (
     IN_PROGRESS_STATES,
     STAGE_ORDER,
+    UNFINISHED_STATES,
     AudioAsset,
     Idempotency,
     IdempotencyKeyTakenError,
@@ -89,13 +92,19 @@ class InMemoryJobStore:
 
     def claim_next(self) -> Job | None:
         with self._lock:
-            if not self._queue:
-                return None
-            job = self._jobs[self._queue.pop(0)]
-            first = STAGE_ORDER[0]
-            return self._save(
-                job, state=JobState(first.value), stage=first, attempt=job.attempt + 1, error=None
-            )
+            while self._queue:
+                job = self._jobs[self._queue.pop(0)]
+                if job.state is not JobState.QUEUED:
+                    continue
+                first = STAGE_ORDER[0]
+                return self._save(
+                    job,
+                    state=JobState(first.value),
+                    stage=first,
+                    attempt=job.attempt + 1,
+                    error=None,
+                )
+            return None
 
     def advance(self, job_id: str, stage: JobStage) -> Job:
         with self._lock:
@@ -128,6 +137,39 @@ class InMemoryJobStore:
                 self._save(job, state=JobState.QUEUED, stage=None)
                 self._queue.append(job.job_id)
             return len(jobs)
+
+    def expire_jobs(self, now: datetime) -> int:
+        with self._lock:
+            expired = 0
+            for job in self._jobs.values():
+                audio = self._audio.get(job.class_id)
+                if job.state not in UNFINISHED_STATES or audio is None or audio.expires_at > now:
+                    continue
+                self._save(job, state=JobState.EXPIRED, stage=None)
+                if job.job_id in self._queue:
+                    self._queue.remove(job.job_id)
+                expired += 1
+            return expired
+
+    def audios_to_purge(self, now: datetime) -> list[AudioAsset]:
+        with self._lock:
+            pending = (
+                audio
+                for audio in self._audio.values()
+                if audio.expires_at <= now and audio.deleted_at is None
+            )
+            return sorted(pending, key=lambda audio: audio.audio_id)
+
+    def mark_audio_purged(self, audio_id: str, when: datetime) -> None:
+        with self._lock:
+            for class_id, audio in self._audio.items():
+                if audio.audio_id == audio_id:
+                    self._audio[class_id] = replace(audio, deleted_at=when)
+                    return
+
+    def stored_audio_keys(self) -> set[str]:
+        with self._lock:
+            return {audio.storage_key for audio in self._audio.values()}
 
     def _in_progress(self, job_id: str) -> Job:
         job = self._jobs.get(job_id)

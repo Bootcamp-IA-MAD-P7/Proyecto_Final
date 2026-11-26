@@ -22,6 +22,9 @@ from app.contract import ClassMetadata, Job, JobError, JobStage, JobState, Resul
 IN_PROGRESS_STATES = frozenset(JobState(stage.value) for stage in JobStage)
 """States of a job that a worker is processing: one per stage."""
 
+UNFINISHED_STATES = IN_PROGRESS_STATES | {JobState.QUEUED}
+"""States of a job that can still be expired (audio-retention)."""
+
 STAGE_ORDER = list(JobStage)
 
 
@@ -135,4 +138,24 @@ class JobStore(Protocol):
 
     def requeue_in_progress(self) -> int:
         """Return every job left in progress to `queued` and count them. Run at worker start."""
+        ...
+
+    def expire_jobs(self, now: datetime) -> int:
+        """Mark unfinished jobs whose audio expired by `now` as `expired`; count them.
+
+        Expiry depends on the recorded `expires_at`, not on whether the file still exists.
+        Finished jobs keep their result.
+        """
+        ...
+
+    def audios_to_purge(self, now: datetime) -> list[AudioAsset]:
+        """Expired audio not yet marked as deleted, still to be removed from the storage."""
+        ...
+
+    def mark_audio_purged(self, audio_id: str, when: datetime) -> None:
+        """Record the physical deletion of an audio, so a failed delete can be retried."""
+        ...
+
+    def stored_audio_keys(self) -> set[str]:
+        """Opaque keys of the audio registered here, to spot orphan files in the storage."""
         ...
