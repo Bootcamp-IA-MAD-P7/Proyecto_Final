@@ -1,0 +1,9 @@
+@import "../../../styles/tokens.css";
+
+.button { align-items: center; border: 1px solid transparent; border-radius: var(--ct-radius-control); cursor: pointer; display: inline-flex; font: 700 1rem/1.25 var(--ct-font-sans); gap: var(--ct-space-2); justify-content: center; min-height: 2.75rem; padding: var(--ct-space-3) var(--ct-space-4); transition: filter 160ms ease; }
+.button:hover:not(:disabled) { filter: brightness(.95); }
+.button:disabled { cursor: not-allowed; opacity: .55; }
+.primary { background: var(--ct-gradient-action); color: var(--ct-color-card); }
+.secondary { background: var(--ct-color-card); border-color: var(--ct-color-primary); color: var(--ct-color-primary-strong); }
+.text { background: transparent; color: var(--ct-color-primary-strong); padding-inline: var(--ct-space-2); }
+@media (prefers-reduced-motion: reduce) { .button { transition: none; } }

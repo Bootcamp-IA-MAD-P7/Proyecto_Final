@@ -1,0 +1,7 @@
+@import "../../../styles/tokens.css";
+
+.badge { align-items: center; border-radius: 999px; display: inline-flex; font: 700 .875rem/1.2 var(--ct-font-sans); gap: .375rem; padding: .375rem .625rem; }
+.success { background: var(--ct-color-success-soft); color: var(--ct-color-success); }
+.warning { background: var(--ct-color-warning-soft); color: var(--ct-color-warning); }
+.danger { background: var(--ct-color-danger-soft); color: var(--ct-color-danger); }
+.info { background: var(--ct-color-info-soft); color: var(--ct-color-primary-strong); }

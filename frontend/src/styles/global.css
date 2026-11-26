@@ -1,0 +1,10 @@
+@import "./tokens.css";
+@import "./reset.css";
+
+:root {
+  color: var(--ct-color-ink);
+  background: var(--ct-color-surface);
+  font: 16px/1.5 var(--ct-font-sans);
+}
+
+body { min-width: 20rem; background: var(--ct-color-surface); }
