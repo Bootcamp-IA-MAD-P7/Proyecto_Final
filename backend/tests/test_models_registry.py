@@ -1,11 +1,12 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-from app.inference.models import ModelRegistry, ModelSpec, main
+from app.inference.models import ModelRegistry, ModelSpec, load_dotenv, main
 
 
 def spec(name: str, calls: list[str]) -> ModelSpec:
@@ -55,6 +56,21 @@ def test_measure_command_prints_json_without_class_data(capsys) -> None:
     assert json.loads(capsys.readouterr().out) == {
         "whisper": {"revision": "rev-1", "device": "cpu"}
     }
+
+
+def test_load_dotenv_exports_only_missing_values(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    monkeypatch.setenv("MODELS_DIR", "/already/exported")
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "# a comment\nHF_TOKEN=fake-token\nMODELS_DIR=/from/file\nNOT_A_VALUE\n",
+        encoding="utf-8",
+    )
+
+    load_dotenv(env_file)
+
+    assert os.environ["HF_TOKEN"] == "fake-token"
+    assert os.environ["MODELS_DIR"] == "/already/exported"
 
 
 def test_default_suite_excludes_the_models_marker() -> None:

@@ -87,7 +87,7 @@ class Settings:
     """Private work copies of each attempt, outside AUDIO_STORAGE_DIR and Git."""
     models_dir: str = "data/models"
     """Private cache of the fixed model revisions, outside Git and backups."""
-    hf_token: str | None = None
+    hf_token: str | None = field(default=None, repr=False)
     """Token to download gated models. Only needed by `make models`, never by the worker."""
 
     def __post_init__(self) -> None:
