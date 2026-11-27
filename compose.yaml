@@ -38,7 +38,8 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-coteach}:${POSTGRES_PASSWORD:-coteach}@db:5432/${POSTGRES_DB:-coteach}
       AUDIO_STORAGE_DIR: ${AUDIO_STORAGE_DIR:-/app/data/audio}
       MODELS_DIR: ${MODELS_DIR:-/app/data/models}
-      # The worker never reaches Hugging Face nor holds the download token (spec diarized-transcription).
+      # The worker works offline and its environment has no download token (spec diarized-transcription).
+      # In development backend/ is mounted with its .env, which only `make models` reads.
       HF_HUB_OFFLINE: "1"
       HF_TOKEN: ""
     volumes:
