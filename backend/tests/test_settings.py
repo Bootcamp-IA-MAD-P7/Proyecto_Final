@@ -154,6 +154,6 @@ def test_retries_come_from_the_environment():
 
 
 @pytest.mark.parametrize("value", ["0", "-1", "1.5", "21"])
-def test_max_attempts_is_a_whole_number_above_zero(value):
+def test_max_attempts_is_a_whole_number_from_1_to_20(value):
     with pytest.raises(ValueError, match="MAX_ATTEMPTS"):
         Settings.from_env({"MAX_ATTEMPTS": value})

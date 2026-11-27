@@ -241,7 +241,11 @@ def test_a_store_failure_in_the_last_attempt_does_not_fail_the_job(metadata, clo
     processing.run_once()
     clock.advance(seconds=120)
 
-    processing.run(stop, poll_seconds=0)  # restarts after the drop and finishes the job
+    thread = threading.Thread(target=processing.run, args=(stop, 0))
+    thread.start()  # restarts after the drop and finishes the job
+    thread.join(timeout=5)
+    stop.set()
+    assert not thread.is_alive()
 
     job = store.get_job(stored.job_id)
     assert (job.state, job.attempt) == (JobState.READY_FOR_REVIEW, 4)
