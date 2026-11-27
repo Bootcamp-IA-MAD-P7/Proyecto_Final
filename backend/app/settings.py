@@ -71,6 +71,10 @@ class Settings:
     """Wait of FakePipeline in each stage, to see the progress in the web."""
     worker_poll_seconds: float = 1
     """Wait of the worker when the queue is empty or the database is not available."""
+    max_attempts: int = 3
+    """Attempts of a job with transient failures before it moves to `failed` (RNF-05)."""
+    retry_delay_seconds: float = 60
+    """Wait before the second attempt; it doubles before each later one."""
     maintenance_interval_seconds: float = 60
     """Time between two maintenance cycles."""
     upload_max_bytes: int = 150 * 1024 * 1024
@@ -128,6 +132,10 @@ class Settings:
                 env, "FAKE_STAGE_SECONDS", defaults.fake_stage_seconds, zero=True
             ),
             worker_poll_seconds=_number(env, "WORKER_POLL_SECONDS", defaults.worker_poll_seconds),
+            max_attempts=_whole(env, "MAX_ATTEMPTS", defaults.max_attempts),
+            retry_delay_seconds=_number(
+                env, "RETRY_DELAY_SECONDS", defaults.retry_delay_seconds, zero=True
+            ),
             maintenance_interval_seconds=_number(
                 env, "MAINTENANCE_INTERVAL_SECONDS", defaults.maintenance_interval_seconds
             ),

@@ -276,11 +276,11 @@ def test_run_processes_until_stopped_and_survives_an_unavailable_store(metadata)
             super().__init__()
             self.calls = 0
 
-        def claim_next(self):
+        def claim_next(self, now=None):
             self.calls += 1
             if self.calls == 1:
                 raise ConnectionError("database down")
-            return super().claim_next()
+            return super().claim_next(now)
 
     class StopWhenDone(FlakyStore):
         def complete(self, job_id, result):

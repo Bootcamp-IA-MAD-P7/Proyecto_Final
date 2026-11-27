@@ -100,7 +100,7 @@ def test_work_copy_is_removed_after_a_pipeline_failure(metadata, audio_storage, 
 
     done = worker(store, FailingPipeline(), work_dir, audio_storage).run_once()
 
-    assert done.state == JobState.FAILED
+    assert done.state == JobState.RETRY_WAIT  # a failed attempt, retried later from the start
     assert not (work_dir / stored.job_id).exists()
 
 

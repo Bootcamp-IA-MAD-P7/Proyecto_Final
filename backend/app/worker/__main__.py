@@ -22,6 +22,8 @@ def main() -> None:
         review_period=timedelta(hours=settings.review_period_hours),
         audio_storage=DiskAudioStorage(settings.audio_storage_dir),
         work_dir=Path(settings.work_dir),
+        max_attempts=settings.max_attempts,
+        retry_delay=timedelta(seconds=settings.retry_delay_seconds),
     )
     worker.run(stop_on_signals(), poll_seconds=settings.worker_poll_seconds)
 
