@@ -14,3 +14,6 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --tb=short -p no:cacheprovider"
+markers = [
+  "models: tests that need real downloaded models (run with make test-models, not with make test)",
+]
