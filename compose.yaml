@@ -59,8 +59,9 @@ services:
       AUDIO_STORAGE_DIR: ${AUDIO_STORAGE_DIR:-/app/data/audio}
     volumes:
       - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
+    # Like the worker, it needs the tables of the latest migration, which `backend` applies.
     depends_on:
-      db:
+      backend:
         condition: service_healthy
 
   db:
