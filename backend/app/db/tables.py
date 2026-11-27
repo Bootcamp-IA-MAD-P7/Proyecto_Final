@@ -70,6 +70,8 @@ jobs = Table(
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
     # Last time the job entered the queue: claim_next takes the oldest (FIFO, ADR-0002).
     Column("queued_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    # When a job in retry_wait may be claimed again (add-diarized-transcription).
+    Column("next_attempt_at", DateTime(timezone=True)),
     Column("updated_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
     CheckConstraint("attempt >= 0", name="jobs_attempt_non_negative"),
 )

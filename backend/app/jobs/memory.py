@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import replace
-from datetime import datetime
+from datetime import UTC, datetime
+from itertools import count
 from threading import Lock
 
 from app.contract import ClassMetadata, Job, JobError, JobStage, JobState, Result
 from app.jobs.store import (
+    EXHAUSTED_ERROR,
     IN_PROGRESS_STATES,
     STAGE_ORDER,
     UNFINISHED_STATES,
@@ -31,7 +33,12 @@ class InMemoryJobStore:
         self._lock = Lock()
         self._classes: dict[str, StoredClass] = {}
         self._jobs: dict[str, Job] = {}
-        self._queue: list[str] = []
+        self._arrivals = count()
+        self._arrival: dict[str, int] = {}
+        """Order of arrival to the queue of the jobs that may still be claimed."""
+        self._claimed_arrival: dict[str, int] = {}
+        """Place in the queue of each claimed job, which a retry keeps."""
+        self._next_attempt_at: dict[str, datetime] = {}
         self._results: dict[str, Result] = {}
         self._audio: dict[str, AudioAsset] = {}
         self._submissions: dict[tuple[str, str], Submission] = {}
@@ -61,7 +68,7 @@ class InMemoryJobStore:
                 attempt=0,
                 error=None,
             )
-            self._queue.append(stored.job_id)
+            self._arrival[stored.job_id] = next(self._arrivals)
             if audio is not None:
                 self._audio[stored.class_id] = audio
             if idempotency is not None:
@@ -90,21 +97,32 @@ class InMemoryJobStore:
         with self._lock:
             return self._results.get(class_id)
 
-    def claim_next(self) -> Job | None:
+    def claim_next(self, now: datetime | None = None) -> Job | None:
+        now = now or datetime.now(UTC)
         with self._lock:
-            while self._queue:
-                job = self._jobs[self._queue.pop(0)]
-                if job.state is not JobState.QUEUED:
-                    continue
-                first = STAGE_ORDER[0]
-                return self._save(
-                    job,
-                    state=JobState(first.value),
-                    stage=first,
-                    attempt=job.attempt + 1,
-                    error=None,
+            ready = [
+                job_id
+                for job_id in self._arrival
+                if self._jobs[job_id].state is JobState.QUEUED
+                or (
+                    self._jobs[job_id].state is JobState.RETRY_WAIT
+                    and self._next_attempt_at[job_id] <= now
                 )
-            return None
+            ]
+            if not ready:
+                return None
+            job_id = min(ready, key=self._arrival.__getitem__)
+            self._claimed_arrival[job_id] = self._arrival.pop(job_id)
+            self._next_attempt_at.pop(job_id, None)
+            job = self._jobs[job_id]
+            first = STAGE_ORDER[0]
+            return self._save(
+                job,
+                state=JobState(first.value),
+                stage=first,
+                attempt=job.attempt + 1,
+                error=None,
+            )
 
     def advance(self, job_id: str, stage: JobStage) -> Job:
         with self._lock:
@@ -130,13 +148,26 @@ class InMemoryJobStore:
             job = self._in_progress(job_id)
             return self._save(job, state=JobState.FAILED, error=error)
 
-    def requeue_in_progress(self) -> int:
+    def retry_later(self, job_id: str, error: JobError, next_attempt_at: datetime) -> Job:
+        with self._lock:
+            job = self._in_progress(job_id)
+            # Keeps its original place in the queue, like queued_at on PostgreSQL.
+            self._arrival[job_id] = self._claimed_arrival[job_id]
+            self._next_attempt_at[job_id] = next_attempt_at
+            return self._save(job, state=JobState.RETRY_WAIT, error=error)
+
+    def requeue_in_progress(self, max_attempts: int | None = None) -> int:
         with self._lock:
             jobs = [job for job in self._jobs.values() if job.state in IN_PROGRESS_STATES]
+            requeued = 0
             for job in jobs:
+                if max_attempts is not None and job.attempt >= max_attempts:
+                    self._save(job, state=JobState.FAILED, error=EXHAUSTED_ERROR)
+                    continue
                 self._save(job, state=JobState.QUEUED, stage=None)
-                self._queue.append(job.job_id)
-            return len(jobs)
+                self._arrival[job.job_id] = next(self._arrivals)
+                requeued += 1
+            return requeued
 
     def expire_jobs(self, now: datetime) -> int:
         with self._lock:
@@ -146,8 +177,8 @@ class InMemoryJobStore:
                 if job.state not in UNFINISHED_STATES or audio is None or audio.expires_at > now:
                     continue
                 self._save(job, state=JobState.EXPIRED, stage=None)
-                if job.job_id in self._queue:
-                    self._queue.remove(job.job_id)
+                self._arrival.pop(job.job_id, None)
+                self._next_attempt_at.pop(job.job_id, None)
                 expired += 1
             return expired
 

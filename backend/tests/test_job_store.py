@@ -315,3 +315,102 @@ def test_a_finished_job_keeps_its_result_when_its_audio_expires(store, metadata)
     assert store.get_job(job.job_id).state is JobState.READY_FOR_REVIEW
     assert store.get_result(stored.class_id) == result
     assert store.audios_to_purge(NOW) == [expired_audio()]
+
+
+# --- Retries (add-diarized-transcription) -----------------------------------------------------
+
+
+def transient() -> JobError:
+    return JobError(
+        code=JobErrorCode.PROCESSING_UNAVAILABLE, message="Modelo no disponible", retryable=True
+    )
+
+
+def test_retry_later_waits_with_its_stage_and_error(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher")
+    store.claim_next(NOW)
+    store.advance(stored.job_id, JobStage.TRANSCRIBING)
+
+    job = store.retry_later(stored.job_id, transient(), NOW + timedelta(minutes=1))
+
+    assert (job.state, job.stage, job.attempt, job.error) == (
+        JobState.RETRY_WAIT,
+        JobStage.TRANSCRIBING,
+        1,
+        transient(),
+    )
+    assert store.get_job(stored.job_id) == job
+    assert store.get_result(stored.class_id) is None
+
+
+def test_a_job_waiting_for_a_retry_is_claimed_once_due(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher")
+    store.claim_next(NOW)
+    store.retry_later(stored.job_id, transient(), NOW + timedelta(minutes=1))
+
+    assert store.claim_next(NOW + timedelta(seconds=59)) is None
+    claimed = store.claim_next(NOW + timedelta(minutes=1))
+
+    assert (claimed.job_id, claimed.state, claimed.stage, claimed.attempt, claimed.error) == (
+        stored.job_id,
+        JobState.NORMALIZING,
+        JobStage.NORMALIZING,
+        2,
+        None,
+    )
+    assert store.claim_next(NOW + timedelta(hours=1)) is None
+
+
+def test_a_due_retry_keeps_its_place_in_the_queue(store, metadata):
+    retried = store.create_class(metadata, "demo-teacher")
+    store.claim_next(NOW)
+    later = store.create_class(metadata, "demo-teacher")
+    store.retry_later(retried.job_id, transient(), NOW + timedelta(minutes=1))
+
+    assert store.claim_next(NOW).job_id == later.job_id  # the retry is not due yet
+    store.fail(later.job_id, error())
+    newest = store.create_class(metadata, "demo-teacher")
+
+    assert store.claim_next(NOW + timedelta(minutes=1)).job_id == retried.job_id
+    assert store.claim_next(NOW + timedelta(minutes=1)).job_id == newest.job_id
+
+
+def test_retry_later_needs_a_job_in_progress(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher")
+
+    with pytest.raises(InvalidJobTransitionError):
+        store.retry_later(stored.job_id, transient(), NOW)
+    with pytest.raises(JobNotFoundError):
+        store.retry_later("job-99", transient(), NOW)
+
+
+def test_requeue_fails_the_jobs_that_used_every_attempt(store, metadata):
+    exhausted = store.create_class(metadata, "demo-teacher")
+    with_attempts = store.create_class(metadata, "demo-teacher")
+    waiting = store.create_class(metadata, "demo-teacher")
+    store.claim_next(NOW)
+    store.retry_later(exhausted.job_id, transient(), NOW)
+    store.claim_next(NOW)  # exhausted, attempt 2
+    store.claim_next(NOW)  # with_attempts, attempt 1
+    store.claim_next(NOW)  # waiting, attempt 1
+    store.retry_later(waiting.job_id, transient(), NOW + timedelta(hours=1))
+
+    assert store.requeue_in_progress(max_attempts=2) == 1
+
+    failed = store.get_job(exhausted.job_id)
+    assert (failed.state, failed.attempt) == (JobState.FAILED, 2)
+    assert failed.error.code is JobErrorCode.PROCESSING_FAILED
+    assert failed.error.retryable is False
+    assert store.get_job(with_attempts.job_id).state is JobState.QUEUED
+    assert store.get_job(waiting.job_id).state is JobState.RETRY_WAIT
+
+
+def test_a_job_waiting_for_a_retry_expires_with_its_audio(store, metadata):
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
+    store.claim_next(NOW)
+    store.retry_later(stored.job_id, transient(), NOW + timedelta(minutes=1))
+
+    assert store.expire_jobs(NOW) == 1
+
+    assert store.get_job(stored.job_id).state is JobState.EXPIRED
+    assert store.claim_next(NOW + timedelta(hours=1)) is None
