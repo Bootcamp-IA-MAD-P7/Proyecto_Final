@@ -88,7 +88,7 @@ make help    # todos los comandos
 
 ### Demo en local
 
-`make up` levanta `backend`, `worker`, `maintenance`, `frontend` y `db` en modo desarrollo. La web queda en <http://localhost:5173> y la API en <http://localhost:8000>. Entra con un usuario de prueba (el docente puede subir clases), sube un audio admitido por el [contrato](docs/CONTRACTS/coteach-ai-api.md) y sigue su avance hasta el resultado sintético, que de momento genera un pipeline simulado.
+`make up` levanta `backend`, `worker`, `maintenance`, `frontend` y `db` en modo desarrollo. La web queda en <http://localhost:5173> y la API en <http://localhost:8000>. Entra con un usuario de prueba (el docente puede subir clases), sube un audio admitido por el [contrato](docs/CONTRACTS/coteach-ai-api.md) y sigue su avance hasta la transcripción por persona hablante. El análisis pedagógico sale vacío hasta E4. Antes de la primera clase hay que descargar los modelos (abajo).
 
 Con la configuración de producción, backend, worker y maintenance requieren un `AUTH_SECRET` propio de al menos 32 caracteres; no aceptan el secreto documentado para desarrollo. Guárdalo solo en el `.env` sin versionar de este clon o pásalo desde la shell. Puedes generar uno localmente sin mostrarlo con `openssl rand -hex 32`. El emisor de tokens de prueba está apagado; para una demo local, actívalo de forma explícita al levantarla. La web queda en el puerto `FRONTEND_PORT` del `.env` de la raíz (5173 en el de ejemplo; 8080 si no está):
 
@@ -97,7 +97,19 @@ AUTH_SECRET="$(openssl rand -hex 32)" AUTH_DEV_ISSUER=true make up-prod
 make down-prod
 ```
 
-La prueba E2E recorre ese camino con Playwright en tu equipo, contra lo que esté levantado:
+#### Modelos de inferencia
+
+El worker transcribe con faster-whisper `small` y diariza con pyannote Community-1, en CPU y sin red: lee los modelos del volumen privado `models-data` (`MODELS_DIR`, `/app/data/models`) y nunca los descarga mientras procesa una clase ([ADR-0003](docs/ADR/0003-private-inference.md)). Su imagen (objetivo `worker` del `Dockerfile` de `backend`) lleva PyTorch para CPU y ocupa unos 3,4 GB, así que el primer `make up` tarda varios minutos más. Para preparar los modelos, una vez por equipo:
+
+1. Crea una cuenta en [Hugging Face](https://huggingface.co), abre [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1) y acepta sus condiciones de uso.
+2. Crea un token de lectura en <https://huggingface.co/settings/tokens> y ponlo en `backend/.env` como `HF_TOKEN=...`. Ese archivo no se versiona; el worker recibe siempre el token vacío.
+3. Ejecuta `make models`: descarga las revisiones fijadas de los dos modelos al volumen (unos 500 MB). Solo hace falta repetirlo si cambia una revisión o borras el volumen.
+
+Sin modelos, cada trabajo falla con `processing_unavailable`, agota sus intentos (esperas de 60 y 120 s) y termina en `failed`. Para trabajar sin modelos, por ejemplo en el frontend, pon `INFERENCE_PIPELINE=fake` en `backend/.env` y vuelve a levantar con `make up`: el worker devuelve el resultado sintético del walking skeleton.
+
+#### Prueba de extremo a extremo
+
+La prueba E2E recorre la demo con Playwright en tu equipo, contra lo que esté levantado y con los modelos descargados. Antes de abrir el navegador, `make e2e` comprueba que los modelos están en el volumen y genera con espeak-ng una clase sintética de dos voces que se turnan (`backend/scripts/two-voices.sh`, en la imagen de desarrollo del worker). Ese audio no se versiona ni contiene datos reales. La prueba sube esa clase y espera su transcripción con dos personas hablantes; sube también un tono sin voz y espera el aviso de que no se ha detectado voz. En CPU, cada clase tarda unos minutos.
 
 ```sh
 make e2e-install   # una vez por equipo: descarga Chromium
