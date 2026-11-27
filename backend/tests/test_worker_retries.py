@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -199,7 +200,7 @@ def test_at_start_a_job_that_used_every_attempt_fails(store, metadata, clock):
 
 
 def test_a_job_waiting_for_a_retry_expires_and_is_not_claimed(store, metadata, clock):
-    store.create_class(metadata, "demo-teacher", audio=expired_audio())
+    stored = store.create_class(metadata, "demo-teacher", audio=expired_audio())
     processing = worker(store, FlakyPipeline(failures=1), clock)
     assert processing.run_once().state is JobState.RETRY_WAIT
 
@@ -207,6 +208,43 @@ def test_a_job_waiting_for_a_retry_expires_and_is_not_claimed(store, metadata, c
     processing.start()
 
     assert processing.run_once() is None
+    expired = store.get_job(stored.job_id)
+    assert (expired.state, expired.error) == (JobState.EXPIRED, None)
+
+
+def test_a_store_failure_in_the_last_attempt_does_not_fail_the_job(metadata, clock):
+    class BlinkingStore(InMemoryJobStore):
+        """The database drops once while the last attempt records a stage."""
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.dropped = False
+
+        def advance(self, job_id, stage):
+            job = self.get_job(job_id)
+            if job.attempt == 3 and stage is JobStage.DIARIZING and not self.dropped:
+                self.dropped = True
+                raise ConnectionError("database down")
+            return super().advance(job_id, stage)
+
+        def complete(self, job_id, result):
+            done = super().complete(job_id, result)
+            stop.set()
+            return done
+
+    stop = threading.Event()
+    store = BlinkingStore()
+    stored = store.create_class(metadata, "demo-teacher")
+    processing = worker(store, FlakyPipeline(failures=2), clock)
+    processing.run_once()
+    clock.advance(seconds=60)
+    processing.run_once()
+    clock.advance(seconds=120)
+
+    processing.run(stop, poll_seconds=0)  # restarts after the drop and finishes the job
+
+    job = store.get_job(stored.job_id)
+    assert (job.state, job.attempt) == (JobState.READY_FOR_REVIEW, 4)
 
 
 def test_retry_logs_carry_the_job_stage_attempt_error_and_wait(metadata, clock, caplog):

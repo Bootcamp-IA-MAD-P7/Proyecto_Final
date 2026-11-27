@@ -176,7 +176,7 @@ class InMemoryJobStore:
                 audio = self._audio.get(job.class_id)
                 if job.state not in UNFINISHED_STATES or audio is None or audio.expires_at > now:
                     continue
-                self._save(job, state=JobState.EXPIRED, stage=None)
+                self._save(job, state=JobState.EXPIRED, stage=None, error=None)
                 self._arrival.pop(job.job_id, None)
                 self._next_attempt_at.pop(job.job_id, None)
                 expired += 1

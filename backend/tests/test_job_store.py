@@ -412,5 +412,6 @@ def test_a_job_waiting_for_a_retry_expires_with_its_audio(store, metadata):
 
     assert store.expire_jobs(NOW) == 1
 
-    assert store.get_job(stored.job_id).state is JobState.EXPIRED
+    expired = store.get_job(stored.job_id)
+    assert (expired.state, expired.stage, expired.error) == (JobState.EXPIRED, None, None)
     assert store.claim_next(NOW + timedelta(hours=1)) is None

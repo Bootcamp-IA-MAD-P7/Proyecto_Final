@@ -153,7 +153,7 @@ def test_retries_come_from_the_environment():
     assert (settings.max_attempts, settings.retry_delay_seconds) == (5, 0)
 
 
-@pytest.mark.parametrize("value", ["0", "-1", "1.5"])
+@pytest.mark.parametrize("value", ["0", "-1", "1.5", "21"])
 def test_max_attempts_is_a_whole_number_above_zero(value):
     with pytest.raises(ValueError, match="MAX_ATTEMPTS"):
         Settings.from_env({"MAX_ATTEMPTS": value})
