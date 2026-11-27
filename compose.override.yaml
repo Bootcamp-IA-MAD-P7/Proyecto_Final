@@ -15,10 +15,11 @@ services:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
   worker:
     build:
-      target: dev
+      target: worker-dev
     volumes:
       - ./backend:/app
       - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
+      - models-data:${MODELS_DIR:-/app/data/models}
   maintenance:
     build:
       target: dev

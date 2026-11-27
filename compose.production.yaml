@@ -19,13 +19,14 @@ services:
 
   worker:
     build:
-      target: prod
+      target: worker
     restart: unless-stopped
     environment:
       APP_ENV: production
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set to a non-development secret before make up-prod}
     volumes:
       - audio-data:${AUDIO_STORAGE_DIR:-/app/data/audio}
+      - models-data:${MODELS_DIR:-/app/data/models}
 
   maintenance:
     build:

@@ -73,6 +73,17 @@ def test_load_dotenv_exports_only_missing_values(tmp_path: Path, monkeypatch) ->
     assert os.environ["MODELS_DIR"] == "/already/exported"
 
 
+def test_load_dotenv_fills_values_exported_empty(tmp_path: Path, monkeypatch) -> None:
+    # Compose exports HF_TOKEN="" to the worker; `make models` takes the token from backend/.env.
+    monkeypatch.setenv("HF_TOKEN", "")
+    env_file = tmp_path / ".env"
+    env_file.write_text("HF_TOKEN=fake-token\n", encoding="utf-8")
+
+    load_dotenv(env_file)
+
+    assert os.environ["HF_TOKEN"] == "fake-token"
+
+
 def test_default_suite_excludes_the_models_marker() -> None:
     backend = Path(__file__).resolve().parents[1]
     result = subprocess.run(

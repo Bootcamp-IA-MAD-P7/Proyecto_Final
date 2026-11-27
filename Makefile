@@ -20,7 +20,7 @@ export BACKEND_PORT FRONTEND_PORT
 COMPOSE := docker compose
 COMPOSE_PROD := docker compose -f compose.yaml -f compose.production.yaml
 
-.PHONY: help setup env hooks install dev test lint ci ci-production-build ci-auth-secret-regression e2e e2e-install up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
+.PHONY: help setup env hooks install dev test lint ci ci-production-build ci-auth-secret-regression e2e e2e-install models up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
 
 help: ## List every available command
 	@echo "Usage: make <command>"
@@ -90,6 +90,11 @@ e2e: ## Run the end-to-end tests against `make up` (first time: make e2e-install
 	@curl -fsS -o /dev/null "http://localhost:$${BACKEND_PORT:-8000}/ready" || { echo "The API is not ready: run make up first."; exit 1; }
 	@curl -fsS -o /dev/null "http://localhost:$${FRONTEND_PORT:-5173}/" || { echo "The web is not up: run make up first."; exit 1; }
 	$(MAKE) -C frontend e2e
+
+# --- Models: download once into the private volume of the worker ---
+
+models: env ## Download the fixed model revisions into the worker volume (needs HF_TOKEN in backend/.env)
+	$(COMPOSE) run --rm --no-deps --build -e HF_HUB_OFFLINE=0 worker python -m app.inference.models download
 
 # --- Docker: development ---
 
