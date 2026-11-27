@@ -141,16 +141,12 @@ def test_invalid_output_is_not_retryable(tmp_path: Path) -> None:
     assert error.value.error.retryable is False
 
 
-def test_download_uses_the_pinned_revision_and_never_logs_the_token(
-    tmp_path: Path, monkeypatch, caplog
-) -> None:
+def test_download_uses_the_pinned_revision_and_never_logs_the_token(tmp_path: Path, caplog) -> None:
     calls: list[dict[str, object]] = []
 
     def snapshot(**kwargs: object) -> str:
         calls.append(kwargs)
         return "ok"
-
-    monkeypatch.setattr("huggingface_hub.snapshot_download", snapshot, raising=False)
 
     download_community1(token="hf-secret", models_dir=tmp_path, snapshot=snapshot)
 
@@ -163,13 +159,18 @@ def test_download_uses_the_pinned_revision_and_never_logs_the_token(
 def test_download_uses_huggingface_hub_without_an_injected_callback(
     tmp_path: Path, monkeypatch, caplog
 ) -> None:
+    import sys
+    from types import ModuleType
+
     calls: list[dict[str, object]] = []
 
     def snapshot(**kwargs: object) -> str:
         calls.append(kwargs)
         return "ok"
 
-    monkeypatch.setattr("huggingface_hub.snapshot_download", snapshot)
+    hub = ModuleType("huggingface_hub")
+    hub.snapshot_download = snapshot  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "huggingface_hub", hub)
 
     download_community1(token="hf-secret", models_dir=tmp_path)
 
