@@ -20,7 +20,7 @@ export BACKEND_PORT FRONTEND_PORT
 COMPOSE := docker compose
 COMPOSE_PROD := docker compose -f compose.yaml -f compose.production.yaml
 
-.PHONY: help setup env hooks install dev test lint ci ci-production-build ci-auth-secret-regression e2e e2e-install models measure-stages up down logs ps worker-logs maintenance-logs up-prod down-prod labels github-setup github-protect claude-skills
+.PHONY: help setup env hooks install dev test lint ci ci-production-build ci-auth-secret-regression e2e e2e-install models measure-stages up down logs ps worker-up worker-down worker-logs maintenance-up maintenance-down maintenance-logs up-prod down-prod labels github-setup github-protect claude-skills
 
 help: ## List every available command
 	@echo "Usage: make <command>"
@@ -120,9 +120,21 @@ logs: ## Follow every service log in Docker
 ps: ## List the running containers
 	$(COMPOSE) ps
 
-# worker and maintenance share backend/, so make help does not list them under <service>-logs.
+# worker and maintenance share backend/, so make help does not list them under <service>-up, -down and -logs.
+worker-up: ## Run only the worker with Docker
+	$(COMPOSE) up -d --build worker
+
+worker-down: ## Stop the worker in Docker
+	$(COMPOSE) stop worker
+
 worker-logs: ## Follow the worker log in Docker
 	$(COMPOSE) logs -f worker
+
+maintenance-up: ## Run only maintenance with Docker
+	$(COMPOSE) up -d --build maintenance
+
+maintenance-down: ## Stop maintenance in Docker
+	$(COMPOSE) stop maintenance
 
 maintenance-logs: ## Follow the maintenance log in Docker
 	$(COMPOSE) logs -f maintenance
