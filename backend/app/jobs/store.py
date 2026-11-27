@@ -7,7 +7,9 @@ Lifecycle of a job, with a single worker:
 
     queued --claim_next--> normalizing --advance--> transcribing --> diarizing --> analyzing
     <stage> --complete--> ready_for_review       <stage> --fail--> failed
-    <stage> --requeue_in_progress (worker start)--> queued
+    <stage> --retry_later--> retry_wait --claim_next (once next_attempt_at passes)--> normalizing
+    <stage> --requeue_in_progress (worker start)--> queued, or failed with no attempts left
+    queued | <stage> | retry_wait --expire_jobs--> expired
 """
 
 from __future__ import annotations
@@ -17,15 +19,23 @@ from datetime import datetime
 from typing import Protocol, runtime_checkable
 from uuid import uuid4
 
-from app.contract import ClassMetadata, Job, JobError, JobStage, JobState, Result
+from app.contract import ClassMetadata, Job, JobError, JobErrorCode, JobStage, JobState, Result
 
 IN_PROGRESS_STATES = frozenset(JobState(stage.value) for stage in JobStage)
 """States of a job that a worker is processing: one per stage."""
 
-UNFINISHED_STATES = IN_PROGRESS_STATES | {JobState.QUEUED}
+UNFINISHED_STATES = IN_PROGRESS_STATES | {JobState.QUEUED, JobState.RETRY_WAIT}
 """States of a job that can still be expired (audio-retention)."""
 
 STAGE_ORDER = list(JobStage)
+
+FAILED_MESSAGE = "No se ha podido procesar la clase."
+"""Message of a contract error that must not reveal anything of the class."""
+
+EXHAUSTED_ERROR = JobError(
+    code=JobErrorCode.PROCESSING_FAILED, message=FAILED_MESSAGE, retryable=False
+)
+"""Error of a job left in progress after its last attempt, such as one that kills the worker."""
 
 
 def new_id(prefix: str) -> str:
@@ -120,8 +130,12 @@ class JobStore(Protocol):
         """The result saved by the worker, or None while there is none."""
         ...
 
-    def claim_next(self) -> Job | None:
-        """Take the oldest queued job: it moves to the first stage and its attempt grows by one."""
+    def claim_next(self, now: datetime | None = None) -> Job | None:
+        """Take the oldest job ready to run: it moves to the first stage and its attempt grows.
+
+        A job is ready when it is `queued`, or in `retry_wait` and its next attempt is due by
+        `now` (the current time when omitted). They are taken in order of arrival to the queue.
+        """
         ...
 
     def advance(self, job_id: str, stage: JobStage) -> Job:
@@ -136,8 +150,16 @@ class JobStore(Protocol):
         """Move a job in progress to `failed`, keeping its stage and without a result."""
         ...
 
-    def requeue_in_progress(self) -> int:
-        """Return every job left in progress to `queued` and count them. Run at worker start."""
+    def retry_later(self, job_id: str, error: JobError, next_attempt_at: datetime) -> Job:
+        """Move a job in progress to `retry_wait`, keeping its stage, until `next_attempt_at`."""
+        ...
+
+    def requeue_in_progress(self, max_attempts: int | None = None) -> int:
+        """Return every job left in progress to `queued` and count them. Run at worker start.
+
+        With `max_attempts`, a job that already used them all moves to `failed` with
+        EXHAUSTED_ERROR instead, so a job that kills the worker cannot block the queue.
+        """
         ...
 
     def expire_jobs(self, now: datetime) -> int:

@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Connection, Engine, Row, func, insert, select, update
+from sqlalchemy import Connection, Engine, Row, and_, func, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.contract import (
@@ -20,6 +20,7 @@ from app.contract import (
 )
 from app.db.tables import audio_assets, classes, jobs, participants, results
 from app.jobs.store import (
+    EXHAUSTED_ERROR,
     IN_PROGRESS_STATES,
     STAGE_ORDER,
     UNFINISHED_STATES,
@@ -188,12 +189,21 @@ class PostgresJobStore:
             ).scalar_one_or_none()
         return Result.model_validate(body) if body is not None else None
 
-    def claim_next(self) -> Job | None:
+    def claim_next(self, now: datetime | None = None) -> Job | None:
         first = STAGE_ORDER[0]
+        due = func.now() if now is None else now
         with self._engine.begin() as connection:
             job_id = connection.execute(
                 select(jobs.c.job_id)
-                .where(jobs.c.state == JobState.QUEUED.value)
+                .where(
+                    or_(
+                        jobs.c.state == JobState.QUEUED.value,
+                        and_(
+                            jobs.c.state == JobState.RETRY_WAIT.value,
+                            jobs.c.next_attempt_at <= due,
+                        ),
+                    )
+                )
                 .order_by(jobs.c.queued_at, jobs.c.job_id)
                 .limit(1)
                 .with_for_update(skip_locked=True)
@@ -206,6 +216,7 @@ class PostgresJobStore:
                 state=first.value,
                 stage=first.value,
                 attempt=jobs.c.attempt + 1,
+                next_attempt_at=None,
                 **_no_error(),
             )
 
@@ -237,17 +248,32 @@ class PostgresJobStore:
     def fail(self, job_id: str, error: JobError) -> Job:
         with self._engine.begin() as connection:
             self._in_progress(connection, job_id)
+            return self._save(connection, job_id, state=JobState.FAILED.value, **_error(error))
+
+    def retry_later(self, job_id: str, error: JobError, next_attempt_at: datetime) -> Job:
+        # queued_at does not change: once due, the job keeps its place in the queue.
+        with self._engine.begin() as connection:
+            self._in_progress(connection, job_id)
             return self._save(
                 connection,
                 job_id,
-                state=JobState.FAILED.value,
-                error_code=error.code.value,
-                error_message=error.message,
-                error_retryable=error.retryable,
+                state=JobState.RETRY_WAIT.value,
+                next_attempt_at=next_attempt_at,
+                **_error(error),
             )
 
-    def requeue_in_progress(self) -> int:
+    def requeue_in_progress(self, max_attempts: int | None = None) -> int:
         with self._engine.begin() as connection:
+            if max_attempts is not None:
+                connection.execute(
+                    update(jobs)
+                    .where(jobs.c.state.in_(_IN_PROGRESS), jobs.c.attempt >= max_attempts)
+                    .values(
+                        state=JobState.FAILED.value,
+                        updated_at=func.now(),
+                        **_error(EXHAUSTED_ERROR),
+                    )
+                )
             moved = connection.execute(
                 update(jobs)
                 .where(jobs.c.state.in_(_IN_PROGRESS))
@@ -270,7 +296,12 @@ class PostgresJobStore:
                         select(audio_assets.c.class_id).where(audio_assets.c.expires_at <= now)
                     )
                 )
-                .values(state=JobState.EXPIRED.value, stage=None, updated_at=now)
+                .values(
+                    state=JobState.EXPIRED.value,
+                    stage=None,
+                    next_attempt_at=None,
+                    updated_at=now,
+                )
             )
             return expired.rowcount
 
@@ -314,6 +345,14 @@ class PostgresJobStore:
             .returning(*jobs.c)
         ).one()
         return _job(row)
+
+
+def _error(error: JobError) -> dict[str, Any]:
+    return {
+        "error_code": error.code.value,
+        "error_message": error.message,
+        "error_retryable": error.retryable,
+    }
 
 
 def _no_error() -> dict[str, None]:
