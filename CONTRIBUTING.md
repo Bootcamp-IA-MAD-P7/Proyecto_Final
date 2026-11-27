@@ -155,6 +155,10 @@ El CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) comprueba en cada
 
 La versión de OpenSpec está fijada en `ci.yml` (`OPENSPEC_VERSION`) y en el [README](README.md#herramientas). Se sube a propósito, en un PR `chore` propio, nunca con `@latest`: cambia las dos, ejecuta `openspec update` con el perfil del README y sube las skills que regenera en `.agents/skills/`.
 
+### Prueba de extremo a extremo
+
+La prueba E2E (Playwright contra lo levantado, con los modelos reales) no corre en el CI: necesita los modelos, un navegador y varios minutos de CPU por clase. Por eso la sección de integración de cada cambio ([WORKFLOW §5](WORKFLOW.md#5-fase-2--planificación-de-una-funcionalidad)) la ejecuta en local antes de abrir su PR: `make up`, `make e2e-install` una vez por equipo y `make e2e`. El resultado va en la «Validación» del PR. Cómo prepararla (modelos, audio sintético y puertos): [README](README.md#prueba-de-extremo-a-extremo).
+
 ## 9. Versiones y releases
 
 Las versiones siguen [Semantic Versioning](https://semver.org/lang/es/) según los tipos de commit:
@@ -183,7 +187,7 @@ La primera versión es `0.1.0`; la persona decide cuándo se publica `1.0.0`.
 
 - El `Makefile` de la raíz es la única entrada para los comandos del proyecto. `make help` los lista con su descripción, así que el README no los repite.
 - Cada objetivo lleva un comentario `## descripción` en su línea para que aparezca en `make help`.
-- Objetivos generales: `setup` (prepara el clon: hooks, `.env` e instalación de todo), `up`, `down` y `logs` (todo con Docker, en desarrollo), `up-prod` (todo con la configuración de producción), `test` y `lint` (en local) y `ci` (lo que ejecuta el CI, en Docker). Los de configuración de GitHub y de las herramientas de IA también están en `make help`.
+- Objetivos generales: `setup` (prepara el clon: hooks, `.env` e instalación de todo), `up`, `down` y `logs` (todo con Docker, en desarrollo), `up-prod` (todo con la configuración de producción), `test` y `lint` (en local), `ci` (lo que ejecuta el CI, en Docker), y `e2e-install` y `e2e` (la prueba de extremo a extremo en el equipo, contra lo levantado; §8). Los de configuración de GitHub y de las herramientas de IA también están en `make help`.
 - Objetivos por servicio, con el nombre del servicio como prefijo: `<servicio>-install`, `<servicio>-dev` (solo ese servicio, en local sin Docker), `<servicio>-test`, `<servicio>-lint`, y `<servicio>-up`, `<servicio>-down` y `<servicio>-logs` (solo ese servicio, con Docker).
 - Cada servicio vive en su carpeta con su propio `Makefile`, que define `install`, `dev`, `test` y `lint` para trabajar en local. El `Makefile` de la raíz detecta esas carpetas y genera los objetivos por servicio; no hay que tocarlo al añadir un servicio.
 - Los nombres de los objetivos van en inglés y en kebab-case.
