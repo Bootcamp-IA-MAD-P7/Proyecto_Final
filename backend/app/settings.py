@@ -89,6 +89,14 @@ class Settings:
     """Private cache of the fixed model revisions, outside Git and backups."""
     hf_token: str | None = field(default=None, repr=False)
     """Token to download gated models. Only needed by `make models`, never by the worker."""
+    asr_model: str = "small"
+    """Whisper size for faster-whisper (ADR-0003: small, multilingual)."""
+    asr_device: str = "cpu"
+    """Device of the transcription model; CPU is the default of the local demo."""
+    asr_compute_type: str = "int8"
+    """Quantization of the transcription model on CPU."""
+    asr_language: str = ""
+    """Forced language; empty detects it per phrase."""
 
     def __post_init__(self) -> None:
         if self.upload_min_seconds > self.upload_max_seconds:
@@ -133,4 +141,8 @@ class Settings:
             work_dir=env.get("WORK_DIR") or defaults.work_dir,
             models_dir=env.get("MODELS_DIR") or defaults.models_dir,
             hf_token=env.get("HF_TOKEN") or None,
+            asr_model=env.get("ASR_MODEL") or defaults.asr_model,
+            asr_device=env.get("ASR_DEVICE") or defaults.asr_device,
+            asr_compute_type=env.get("ASR_COMPUTE_TYPE") or defaults.asr_compute_type,
+            asr_language=env.get("ASR_LANGUAGE") or defaults.asr_language,
         )
