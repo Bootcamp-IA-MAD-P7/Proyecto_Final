@@ -15,6 +15,7 @@ from app.inference.types import Normalizer
 
 INVALID_AUDIO_MESSAGE = "No se ha podido decodificar el audio."
 UNAVAILABLE_MESSAGE = "FFmpeg no está disponible."
+SAMPLE_FORMAT = "pcm_s16le"
 
 
 class FfmpegNormalizer(Normalizer):
@@ -39,7 +40,7 @@ class FfmpegNormalizer(Normalizer):
             "-ac",
             "1",
             "-c:a",
-            "pcm_s16le",
+            SAMPLE_FORMAT,
             str(target),
         ]
         try:
