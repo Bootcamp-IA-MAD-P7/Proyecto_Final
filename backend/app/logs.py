@@ -21,6 +21,11 @@ FIELDS = (
     "error_type",
     "wait_seconds",
     "count",
+    "pipeline",
+    "model",
+    "revision",
+    "device",
+    "compute_type",
 )
 
 

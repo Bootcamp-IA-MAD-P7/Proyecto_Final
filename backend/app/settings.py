@@ -15,6 +15,7 @@ DEVELOPMENT_AUTH_SECRET = "dev-only-secret-change-me-0123456789abcdef"
 MIN_AUTH_SECRET_LENGTH = 32
 """Minimum HS256 secret length, as required by RFC 7518 §3.2."""
 PRODUCTION_APP_ENV = "production"
+INFERENCE_PIPELINES = ("models", "fake")
 
 
 def _flag(value: str | None) -> bool:
@@ -75,6 +76,8 @@ class Settings:
     """Only origin allowed by CORS. Without it, no cross-origin request is allowed."""
     review_period_hours: float = 24
     """Time the teacher has to review a result before it is published (PRD DEC-05, provisional)."""
+    inference_pipeline: str = "models"
+    """Pipeline of the worker: `models` (real adapters) or `fake` (synthetic result, no models)."""
     fake_stage_seconds: float = 2
     """Wait of FakePipeline in each stage, to see the progress in the web."""
     worker_poll_seconds: float = 1
@@ -119,6 +122,8 @@ class Settings:
         audio = Path(self.audio_storage_dir).resolve()
         if work == audio or work.is_relative_to(audio) or audio.is_relative_to(work):
             raise ValueError("WORK_DIR must be outside AUDIO_STORAGE_DIR")
+        if self.inference_pipeline not in INFERENCE_PIPELINES:
+            raise ValueError("INFERENCE_PIPELINE must be 'models' or 'fake'")
         if self.asr_model != "small":
             raise ValueError("ASR_MODEL only supports 'small'")
 
@@ -152,6 +157,9 @@ class Settings:
             auth_dev_users=_dev_users(env.get("AUTH_DEV_USERS") or DEFAULT_DEV_USERS),
             frontend_origin=env.get("FRONTEND_ORIGIN") or None,
             review_period_hours=_number(env, "REVIEW_PERIOD_HOURS", defaults.review_period_hours),
+            inference_pipeline=(env.get("INFERENCE_PIPELINE") or defaults.inference_pipeline)
+            .strip()
+            .lower(),
             fake_stage_seconds=_number(
                 env, "FAKE_STAGE_SECONDS", defaults.fake_stage_seconds, zero=True
             ),
