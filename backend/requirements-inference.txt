@@ -1,7 +1,10 @@
 # Inference dependencies of the real adapters (sections 2 and 3 of E3).
 # Installed in the worker image, separately from requirements.txt, so the API and maintenance
-# stay light. Each section pins its packages here according to ADR-0003:
-#   - Transcriber: faster-whisper
-#   - Diarizer: pyannote.audio (Community-1 and PyTorch for CPU)
-# `make -C backend models` downloads the fixed model revisions; the worker runs offline
-# with HF_HUB_OFFLINE=1.
+# stay light. Keep these pins compatible with the faster-whisper version chosen in section 2.
+#   - Diarizer (section 3): Community-1 needs pyannote.audio 4.x and torch for CPU.
+#   - Transcriber (section 2): faster-whisper will be pinned there.
+pyannote.audio==4.0.7
+torch==2.15.0
+pyannote.metrics==4.2.0
+# `make -C backend models` downloads the fixed model revisions with HF_TOKEN; the worker runs
+# offline with HF_HUB_OFFLINE=1.

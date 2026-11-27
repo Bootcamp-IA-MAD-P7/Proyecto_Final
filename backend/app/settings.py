@@ -85,6 +85,10 @@ class Settings:
     """Private directory of the audio, outside Git. Relative to the working directory."""
     work_dir: str = "data/work"
     """Private work copies of each attempt, outside AUDIO_STORAGE_DIR and Git."""
+    models_dir: str = "data/models"
+    """Private cache of the fixed model revisions, outside Git and backups."""
+    hf_token: str | None = None
+    """Token to download gated models. Only needed by `make models`, never by the worker."""
 
     def __post_init__(self) -> None:
         if self.upload_min_seconds > self.upload_max_seconds:
@@ -127,4 +131,6 @@ class Settings:
             ),
             audio_storage_dir=env.get("AUDIO_STORAGE_DIR") or defaults.audio_storage_dir,
             work_dir=env.get("WORK_DIR") or defaults.work_dir,
+            models_dir=env.get("MODELS_DIR") or defaults.models_dir,
+            hf_token=env.get("HF_TOKEN") or None,
         )
