@@ -29,8 +29,8 @@ def _number(env: Mapping[str, str], name: str, default: float, *, zero: bool = F
     return value
 
 
-def _whole(env: Mapping[str, str], name: str, default: int) -> int:
-    """A whole number of the environment above 0."""
+def _whole(env: Mapping[str, str], name: str, default: int, *, maximum: int | None = None) -> int:
+    """A whole number of the environment above 0, and up to `maximum` when it has one."""
     raw = env.get(name)
     try:
         value = int(raw) if raw else default
@@ -38,6 +38,8 @@ def _whole(env: Mapping[str, str], name: str, default: int) -> int:
         raise ValueError(f"{name} must be a whole number") from None
     if value <= 0:
         raise ValueError(f"{name} must be a whole number above 0")
+    if maximum is not None and value > maximum:
+        raise ValueError(f"{name} must be at most {maximum}")
     return value
 
 
@@ -132,7 +134,7 @@ class Settings:
                 env, "FAKE_STAGE_SECONDS", defaults.fake_stage_seconds, zero=True
             ),
             worker_poll_seconds=_number(env, "WORKER_POLL_SECONDS", defaults.worker_poll_seconds),
-            max_attempts=_whole(env, "MAX_ATTEMPTS", defaults.max_attempts),
+            max_attempts=_whole(env, "MAX_ATTEMPTS", defaults.max_attempts, maximum=20),
             retry_delay_seconds=_number(
                 env, "RETRY_DELAY_SECONDS", defaults.retry_delay_seconds, zero=True
             ),

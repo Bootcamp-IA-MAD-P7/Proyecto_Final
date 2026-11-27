@@ -301,6 +301,7 @@ class PostgresJobStore:
                     stage=None,
                     next_attempt_at=None,
                     updated_at=now,
+                    **_no_error(),
                 )
             )
             return expired.rowcount

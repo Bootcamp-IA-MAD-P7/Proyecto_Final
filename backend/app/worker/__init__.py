@@ -65,17 +65,18 @@ class Worker:
         self._max_attempts = max_attempts
         self._retry_delay = retry_delay
 
-    def start(self) -> int:
+    def start(self, limit_attempts: bool = True) -> int:
         """Expire jobs whose audio is past its date, then requeue those still in progress.
 
         A job left in progress after its last attempt moves to `failed` instead: it may be the
-        one that killed the worker, and it must not block the queue.
+        one that killed the worker, and it must not block the queue. `limit_attempts` is false
+        when the loop resumes after a store failure: the job is not to blame for it.
 
         Maintenance purges at startup too, but the worker must not resume an expired job even
         if it starts first (ADR-0004).
         """
         self._store.expire_jobs(self._clock())
-        requeued = self._store.requeue_in_progress(self._max_attempts)
+        requeued = self._store.requeue_in_progress(self._max_attempts if limit_attempts else None)
         self._clean_work_dir()
         logger.info("worker ready", extra={"count": requeued})
         return requeued
@@ -188,16 +189,17 @@ class Worker:
         back to the queue, which is safe because there is a single worker (ADR-0002).
         """
         started = False
+        cold = True
         while not stop.is_set():
             try:
                 if not started:
-                    self.start()
-                    started = True
+                    self.start(limit_attempts=cold)
+                    started, cold = True, False
                 if self.run_once() is not None:
                     continue
             except Exception as error:
                 # Usually the database is not available. It is not a failure of the job: it goes
-                # back to the queue at start, without a limit until it uses its attempts.
+                # back to the queue without checking its attempts (design, «Reintentos»).
                 started = False
                 logger.error("worker loop failed", extra={"error_type": type(error).__name__})
             stop.wait(poll_seconds)
