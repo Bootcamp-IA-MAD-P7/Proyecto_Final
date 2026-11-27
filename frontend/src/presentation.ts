@@ -17,7 +17,7 @@ const categoryLabels: Record<AnalysisCategory, string> = {
   grammar: "Gramática y construcciones",
   errors_corrections: "Errores y correcciones",
   reinforced_successes: "Aciertos reforzados",
-  key_concepts: "Conceptos clave",
+  key_concepts: "Explicaciones o conceptos clave",
   resolved_questions: "Dudas resueltas"
 };
 

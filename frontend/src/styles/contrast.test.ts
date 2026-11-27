@@ -35,6 +35,7 @@ const pairs: Array<[string, string]> = [
   ["color-warning", "color-warning-soft"],
   ["color-danger", "color-danger-soft"],
   ["color-primary-strong", "color-info-soft"],
+  ["color-text-muted", "color-teal-soft"],
 ];
 
 it.each(pairs)("keeps %s on %s at WCAG AA contrast", (foreground, background) => {

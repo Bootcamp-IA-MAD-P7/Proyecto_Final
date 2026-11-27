@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { expect, it } from "vitest";
 import { App } from "./App";
 import { AuthProvider, demoUsers, type DemoUser } from "./auth";
-import { diarizedResult, expiredJob, expiredSubmissionHandler, failedJob, noVoiceResult, receptionRejections, retryWaitJobHandler } from "./mocks/handlers";
+import { allCategoriesResult, diarizedResult, emptyCategoriesResult, expiredJob, expiredSubmissionHandler, failedJob, noVoiceResult, partialCategoriesResult, receptionRejections, retryWaitJobHandler } from "./mocks/handlers";
 import { server } from "./mocks/server";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -150,6 +150,31 @@ it("shows empty transcript and analysis messages from synthetic results", async 
   renderAuthenticatedApp(demoUsers[0], ["/classes/class-demo-01/result"]);
   expect(await screen.findByText(/no se ha detectado voz/i)).toBeVisible();
   expect(screen.getByText(/repaso pedagógico todavía no contiene elementos/i)).toBeVisible();
+});
+
+it("renders all six pedagogical categories from a synthetic contract result", async () => {
+  server.use(http.get(`${apiUrl}/v1/classes/class-demo-01/result`, () => HttpResponse.json(allCategoriesResult)));
+  renderAuthenticatedApp(demoUsers[0], ["/classes/class-demo-01/result"]);
+  expect(await screen.findByRole("heading", { name: "Resumen de la clase" })).toBeVisible();
+  for (const category of ["Vocabulario", "Gramática y construcciones", "Errores y correcciones", "Aciertos reforzados", "Explicaciones o conceptos clave", "Dudas resueltas"]) {
+    expect(screen.getByRole("heading", { name: category })).toBeVisible();
+  }
+  expect(screen.getByText(/diferencia entre un saludo formal/i)).toBeVisible();
+});
+
+it("keeps empty categories visible when the API only returns some of them", async () => {
+  server.use(http.get(`${apiUrl}/v1/classes/class-demo-01/result`, () => HttpResponse.json(partialCategoriesResult)));
+  renderAuthenticatedApp(demoUsers[0], ["/classes/class-demo-01/result"]);
+  expect(await screen.findByText("Saludos para iniciar una conversación.")).toBeVisible();
+  expect(screen.getAllByText("Sin elementos identificados en esta categoría.")).toHaveLength(4);
+});
+
+it("shows a valid empty analysis without replacing result errors or controls", async () => {
+  server.use(http.get(`${apiUrl}/v1/classes/class-demo-01/result`, () => HttpResponse.json(emptyCategoriesResult)));
+  renderAuthenticatedApp(demoUsers[0], ["/classes/class-demo-01/result"]);
+  expect(await screen.findByText("La sesión no aportó contenidos pedagógicos clasificables.")).toBeVisible();
+  expect(screen.getAllByText("Sin elementos identificados en esta categoría.")).toHaveLength(6);
+  expect(screen.getByRole("button", { name: /aprobar resultado/i })).toBeVisible();
 });
 
 it("renders the synthetic diarized result through the API contract", async () => {
