@@ -1,6 +1,7 @@
-# Dependencias de los adaptadores de inferencia real (sección 2 y 3 de E3).
-# Se instalan aparte con `make -C backend models` para que la API y maintenance sigan ligeras.
-# Cada sección añade aquí sus paquetes con versión fijada, según ADR-0003:
+# Inference dependencies of the real adapters (sections 2 and 3 of E3).
+# Installed in the worker image, separately from requirements.txt, so the API and maintenance
+# stay light. Each section pins its packages here according to ADR-0003:
 #   - Transcriber: faster-whisper
-#   - Diarizer: pyannote.audio (con Community-1 y PyTorch para CPU)
-# Los pesos se descargan con `make -C backend models` y el worker trabaja sin red (HF_HUB_OFFLINE=1).
+#   - Diarizer: pyannote.audio (Community-1 and PyTorch for CPU)
+# `make -C backend models` downloads the fixed model revisions; the worker runs offline
+# with HF_HUB_OFFLINE=1.

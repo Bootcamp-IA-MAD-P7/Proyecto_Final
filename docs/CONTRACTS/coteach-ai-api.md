@@ -62,7 +62,7 @@ Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está 
 
 En v0.1 (walking skeleton) todas las rutas responden ([tasks.md](../../openspec/changes/archive/2026-11-25-add-walking-skeleton/tasks.md), sección 2): recepción, consulta del trabajo y del resultado leen y escriben en PostgreSQL; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La recepción todavía no guardaba el audio, y la idempotencia y los límites del audio (409, 413 y 415) solo estaban declarados.
 
-v0.2 ([add-class-reception](../../openspec/changes/archive/2026-11-27-add-class-reception/design.md)) documenta la recepción real: los formatos y límites del audio, el error nuevo `invalid_audio_duration`, el orden de los errores de la recepción y el estado `expired`. La API los aplica a partir de la historia de backend del mismo cambio.
+v0.2 (cambio `add-class-reception`) documenta la recepción real: los formatos y límites del audio, el error nuevo `invalid_audio_duration`, el orden de los errores de la recepción y el estado `expired`. La API los aplica a partir de la historia de backend del mismo cambio.
 
 ## Historial
 
