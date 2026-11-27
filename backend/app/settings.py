@@ -105,6 +105,8 @@ class Settings:
         audio = Path(self.audio_storage_dir).resolve()
         if work == audio or work.is_relative_to(audio) or audio.is_relative_to(work):
             raise ValueError("WORK_DIR must be outside AUDIO_STORAGE_DIR")
+        if self.asr_model != "small":
+            raise ValueError("ASR_MODEL only supports 'small'")
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
