@@ -48,6 +48,7 @@ def test_upload_limits_and_retention_have_the_contract_defaults():
     assert (settings.upload_min_seconds, settings.upload_max_seconds) == (60, 7200)
     assert settings.audio_retention_days == 14
     assert settings.audio_storage_dir == "data/audio"
+    assert settings.work_dir == "data/work"
 
 
 def test_upload_limits_and_retention_come_from_the_environment():
@@ -58,6 +59,7 @@ def test_upload_limits_and_retention_come_from_the_environment():
             "UPLOAD_MAX_SECONDS": "5",
             "AUDIO_RETENTION_DAYS": "0.01",
             "AUDIO_STORAGE_DIR": "/var/lib/coteach/audio",
+            "WORK_DIR": "/var/lib/coteach/work",
         }
     )
 
@@ -65,6 +67,7 @@ def test_upload_limits_and_retention_come_from_the_environment():
     assert (settings.upload_min_seconds, settings.upload_max_seconds) == (1, 5)
     assert settings.audio_retention_days == 0.01
     assert settings.audio_storage_dir == "/var/lib/coteach/audio"
+    assert settings.work_dir == "/var/lib/coteach/work"
 
 
 def test_the_minimum_duration_cannot_exceed_the_maximum():

@@ -8,9 +8,12 @@ saves a contract result (`ready_for_review`) or moves the job to `failed` with a
 from __future__ import annotations
 
 import logging
+import shutil
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from app.contract import (
     CONTRACT_VERSION,
@@ -27,6 +30,7 @@ from app.contract import (
 from app.inference import InferencePipeline, PipelineError, PipelineInput, PipelineOutput
 from app.jobs import JobStore, StoredClass
 from app.jobs.store import InvalidJobTransitionError
+from app.storage import AudioStorage
 
 logger = logging.getLogger("app.worker")
 
@@ -48,11 +52,15 @@ class Worker:
         pipeline: InferencePipeline,
         review_period: timedelta = timedelta(hours=24),
         clock: Callable[[], datetime] = _now,
+        audio_storage: AudioStorage | None = None,
+        work_dir: Path | None = None,
     ) -> None:
         self._store = store
         self._pipeline = pipeline
         self._review_period = review_period
         self._clock = clock
+        self._audio_storage = audio_storage
+        self._work_dir = work_dir
 
     def start(self) -> int:
         """Expire jobs whose audio is past its date, then requeue those still in progress.
@@ -62,8 +70,50 @@ class Worker:
         """
         self._store.expire_jobs(self._clock())
         requeued = self._store.requeue_in_progress()
+        self._clean_work_dir()
         logger.info("worker ready", extra={"count": requeued})
         return requeued
+
+    def _clean_work_dir(self) -> None:
+        """Remove copies left by a worker that died mid-job, before claiming another one."""
+        if self._work_dir is None or not self._work_dir.is_dir():
+            return
+        for entry in self._work_dir.iterdir():
+            if entry.is_dir():
+                shutil.rmtree(entry, ignore_errors=True)
+            else:
+                entry.unlink(missing_ok=True)
+
+    @contextmanager
+    def _attempt_dir(self, job_id: str) -> Iterator[Path | None]:
+        """A private work directory for this attempt, removed on success or failure."""
+        if self._work_dir is None:
+            yield None
+            return
+        path = self._work_dir / job_id
+        if path.exists():
+            shutil.rmtree(path)
+        path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        try:
+            yield path
+        finally:
+            shutil.rmtree(path, ignore_errors=True)
+
+    def _audio_path(self, job: Job, attempt_dir: Path | None) -> Path | None:
+        """Resolve the saved audio to a private work copy for this attempt (ADR-0004)."""
+        if self._audio_storage is None:
+            return None
+        audio = self._store.get_audio(job.class_id)
+        if audio is None:
+            return None
+        source = self._audio_storage.path(audio.storage_key)
+        if not source.is_file():
+            raise PipelineError(JobErrorCode.PROCESSING_FAILED, FAILED_MESSAGE)
+        if attempt_dir is None:
+            return source
+        target = attempt_dir / audio.storage_key
+        shutil.copyfile(source, target)
+        return target
 
     def run_once(self) -> Job | None:
         """Process the next queued job, if any, and return it in its final state."""
@@ -72,42 +122,43 @@ class Worker:
             return None
         logger.info("job claimed", extra={"job_id": job.job_id, "stage": job.stage})
         stored = self._store.get_class(job.class_id)
-        try:
-            if stored is None:
-                raise LookupError(f"Class of {job.job_id} not found")
-            output = self._run_pipeline(job, stored)
-            result = self._result(job, output)
-        except StoreError as error:
-            if isinstance(error.__cause__, InvalidJobTransitionError):
+        with self._attempt_dir(job.job_id) as attempt_dir:
+            try:
+                if stored is None:
+                    raise LookupError(f"Class of {job.job_id} not found")
+                output = self._run_pipeline(job, stored, attempt_dir)
+                result = self._result(job, output)
+            except StoreError as error:
+                if isinstance(error.__cause__, InvalidJobTransitionError):
+                    discarded = self._discarded(job.job_id)
+                    if discarded is not None:
+                        return discarded
+                # Not a failure of the class: run() retries and the job goes back to the queue.
+                raise error.__cause__ from None
+            except InvalidJobTransitionError:
                 discarded = self._discarded(job.job_id)
                 if discarded is not None:
                     return discarded
-            # Not a failure of the class: run() retries and the job goes back to the queue.
-            raise error.__cause__ from None
-        except InvalidJobTransitionError:
+                raise
+            except PipelineError as error:
+                return self._fail(job, error.error, type(error).__name__)
+            except Exception as error:
+                # An invalid result or an unexpected error. Only its type is logged: the message
+                # could carry data of the class.
+                return self._fail(job, _processing_failed(), type(error).__name__)
             discarded = self._discarded(job.job_id)
             if discarded is not None:
                 return discarded
-            raise
-        except PipelineError as error:
-            return self._fail(job, error.error, type(error).__name__)
-        except Exception as error:
-            # An invalid result or an unexpected error. Only its type is logged: the message
-            # could carry data of the class.
-            return self._fail(job, _processing_failed(), type(error).__name__)
-        discarded = self._discarded(job.job_id)
-        if discarded is not None:
-            return discarded
-        try:
-            done = self._store.complete(job.job_id, result)
-        except InvalidJobTransitionError:
-            # Maintenance may have expired it between the check and the write (ADR-0002).
-            discarded = self._discarded(job.job_id)
-            if discarded is not None:
-                return discarded
-            raise
-        logger.info("job ready for review", extra={"job_id": job.job_id, "state": done.state})
-        return done
+            try:
+                done = self._store.complete(job.job_id, result)
+            except InvalidJobTransitionError:
+                # Maintenance may have expired it between the check and the write (ADR-0002).
+                discarded = self._discarded(job.job_id)
+                if discarded is not None:
+                    return discarded
+                raise
+            logger.info("job ready for review", extra={"job_id": job.job_id, "state": done.state})
+            return done
 
     def _discarded(self, job_id: str) -> Job | None:
         """The job if maintenance expired it; the late result is never saved (ADR-0002)."""
@@ -139,7 +190,9 @@ class Worker:
             stop.wait(poll_seconds)
         logger.info("worker stopped")
 
-    def _run_pipeline(self, job: Job, stored: StoredClass) -> PipelineOutput:
+    def _run_pipeline(
+        self, job: Job, stored: StoredClass, attempt_dir: Path | None
+    ) -> PipelineOutput:
         def on_stage(stage):
             try:
                 self._store.advance(job.job_id, stage)
@@ -147,7 +200,10 @@ class Worker:
                 raise StoreError from error
             logger.info("job stage", extra={"job_id": job.job_id, "stage": stage})
 
-        job_input = PipelineInput(class_id=job.class_id, metadata=stored.metadata, audio_path=None)
+        audio_path = self._audio_path(job, attempt_dir)
+        job_input = PipelineInput(
+            class_id=job.class_id, metadata=stored.metadata, audio_path=audio_path
+        )
         return self._pipeline.run(job_input, on_stage)
 
     def _result(self, job: Job, output: PipelineOutput) -> Result:

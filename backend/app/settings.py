@@ -82,6 +82,8 @@ class Settings:
     """Days the original audio is kept before maintenance purges it (RNF-02, ADR-0004)."""
     audio_storage_dir: str = "data/audio"
     """Private directory of the audio, outside Git. Relative to the working directory."""
+    work_dir: str = "data/work"
+    """Private work copies of each attempt, outside AUDIO_STORAGE_DIR and Git."""
 
     def __post_init__(self) -> None:
         if self.upload_min_seconds > self.upload_max_seconds:
@@ -119,4 +121,5 @@ class Settings:
                 env, "AUDIO_RETENTION_DAYS", defaults.audio_retention_days
             ),
             audio_storage_dir=env.get("AUDIO_STORAGE_DIR") or defaults.audio_storage_dir,
+            work_dir=env.get("WORK_DIR") or defaults.work_dir,
         )
