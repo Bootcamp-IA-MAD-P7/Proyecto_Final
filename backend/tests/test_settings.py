@@ -70,6 +70,20 @@ def test_upload_limits_and_retention_come_from_the_environment():
     assert settings.work_dir == "/var/lib/coteach/work"
 
 
+def test_model_settings_have_safe_defaults():
+    settings = Settings.from_env({})
+
+    assert settings.models_dir == "data/models"
+    assert settings.hf_token is None
+
+
+def test_model_settings_come_from_the_environment():
+    settings = Settings.from_env({"MODELS_DIR": "/private/models", "HF_TOKEN": "fake-token"})
+
+    assert settings.models_dir == "/private/models"
+    assert settings.hf_token == "fake-token"
+
+
 @pytest.mark.parametrize(
     ("audio", "work"),
     [
