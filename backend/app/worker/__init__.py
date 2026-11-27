@@ -1,8 +1,9 @@
 """Worker: takes queued jobs one by one and runs the InferencePipeline on them (ADR-0002).
 
 A single worker. At start it returns the jobs left in progress to the queue, so that a restart
-never leaves a job blocked; then it claims the oldest queued job, records each stage, and either
-saves a contract result (`ready_for_review`) or moves the job to `failed` with a contract error.
+never leaves a job blocked; then it claims the oldest job ready to run, records each stage, and
+either saves a contract result (`ready_for_review`) or handles the contract error: a transient one
+leaves the job in `retry_wait` while it has attempts left, any other moves it to `failed`.
 """
 
 from __future__ import annotations
@@ -29,12 +30,10 @@ from app.contract import (
 )
 from app.inference import InferencePipeline, PipelineError, PipelineInput, PipelineOutput
 from app.jobs import JobStore, StoredClass
-from app.jobs.store import InvalidJobTransitionError
+from app.jobs.store import FAILED_MESSAGE, InvalidJobTransitionError
 from app.storage import AudioStorage
 
 logger = logging.getLogger("app.worker")
-
-FAILED_MESSAGE = "No se ha podido procesar la clase."
 
 
 class StoreError(Exception):
@@ -54,6 +53,8 @@ class Worker:
         clock: Callable[[], datetime] = _now,
         audio_storage: AudioStorage | None = None,
         work_dir: Path | None = None,
+        max_attempts: int = 3,
+        retry_delay: timedelta = timedelta(seconds=60),
     ) -> None:
         self._store = store
         self._pipeline = pipeline
@@ -61,15 +62,20 @@ class Worker:
         self._clock = clock
         self._audio_storage = audio_storage
         self._work_dir = work_dir
+        self._max_attempts = max_attempts
+        self._retry_delay = retry_delay
 
     def start(self) -> int:
         """Expire jobs whose audio is past its date, then requeue those still in progress.
+
+        A job left in progress after its last attempt moves to `failed` instead: it may be the
+        one that killed the worker, and it must not block the queue.
 
         Maintenance purges at startup too, but the worker must not resume an expired job even
         if it starts first (ADR-0004).
         """
         self._store.expire_jobs(self._clock())
-        requeued = self._store.requeue_in_progress()
+        requeued = self._store.requeue_in_progress(self._max_attempts)
         self._clean_work_dir()
         logger.info("worker ready", extra={"count": requeued})
         return requeued
@@ -117,10 +123,13 @@ class Worker:
 
     def run_once(self) -> Job | None:
         """Process the next queued job, if any, and return it in its final state."""
-        job = self._store.claim_next()
+        job = self._store.claim_next(self._clock())
         if job is None:
             return None
-        logger.info("job claimed", extra={"job_id": job.job_id, "stage": job.stage})
+        logger.info(
+            "job claimed",
+            extra={"job_id": job.job_id, "stage": job.stage, "attempt": job.attempt},
+        )
         stored = self._store.get_class(job.class_id)
         with self._attempt_dir(job.job_id) as attempt_dir:
             try:
@@ -141,7 +150,11 @@ class Worker:
                     return discarded
                 raise
             except PipelineError as error:
-                return self._fail(job, error.error, type(error).__name__)
+                if error.error.retryable and job.attempt < self._max_attempts:
+                    return self._retry_later(job, error.error, type(error).__name__)
+                return self._fail(
+                    job, error.error.model_copy(update={"retryable": False}), type(error).__name__
+                )
             except Exception as error:
                 # An invalid result or an unexpected error. Only its type is logged: the message
                 # could carry data of the class.
@@ -183,8 +196,8 @@ class Worker:
                 if self.run_once() is not None:
                     continue
             except Exception as error:
-                # Usually the database is not available. Retries have no limit for now: a real
-                # retry policy (retry_wait) arrives with E2.
+                # Usually the database is not available. It is not a failure of the job: it goes
+                # back to the queue at start, without a limit until it uses its attempts.
                 started = False
                 logger.error("worker loop failed", extra={"error_type": type(error).__name__})
             stop.wait(poll_seconds)
@@ -228,6 +241,29 @@ class Worker:
             }
         )
 
+    def _retry_later(self, job: Job, error: JobError, error_type: str) -> Job:
+        """Wait RETRY_DELAY_SECONDS * 2 ** (attempt - 1) before the next attempt (RNF-05)."""
+        wait = self._retry_delay * 2 ** (job.attempt - 1)
+        try:
+            waiting = self._store.retry_later(job.job_id, error, self._clock() + wait)
+        except InvalidJobTransitionError:
+            discarded = self._discarded(job.job_id)
+            if discarded is not None:
+                return discarded
+            raise
+        logger.warning(
+            "job will be retried",
+            extra={
+                "job_id": job.job_id,
+                "stage": waiting.stage,
+                "attempt": waiting.attempt,
+                "error_code": error.code,
+                "error_type": error_type,
+                "wait_seconds": wait.total_seconds(),
+            },
+        )
+        return waiting
+
     def _fail(self, job: Job, error: JobError, error_type: str) -> Job:
         try:
             failed = self._store.fail(job.job_id, error)
@@ -239,7 +275,13 @@ class Worker:
             raise
         logger.warning(
             "job failed",
-            extra={"job_id": job.job_id, "error_code": error.code, "error_type": error_type},
+            extra={
+                "job_id": job.job_id,
+                "stage": failed.stage,
+                "attempt": failed.attempt,
+                "error_code": error.code,
+                "error_type": error_type,
+            },
         )
         return failed
 

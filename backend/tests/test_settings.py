@@ -139,3 +139,21 @@ def test_size_and_retention_must_be_above_zero(name):
 def test_the_maximum_size_is_a_whole_number_of_bytes(value):
     with pytest.raises(ValueError, match="UPLOAD_MAX_BYTES"):
         Settings.from_env({"UPLOAD_MAX_BYTES": value})
+
+
+def test_retries_have_the_design_defaults():
+    settings = Settings.from_env({})
+
+    assert (settings.max_attempts, settings.retry_delay_seconds) == (3, 60)
+
+
+def test_retries_come_from_the_environment():
+    settings = Settings.from_env({"MAX_ATTEMPTS": "5", "RETRY_DELAY_SECONDS": "0"})
+
+    assert (settings.max_attempts, settings.retry_delay_seconds) == (5, 0)
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "1.5"])
+def test_max_attempts_is_a_whole_number_above_zero(value):
+    with pytest.raises(ValueError, match="MAX_ATTEMPTS"):
+        Settings.from_env({"MAX_ATTEMPTS": value})

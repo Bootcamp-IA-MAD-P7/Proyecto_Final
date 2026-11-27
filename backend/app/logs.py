@@ -11,7 +11,17 @@ import logging
 import sys
 from datetime import UTC, datetime
 
-FIELDS = ("job_id", "class_id", "stage", "state", "error_code", "error_type", "count")
+FIELDS = (
+    "job_id",
+    "class_id",
+    "stage",
+    "state",
+    "attempt",
+    "error_code",
+    "error_type",
+    "wait_seconds",
+    "count",
+)
 
 
 class JsonFormatter(logging.Formatter):
