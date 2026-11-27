@@ -36,7 +36,7 @@ El cliente envía audio ya comprimido (por ejemplo, con FFmpeg); convertir MP4 d
 
 - **Tamaño:** la API copia la parte `audio` a un temporal contando bytes y corta con 413 en cuanto supera `UPLOAD_MAX_BYTES`, sin leer el resto.
 - **Formato y duración:** `ffprobe` sobre el temporal. El contenedor y el códec tienen que estar en la lista; un archivo que no se puede leer, sin pista de audio o con vídeo es 415 `unsupported_audio`. La extensión y el `Content-Type` no se tienen en cuenta. La duración fuera de los límites es 422 `invalid_audio_duration`.
-- **Orden de los errores:** 401 y 403; 422 de metadatos (con la precedencia de v0.1); 413; 415; 422 `invalid_audio_duration`; 409 `idempotency_conflict`. Así un envío con varios problemas recibe siempre el mismo error.
+- **Orden de los errores:** 401 y 403; 422 de metadatos (con la precedencia de v0.1); 413; 415; 422 `invalid_audio_duration`; 409 `idempotency_conflict`. Así un envío con varios problemas recibe siempre el mismo error. Con el límite temprano de #54, un cuerpo que supera el límite de recepción se rechaza con 413 antes de analizar los metadatos, como se decide más abajo y documenta el contrato; la precedencia anterior se aplica cuando el cuerpo cabe en ese límite.
 - **FFmpeg en la imagen:** la imagen de `backend` (que usan también `worker` y `maintenance`) instala FFmpeg, que ARCHITECTURE §2 ya da como Objetivo. Sin Docker, `ffprobe` tiene que estar en el `PATH`; los tests que lo necesitan se saltan con un aviso si falta, y en `make ci` siempre se ejecutan.
 - **Audios de prueba:** los tests generan audios sintéticos (tonos o silencio) con `ffmpeg` al ejecutarse; no se versiona audio en el repositorio.
 

@@ -81,7 +81,7 @@ Plan de la funcionalidad `add-class-reception` (E2, épica #2). Una sección por
 - [x] 5.2 Ampliar la prueba E2E con la subida de un audio sintético válido y de uno no admitido.
 - [x] 5.3 Comprobar la purga en local con un plazo corto y documentar cómo hacerlo en el README.
 - [x] 5.4 Actualizar ARCHITECTURE §7 (volumen del audio) y marcar como Actual lo que corresponda en §3.
-- [ ] 5.5 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`), después del archive de `add-walking-skeleton`.
+- [x] 5.5 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`), después del archive de `add-walking-skeleton`.
 
 ## 6. Límite temprano y formatos de recepción (backend/frontend) · #54
 
