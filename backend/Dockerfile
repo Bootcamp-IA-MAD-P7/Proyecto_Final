@@ -1,4 +1,6 @@
-# Backend image: the api, and later the worker and maintenance with another command (ADR-0001).
+# Backend image: the api and maintenance; the worker adds the inference dependencies (ADR-0001).
+#   dev / prod                 api and maintenance
+#   worker-dev / worker        the same code plus requirements-inference.txt (PyTorch for CPU)
 FROM python:3.11-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -37,3 +39,26 @@ RUN useradd --create-home --uid 10001 app \
 USER app
 EXPOSE 8000
 CMD ["sh", "-c", "python -m app.db.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+# Inference dependencies of the worker, kept out of the api and maintenance images (ADR-0003).
+# PyTorch comes from its CPU index: the worker runs on CPU and the CUDA wheels are much larger.
+FROM base AS inference
+COPY requirements-inference.txt .
+RUN pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-inference.txt
+
+# Worker for development: the same tools as `dev`; the source is mounted by compose.override.yaml.
+FROM inference AS worker-dev
+ENV RUFF_NO_CACHE=true
+RUN apt-get update     && apt-get install -y --no-install-recommends make     && rm -rf /var/lib/apt/lists/*
+COPY requirements-dev.txt .
+RUN pip install -r requirements-dev.txt
+COPY . .
+CMD ["python", "-m", "app.worker"]
+
+# Worker for production: only the application code, run by an unprivileged user. The models are
+# read from the private volume of MODELS_DIR, prepared beforehand with `make models`.
+FROM inference AS worker
+COPY app ./app
+RUN useradd --create-home --uid 10001 app     && mkdir -p data/audio data/work data/models     && chown -R app:app data     && chmod -R 700 data
+USER app
+CMD ["python", "-m", "app.worker"]

@@ -59,7 +59,10 @@ def measure_all() -> dict[str, Mapping[str, str]]:
 
 
 def load_dotenv(path: Path = Path(".env")) -> None:
-    """Export the local .env values that are not already in the environment (secrets included)."""
+    """Export the local .env values missing or empty in the environment (secrets included).
+
+    Compose gives the worker an empty HF_TOKEN, so `make models` reads it from backend/.env.
+    """
     if not path.is_file():
         return
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -67,7 +70,8 @@ def load_dotenv(path: Path = Path(".env")) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        if not os.environ.get(key.strip()):
+            os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 
 def main(command: str) -> None:
