@@ -178,7 +178,12 @@ def test_download_uses_huggingface_hub_without_an_injected_callback(
     assert "hf-secret" not in caplog.text
 
 
-def test_download_without_a_token_fails_before_any_download(tmp_path: Path) -> None:
+def test_download_without_a_token_fails_before_any_download(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # backend/.env may hold a real HF_TOKEN (README): the test must not depend on it.
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+
     def snapshot(**kwargs: object) -> str:
         raise AssertionError("must not download without a token")
 
