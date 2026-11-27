@@ -21,8 +21,8 @@ class ModelSpec:
     revision: str
     download: Callable[[], None]
     measure: Callable[[], Mapping[str, str]]
-    ready: Callable[[], bool] = lambda: True
-    """Whether the prepared copy is in MODELS_DIR, without loading it."""
+    ready: Callable[[], bool] = lambda: False
+    """Whether the prepared copy is in MODELS_DIR, without loading it. Unknown means missing."""
 
 
 class ModelRegistry:
