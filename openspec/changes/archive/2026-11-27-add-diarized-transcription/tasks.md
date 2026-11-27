@@ -103,4 +103,4 @@ Plan de la funcionalidad `add-diarized-transcription` (E3, épica #3). Una secci
 - [x] 6.3 Ampliar la prueba E2E con un audio de dos voces sintéticas generado al ejecutarse y comprobar la transcripción por persona hablante en la web.
 - [x] 6.4 Medir con grabaciones de 30 y 60 minutos y actualizar ARCHITECTURE §2 (modelos), §3 (imagen del worker), §6 (caché de modelos y token), §7 (recursos medidos) y §11 (hardware y modelos).
 - [x] 6.5 Explicar en el README cómo aceptar las condiciones de Community-1, descargar los modelos, levantar la demo y trabajar sin modelos (`INFERENCE_PIPELINE=fake`).
-- [ ] 6.6 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`), después del archive de `add-class-reception`.
+- [x] 6.6 Ejecutar `verify`, `sync` y `archive` del cambio (skill `pull-requests`), después del archive de `add-class-reception`.
