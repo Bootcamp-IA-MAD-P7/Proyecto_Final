@@ -103,7 +103,10 @@ def test_no_fallback_when_the_model_is_missing(tmp_path: Path) -> None:
     assert attempts == ["load"]
 
 
-@pytest.mark.parametrize("failure", [RuntimeError("oom"), OSError("disk"), ImportError("missing")])
+@pytest.mark.parametrize(
+    "failure",
+    [RuntimeError("oom"), OSError("disk"), ImportError("missing"), ValueError("bad config")],
+)
 def test_model_failures_are_retryable(failure: Exception) -> None:
     def factory() -> object:
         raise failure
@@ -154,6 +157,23 @@ def test_download_uses_the_pinned_revision_and_never_logs_the_token(
     assert calls[0]["repo_id"] == MODEL_ID
     assert calls[0]["revision"] == MODEL_REVISION
     assert calls[0]["token"] == "hf-secret"
+    assert "hf-secret" not in caplog.text
+
+
+def test_download_uses_huggingface_hub_without_an_injected_callback(
+    tmp_path: Path, monkeypatch, caplog
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    def snapshot(**kwargs: object) -> str:
+        calls.append(kwargs)
+        return "ok"
+
+    monkeypatch.setattr("huggingface_hub.snapshot_download", snapshot)
+
+    download_community1(token="hf-secret", models_dir=tmp_path)
+
+    assert calls[0]["revision"] == MODEL_REVISION
     assert "hf-secret" not in caplog.text
 
 
