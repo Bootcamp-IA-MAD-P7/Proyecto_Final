@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.contract import JobStage
-from app.inference import diarization, transcription
+from app.inference import diarization, normalization, transcription
 from app.inference.adapters import EmptyAnalyzer
 from app.inference.diarization import PyannoteDiarizer
 from app.inference.fake import FakePipeline
@@ -38,17 +38,22 @@ def stage_models(settings: Settings) -> list[StageModel]:
     """The model of each stage, with no class data, for the worker's startup log."""
     if settings.inference_pipeline == "fake":
         return [StageModel(stage, "fake", "-", "-", "-") for stage in JobStage]
+    asr_model, asr_revision = transcription.SUPPORTED_MODELS[settings.asr_model]
     return [
-        StageModel(JobStage.NORMALIZING, "ffmpeg", "-", "cpu", "pcm_s16le"),
+        StageModel(JobStage.NORMALIZING, "ffmpeg", "-", "cpu", normalization.SAMPLE_FORMAT),
         StageModel(
             JobStage.TRANSCRIBING,
-            transcription.MODEL_ID,
-            transcription.MODEL_REVISION,
+            asr_model,
+            asr_revision,
             settings.asr_device,
             settings.asr_compute_type,
         ),
         StageModel(
-            JobStage.DIARIZING, diarization.MODEL_ID, diarization.MODEL_REVISION, "cpu", "float32"
+            JobStage.DIARIZING,
+            diarization.MODEL_ID,
+            diarization.MODEL_REVISION,
+            diarization.DEVICE,
+            diarization.COMPUTE_TYPE,
         ),
         StageModel(JobStage.ANALYZING, "empty", "-", "-", "-"),
     ]
