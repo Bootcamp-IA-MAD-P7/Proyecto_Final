@@ -20,7 +20,7 @@ export BACKEND_PORT FRONTEND_PORT
 COMPOSE := docker compose
 COMPOSE_PROD := docker compose -f compose.yaml -f compose.production.yaml
 
-.PHONY: help setup env hooks install dev test lint ci ci-production-build ci-auth-secret-regression e2e e2e-install models up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
+.PHONY: help setup env hooks install dev test lint ci ci-production-build ci-auth-secret-regression e2e e2e-install models measure-stages up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
 
 help: ## List every available command
 	@echo "Usage: make <command>"
@@ -99,6 +99,12 @@ e2e: ## Run the end-to-end tests against `make up` with the models (first time: 
 
 models: env ## Download the fixed model revisions into the worker volume (needs HF_TOKEN in backend/.env)
 	$(COMPOSE) run --rm --no-deps --build -e HF_HUB_OFFLINE=0 worker python -m app.inference.models download
+
+measure-stages: ## Print seconds per audio minute and peak memory of each stage on AUDIO=<file> (never versioned)
+	@test -f "$(AUDIO)" || { echo "Usage: make measure-stages AUDIO=<path of an audio file>"; exit 1; }
+	@folder=$$(cd "$(dir $(AUDIO))" && { pwd -W 2>/dev/null || pwd; }); \
+	MSYS_NO_PATHCONV=1 $(COMPOSE) run --rm --no-deps -T -v "$$folder:/measure:ro" worker \
+		python scripts/measure-stages.py "/measure/$(notdir $(AUDIO))"
 
 # --- Docker: development ---
 
