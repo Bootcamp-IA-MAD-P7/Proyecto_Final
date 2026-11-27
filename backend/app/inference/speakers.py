@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 
 from app.contract import Segment, Speaker, Transcript
 from app.inference.types import Phrase, Turn, Word
@@ -78,6 +79,9 @@ def assign_speakers(phrases: list[Phrase], turns: list[Turn]) -> Transcript:
         (piece for phrase in phrases for piece in _pieces(phrase, turns)),
         key=lambda piece: (piece.start_ms, piece.end_ms),
     )
+
+    if any(current.start_ms < previous.end_ms for previous, current in pairwise(pieces)):
+        raise ValueError("phrases must not overlap in time")
 
     voices: dict[str, str] = {}
     speakers: list[Speaker] = []
