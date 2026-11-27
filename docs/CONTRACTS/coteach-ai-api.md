@@ -50,11 +50,19 @@ Estabiliza el intercambio entre el servicio y quien lo usa: comprobar que está 
 - En `PATCH .../review`, cada sección enviada reemplaza la sección completa y las ausentes se conservan; la respuesta es la nueva versión del resultado. No se editan la identidad de la clase, los permisos, la publicación ni el plazo.
 - Fechas en UTC con zona horaria (ISO 8601). El plazo de revisión no se fija en el contrato: lo calcula el servicio (PRD DEC-05, pendiente de Lay).
 
+### Transcripción y personas hablantes
+
+- Las personas hablantes se declaran en el orden de su primera intervención con identificadores de sesión (`speaker-1`, `speaker-2`…). `participant_id` es nulo hasta que la docente las asigne en E5: los nombres y roles de los participantes no identifican voces (RD-04).
+- Los segmentos van en orden temporal, no se solapan y llevan marcas en milisegundos desde el inicio de la grabación original; normalizar el audio no desplaza esas marcas. Solo se declaran las voces que tienen algún segmento, y nunca más que el número de participantes.
+- La diarización es exclusiva: el texto dicho a la vez se atribuye a la voz dominante y no se marca como solapamiento. Alternativa descartada para el 11 de diciembre: un campo opcional en `Segment`, que subiría el contrato a 0.3.0.
+- Una grabación sin voz produce una transcripción vacía, sin inventar texto ni hablantes. Hasta E4, el análisis sale vacío (resumen vacío y sin elementos), aunque la etapa de análisis se recorre.
+- Estas aclaraciones no cambian campos: el contrato sigue en 0.2.0 y `backend/openapi.json` no cambia.
+
 ### Estado por versión
 
 En v0.1 (walking skeleton) todas las rutas responden ([tasks.md](../../openspec/changes/archive/2026-11-25-add-walking-skeleton/tasks.md), sección 2): recepción, consulta del trabajo y del resultado leen y escriben en PostgreSQL; corrección y aprobación devuelven los ejemplos sin guardar nada hasta E5. La recepción todavía no guardaba el audio, y la idempotencia y los límites del audio (409, 413 y 415) solo estaban declarados.
 
-v0.2 ([add-class-reception](../../openspec/changes/add-class-reception/design.md)) documenta la recepción real: los formatos y límites del audio, el error nuevo `invalid_audio_duration`, el orden de los errores de la recepción y el estado `expired`. La API los aplica a partir de la historia de backend del mismo cambio.
+v0.2 ([add-class-reception](../../openspec/changes/archive/2026-11-27-add-class-reception/design.md)) documenta la recepción real: los formatos y límites del audio, el error nuevo `invalid_audio_duration`, el orden de los errores de la recepción y el estado `expired`. La API los aplica a partir de la historia de backend del mismo cambio.
 
 ## Historial
 
