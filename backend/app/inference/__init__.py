@@ -10,6 +10,7 @@ from app.inference.pipeline import (
     StageCallback,
 )
 from app.inference.speakers import assign_speakers
+from app.inference.staged import StagedPipeline
 from app.inference.types import (
     Analyzer,
     Diarizer,
@@ -34,6 +35,7 @@ __all__ = [
     "PipelineOutput",
     "Phrase",
     "StageCallback",
+    "StagedPipeline",
     "Transcriber",
     "Turn",
     "Word",
