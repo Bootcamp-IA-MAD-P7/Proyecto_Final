@@ -89,7 +89,7 @@ compose.override.yaml    # desarrollo (make up)
 compose.production.yaml  # producción en local (make up-prod)
 ```
 
-El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios y secretos se almacenan fuera del árbol versionado. `app/storage/` guarda el audio tras la interfaz `AudioStorage` (en disco, bajo `AUDIO_STORAGE_DIR`, con nombres opacos) y lo valida por su contenido con `ffprobe` ([add-class-reception](../openspec/changes/archive/2026-11-27-add-class-reception/design.md)). `app/inference/` declara las interfaces `Normalizer`, `Transcriber`, `Diarizer` y `Analyzer` y ejecuta un adaptador por etapa; `assign_speakers` combina palabras y turnos sin modelo ([add-diarized-transcription](../openspec/changes/add-diarized-transcription/design.md)). Se conserva un único Makefile raíz y los tres archivos Compose existentes.
+El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios y secretos se almacenan fuera del árbol versionado. `app/storage/` guarda el audio tras la interfaz `AudioStorage` (en disco, bajo `AUDIO_STORAGE_DIR`, con nombres opacos) y lo valida por su contenido con `ffprobe` ([ADR-0004](ADR/0004-access-and-retention.md)). `app/inference/` declara las interfaces `Normalizer`, `Transcriber`, `Diarizer` y `Analyzer` y ejecuta un adaptador por etapa; `assign_speakers` combina palabras y turnos sin modelo ([add-diarized-transcription](../openspec/changes/add-diarized-transcription/design.md)). Se conserva un único Makefile raíz y los tres archivos Compose existentes.
 
 ## 5. Flujos principales
 
