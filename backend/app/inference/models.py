@@ -7,8 +7,10 @@ worker can run offline, and measurements never include class data.
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -56,7 +58,20 @@ def measure_all() -> dict[str, Mapping[str, str]]:
     return registry.measure_all()
 
 
+def load_dotenv(path: Path = Path(".env")) -> None:
+    """Export the local .env values that are not already in the environment (secrets included)."""
+    if not path.is_file():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def main(command: str) -> None:
+    load_dotenv()
     if command == "download":
         download_all()
     elif command == "measure":
