@@ -50,10 +50,10 @@ Plan de la funcionalidad `add-diarized-transcription` (E3, épica #3). Una secci
 
 **Depende de:** 1
 
-- [ ] 3.1 Adaptar el diarizador del PR #52 a la interfaz `Diarizer`: Community-1, salida exclusiva, audio cargado del WAV normalizado y máximo de voces; quitar el fallback, `RealPipeline` y el cambio del worker; tests con dobles que cubren la traducción de errores.
-- [ ] 3.2 Fijar pyannote.audio y PyTorch para CPU en `requirements-inference.txt`, en versiones compatibles con faster-whisper, y comprobar que se instalan juntos.
-- [ ] 3.3 Registrar la descarga de Community-1 en `models` con `HF_TOKEN` y añadir `HF_TOKEN` vacío y comentado a `backend/.env.example`.
-- [ ] 3.4 Registrar la medición de la diarización en `measure`, con DER si hay referencia, y un test marcado con el modelo real sobre un audio sintético de dos voces generado al ejecutarse.
+- [x] 3.1 Adaptar el diarizador del PR #52 a la interfaz `Diarizer`: Community-1, salida exclusiva, audio cargado del WAV normalizado y máximo de voces; quitar el fallback, `RealPipeline` y el cambio del worker; tests con dobles que cubren la traducción de errores.
+- [x] 3.2 Fijar pyannote.audio y PyTorch para CPU en `requirements-inference.txt`, en versiones compatibles con faster-whisper, y comprobar que se instalan juntos.
+- [x] 3.3 Registrar la descarga de Community-1 en `models` con `HF_TOKEN` y añadir `HF_TOKEN` vacío y comentado a `backend/.env.example`.
+- [x] 3.4 Registrar la medición de la diarización en `measure`, con DER si hay referencia, y un test marcado con el modelo real sobre un audio sintético de dos voces generado al ejecutarse.
 
 ## 4. Reintentos automáticos de los trabajos (backend) · #58
 
