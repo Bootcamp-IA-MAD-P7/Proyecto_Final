@@ -114,7 +114,7 @@ Pendiente de producto: qué hacer con una revisión iniciada pero no aprobada al
 
 ### Fallos y recuperación
 
-Proponer máximo tres intentos con espera creciente para errores transitorios; errores de formato, permiso o consentimiento no se reintentan. Guardar etapa, código de error, intento y próximo intento. Con un único worker en el MVP, al arrancar devuelve a la cola los trabajos que quedaron en curso ([ADR-0002](ADR/0002-durable-jobs.md)); lease con heartbeat y token de intento son evolución si hay varios workers.
+Actual: hasta `MAX_ATTEMPTS` intentos (3) para los errores transitorios, con esperas de `RETRY_DELAY_SECONDS × 2^(intento − 1)` (60 s y 120 s) en `retry_wait`; los errores de formato, los inesperados y el último intento fallido terminan en `failed` sin reintento. Se guardan la etapa, el código de error, el intento y la hora del próximo intento. Con un único worker en el MVP, al arrancar devuelve a la cola los trabajos que quedaron en curso con intentos y deja en `failed` los que los agotaron, como uno que tumba el worker ([ADR-0002](ADR/0002-durable-jobs.md)); lease con heartbeat y token de intento son evolución si hay varios workers.
 
 OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silenciosamente. Cada intento empieza en `normalizing` y no guarda resultados de etapa: guardarlos con versión y hash de entrada queda como evolución si la medición muestra reprocesados largos. Idempotencia de carga por emisor y clave; misma clave con contenido diferente devuelve conflicto. Purga/cancelación invalida resultados tardíos. Maintenance independiente permite cumplir vencimientos durante inferencias largas.
 

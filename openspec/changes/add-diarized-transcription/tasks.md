@@ -66,11 +66,11 @@ Plan de la funcionalidad `add-diarized-transcription` (E3, épica #3). Una secci
 
 **Depende de:** 1 y la purga del audio (#47)
 
-- [ ] 4.1 Migración de Alembic con `next_attempt_at` en `jobs`; `retry_later` y la hora en `claim_next` en las dos `JobStore`, con tests.
-- [ ] 4.2 Aplicar en el worker la política de reintentos del diseño con un reloj inyectable, con un test por escenario de la spec.
-- [ ] 4.3 Pasar el máximo de intentos a `requeue_in_progress` y dejar en `failed` los trabajos agotados al arrancar, con tests.
-- [ ] 4.4 Incluir los trabajos en `retry_wait` en la caducidad de #47, con tests con un plazo vencido.
-- [ ] 4.5 Añadir `MAX_ATTEMPTS` y `RETRY_DELAY_SECONDS` a `Settings` y a `backend/.env.example`, documentar `retry_wait` en la ficha del contrato (sin cambiar la versión) y marcar como Actual lo que corresponda de ARCHITECTURE §5, «Fallos y recuperación».
+- [x] 4.1 Migración de Alembic con `next_attempt_at` en `jobs`; `retry_later` y la hora en `claim_next` en las dos `JobStore`, con tests.
+- [x] 4.2 Aplicar en el worker la política de reintentos del diseño con un reloj inyectable, con un test por escenario de la spec.
+- [x] 4.3 Pasar el máximo de intentos a `requeue_in_progress` y dejar en `failed` los trabajos agotados al arrancar, con tests.
+- [x] 4.4 Incluir los trabajos en `retry_wait` en la caducidad de #47, con tests con un plazo vencido.
+- [x] 4.5 Añadir `MAX_ATTEMPTS` y `RETRY_DELAY_SECONDS` a `Settings` y a `backend/.env.example`, documentar `retry_wait` en la ficha del contrato (sin cambiar la versión) y marcar como Actual lo que corresponda de ARCHITECTURE §5, «Fallos y recuperación».
 
 ## 5. Transcripción por hablante en la web (frontend) · #59
 
