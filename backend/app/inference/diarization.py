@@ -27,6 +27,9 @@ DEFAULT_MODELS_DIR = "data/models"
 UNAVAILABLE_MESSAGE = "El modelo de diarización no está disponible."
 INVALID_OUTPUT_MESSAGE = "La salida de la diarización no es válida."
 DOWNLOAD_MESSAGE = "HF_TOKEN is required to download the Community-1 model"
+# The worker image is CPU-only and pyannote runs there with its default precision.
+DEVICE = "cpu"
+COMPUTE_TYPE = "float32"
 
 
 def _unavailable(message: str = UNAVAILABLE_MESSAGE) -> PipelineError:
@@ -121,6 +124,12 @@ def download_community1(
     )
 
 
+def community1_ready(*, models_dir: Path | None = None) -> bool:
+    """The pinned pipeline is in the private models directory (its `config.yaml`)."""
+    target = Path(models_dir or os.getenv("MODELS_DIR", DEFAULT_MODELS_DIR))
+    return (target / MODEL_ID / "config.yaml").is_file()
+
+
 def _peak_memory_mib() -> float:
     """Peak RSS on Linux (CI), traced Python memory where `resource` does not exist."""
     try:
@@ -176,7 +185,7 @@ def measure_diarization(
     result = {
         "model": MODEL_ID,
         "revision": MODEL_REVISION,
-        "device": "cpu",
+        "device": DEVICE,
         "seconds_per_minute": f"{elapsed / duration_minutes:.2f}",
         "peak_memory_mib": f"{_peak_memory_mib():.1f}",
         "turns": str(len(turns)),
@@ -205,5 +214,6 @@ register(
         revision=MODEL_REVISION,
         download=download_community1,
         measure=measure_community1,
+        ready=community1_ready,
     )
 )
