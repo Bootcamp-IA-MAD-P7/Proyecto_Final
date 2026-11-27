@@ -6,6 +6,7 @@ import math
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from app.auth.principal import Role
 
@@ -88,6 +89,10 @@ class Settings:
     def __post_init__(self) -> None:
         if self.upload_min_seconds > self.upload_max_seconds:
             raise ValueError("UPLOAD_MIN_SECONDS cannot be above UPLOAD_MAX_SECONDS")
+        work = Path(self.work_dir).resolve()
+        audio = Path(self.audio_storage_dir).resolve()
+        if work == audio or work.is_relative_to(audio) or audio.is_relative_to(work):
+            raise ValueError("WORK_DIR must be outside AUDIO_STORAGE_DIR")
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:

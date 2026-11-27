@@ -70,6 +70,19 @@ def test_upload_limits_and_retention_come_from_the_environment():
     assert settings.work_dir == "/var/lib/coteach/work"
 
 
+@pytest.mark.parametrize(
+    ("audio", "work"),
+    [
+        ("data/audio", "data/audio"),
+        ("data/audio", "data/audio/work"),
+        ("data/audio/work", "data/audio"),
+    ],
+)
+def test_work_dir_cannot_overlap_the_audio_storage(audio, work):
+    with pytest.raises(ValueError, match="WORK_DIR"):
+        Settings.from_env({"AUDIO_STORAGE_DIR": audio, "WORK_DIR": work})
+
+
 def test_the_minimum_duration_cannot_exceed_the_maximum():
     with pytest.raises(ValueError, match="UPLOAD_MIN_SECONDS"):
         Settings.from_env({"UPLOAD_MIN_SECONDS": "120", "UPLOAD_MAX_SECONDS": "60"})
