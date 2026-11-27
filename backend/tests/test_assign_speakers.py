@@ -1,3 +1,5 @@
+import pytest
+
 from app.contract import Transcript
 from app.inference import Phrase, Turn, Word, assign_speakers
 
@@ -89,6 +91,15 @@ def test_words_without_turns_become_one_voice() -> None:
     assert len(result.speakers) == 1
     assert len(result.segments) == 1
     assert result.segments[0].text == "uno dos"
+
+
+def test_overlapping_phrases_are_rejected() -> None:
+    with pytest.raises(ValueError, match="overlap"):
+        transcript(
+            phrase(("uno", 0, 1000)),
+            phrase(("dos", 500, 1500)),
+            turns=[],
+        )
 
 
 def test_no_audio_has_an_empty_transcript() -> None:
