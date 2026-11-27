@@ -26,6 +26,7 @@ Cambio: `nombre-del-cambio` · Sección de `tasks.md`: N <!-- o «no-spec» si l
 - [ ] `openspec validate`
 - [ ] Tests:
 - [ ] Otros checks del proyecto:
+- [ ] E2E (`make e2e`, solo en la sección de integración; CONTRIBUTING §8):
 
 ## Documentación conciliada
 
