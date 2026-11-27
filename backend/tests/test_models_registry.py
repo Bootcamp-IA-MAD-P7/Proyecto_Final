@@ -1,4 +1,7 @@
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -54,6 +57,19 @@ def test_measure_command_prints_json_without_class_data(capsys) -> None:
     }
 
 
+def test_default_suite_excludes_the_models_marker() -> None:
+    backend = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "-m", "not models"],
+        cwd=backend,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert "test_model_tests_are_selected_by_their_marker" not in result.stdout
+
+
 @pytest.mark.models
-def test_real_model_tests_are_selected_only_by_their_marker() -> None:
-    """This test needs no model; it proves the marker can be selected with make test-models."""
+def test_model_tests_are_selected_by_their_marker(request) -> None:
+    assert any(marker.name == "models" for marker in request.node.iter_markers())
