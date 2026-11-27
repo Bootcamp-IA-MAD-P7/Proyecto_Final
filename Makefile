@@ -20,7 +20,7 @@ export BACKEND_PORT FRONTEND_PORT
 COMPOSE := docker compose
 COMPOSE_PROD := docker compose -f compose.yaml -f compose.production.yaml
 
-.PHONY: help setup env hooks install dev test lint ci e2e e2e-install up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
+.PHONY: help setup env hooks install dev test lint ci ci-production-build ci-auth-secret-regression e2e e2e-install up down logs ps up-prod down-prod labels github-setup github-protect claude-skills
 
 help: ## List every available command
 	@echo "Usage: make <command>"
@@ -67,12 +67,19 @@ lint: $(addsuffix -lint,$(SERVICES)) ## Run every service linter
 
 # --- CI: the same checks as the Servicios job, in Docker ---
 
-ci: env ## Run every service lint and tests in its dev image, then build the production images
+ci: env ci-auth-secret-regression ## Run every service lint and tests in its dev image, then build the production images
 	@if [ -z "$(SERVICES)" ]; then echo "No services yet."; exit 0; fi; \
 	for service in $(SERVICES); do \
 		$(COMPOSE) --progress quiet run --rm --build $$service make lint test || exit 1; \
 	done; \
-	$(COMPOSE_PROD) --progress quiet build
+	$(MAKE) ci-production-build COMPOSE_PROD='$(COMPOSE_PROD)'
+
+ci-production-build: ## Build production images with an ephemeral Compose authentication secret
+	@# AUTH_SECRET exists only while Compose interpolates this build; make up-prod still requires one.
+	@AUTH_SECRET="$$(openssl rand -hex 32)" $(COMPOSE_PROD) --progress quiet build
+
+ci-auth-secret-regression: ## Verify the CI-only authentication secret is ephemeral and generated per build
+	@bash .github/scripts/test-ci-auth-secret.sh
 
 # --- End-to-end: Playwright on this machine against the running stack ---
 
