@@ -19,6 +19,7 @@ from app.contract import JobErrorCode
 from app.inference.models import ModelSpec, register
 from app.inference.pipeline import PipelineError
 from app.inference.types import Diarizer, Turn
+from app.settings import Settings
 
 MODEL_ID = "pyannote/speaker-diarization-community-1"
 MODEL_REVISION = "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
@@ -63,10 +64,9 @@ class PyannoteDiarizer(Diarizer):
             self._pipeline = (self._pipeline_factory or self._local_pipeline)()
         except PipelineError:
             raise
-        except (ImportError, OSError, RuntimeError, MemoryError) as error:
-            raise _unavailable() from error
         except Exception as error:
-            raise _invalid() from error
+            # A model that cannot be loaded is transient, whatever its cause: never fall back.
+            raise _unavailable() from error
 
     def close(self) -> None:
         self._pipeline = None
@@ -105,7 +105,7 @@ def download_community1(
     snapshot: Callable[..., object] | None = None,
 ) -> None:
     """Download the pinned revision to the private models directory, using HF_TOKEN."""
-    secret = os.getenv("HF_TOKEN") if token is None else token
+    secret = Settings.from_env().hf_token if token is None else token
     if not secret:
         raise RuntimeError(DOWNLOAD_MESSAGE)
     if snapshot is None:
