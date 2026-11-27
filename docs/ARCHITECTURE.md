@@ -71,7 +71,7 @@ backend/                 # Makefile, Dockerfile dev/prod, .env.example; imagen d
   app/contract/          # modelos del contrato; generan backend/openapi.json
   app/db/                # tablas y migración al arrancar
   app/jobs/              # JobStore en PostgreSQL
-  app/inference/         # InferencePipeline y FakePipeline
+  app/inference/         # InferencePipeline, FakePipeline, StagedPipeline, adaptadores y combinación de hablantes
   app/storage/           # AudioStorage y validación con ffprobe
   app/worker/            # python -m app.worker
   app/maintenance/       # python -m app.maintenance
@@ -89,7 +89,7 @@ compose.override.yaml    # desarrollo (make up)
 compose.production.yaml  # producción en local (make up-prod)
 ```
 
-El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios y secretos se almacenan fuera del árbol versionado. `app/storage/` guarda el audio tras la interfaz `AudioStorage` (en disco, bajo `AUDIO_STORAGE_DIR`, con nombres opacos) y lo valida por su contenido con `ffprobe` ([add-class-reception](../openspec/changes/add-class-reception/design.md)). Se conserva un único Makefile raíz y los tres archivos Compose existentes.
+El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios y secretos se almacenan fuera del árbol versionado. `app/storage/` guarda el audio tras la interfaz `AudioStorage` (en disco, bajo `AUDIO_STORAGE_DIR`, con nombres opacos) y lo valida por su contenido con `ffprobe` ([add-class-reception](../openspec/changes/archive/2026-11-27-add-class-reception/design.md)). `app/inference/` declara las interfaces `Normalizer`, `Transcriber`, `Diarizer` y `Analyzer` y ejecuta un adaptador por etapa; `assign_speakers` combina palabras y turnos sin modelo ([add-diarized-transcription](../openspec/changes/add-diarized-transcription/design.md)). Se conserva un único Makefile raíz y los tres archivos Compose existentes.
 
 ## 5. Flujos principales
 
@@ -97,12 +97,12 @@ El mismo backend ofrece entradas para API, worker y maintenance. Modelos, audios
 
 1. API autentica al emisor y valida acceso a la clase, referencia del consentimiento, participantes y límites de tamaño/duración configurados. Formatos admitidos y límites por defecto: [contrato](CONTRACTS/coteach-ai-api.md).
 2. Escritura temporal con nombre opaco, validación de contenido y movimiento al almacenamiento privado. Transacción crea clase/audio/trabajo; responder 202 solo tras persistencia. Un limpiador elimina huérfanos de cargas fallidas.
-3. Worker reclama un trabajo mediante transacción corta; transcribe y diariza por separado y cruza intervalos temporales. No mantiene bloqueos de base de datos durante inferencia.
-4. Los hablantes reciben identificadores de sesión. Los nombres aportados no identifican voces por sí solos: proponer asignación manual docente. Solapamientos o asignaciones ambiguas quedan señalados, nunca inventados.
-5. El análisis procesa fragmentos limitados por tokens y consolida categorías y resumen general. Validar esquema y referencias internas; una categoría puede estar vacía. No generar calificaciones o diagnósticos no solicitados.
+3. Worker reclama un trabajo mediante transacción corta; copia el audio a un directorio de trabajo privado y ejecuta `StagedPipeline`: normaliza, transcribe, diariza y analiza, cargando y liberando un modelo por etapa. No mantiene bloqueos de base de datos durante inferencia y borra la copia al terminar el intento.
+4. `assign_speakers` declara las voces en orden de primera intervención y produce segmentos temporales no solapados con marcas de la grabación original. Los nombres aportados no identifican voces por sí solos: su asignación manual es trabajo de E5. Con diarización exclusiva, el texto simultáneo se atribuye a la voz dominante y no se marca; no se inventan hablantes ni texto.
+5. Hasta E4 el analizador es vacío: se recorre la etapa, pero no se muestra un repaso que no corresponde a la clase. Con los modelos reales, el análisis consolidará categorías y resumen general validando esquema y referencias; sin calificaciones ni diagnósticos no solicitados.
 6. Persistir versión de resultados válida y pasar a revisión. Fallos de IA no producen resultados publicables.
 
-Estados candidatos: queued → normalizing → transcribing → diarizing → analyzing → ready_for_review → published. failed y expired son salidas explícitas; retry_wait permite reanudar desde la última etapa válida. Estados de revisión separados: pending, in_review, approved.
+Estados candidatos: queued → normalizing → transcribing → diarizing → analyzing → ready_for_review → published. failed y expired son salidas explícitas; retry_wait reintenta desde la primera etapa, sin guardar resultados intermedios. Estados de revisión separados: pending, in_review, approved.
 
 ### Revisión y publicación
 
@@ -116,7 +116,7 @@ Pendiente de producto: qué hacer con una revisión iniciada pero no aprobada al
 
 Proponer máximo tres intentos con espera creciente para errores transitorios; errores de formato, permiso o consentimiento no se reintentan. Guardar etapa, código de error, intento y próximo intento. Con un único worker en el MVP, al arrancar devuelve a la cola los trabajos que quedaron en curso ([ADR-0002](ADR/0002-durable-jobs.md)); lease con heartbeat y token de intento son evolución si hay varios workers.
 
-OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silenciosamente. Resultados de etapa se guardan con versión y hash de entrada, para evitar repetir audio ya procesado. Idempotencia de carga por emisor y clave; misma clave con contenido diferente devuelve conflicto. Purga/cancelación invalida resultados tardíos. Maintenance independiente permite cumplir vencimientos durante inferencias largas.
+OOM reduce concurrencia y requiere diagnóstico; no se sustituye modelo silenciosamente. Cada intento empieza en `normalizing` y no guarda resultados de etapa: guardarlos con versión y hash de entrada queda como evolución si la medición muestra reprocesados largos. Idempotencia de carga por emisor y clave; misma clave con contenido diferente devuelve conflicto. Purga/cancelación invalida resultados tardíos. Maintenance independiente permite cumplir vencimientos durante inferencias largas.
 
 ### Interfaces entre componentes
 
@@ -139,7 +139,7 @@ Consentimiento: registrar referencia, finalidad, fecha y responsable de la evide
 
 Retención del original según RNF-02: 14 días desde recepción, guardando expires_at. Bloquear lectura y nuevas tareas al vencer; barrido periódico candidato de un minuto elimina original, normalizados, temporales y copias de inferencia. Registrar deleted_at; reintentar y alertar fallos físicos. La cadencia y tolerancia de borrado deben validarse para no prometer precisión imposible durante una caída. Al reiniciar, purgar vencidos antes de retomar trabajos. No incluir audio en backups del MVP; verificar que snapshots del host tampoco lo retienen. Una restauración reaplica vencimientos antes de servir datos.
 
-Proponer borrar temporales de inferencia al finalizar cada trabajo. Retención de transcripciones, revisiones, auditoría y backups pendiente de Lay: no adoptar conservación indefinida por defecto ni introducir un plazo ficticio. Backups cifrados de base de datos y prueba de restauración con política de borrado acordada.
+Los temporales de inferencia viven en `WORK_DIR/<job_id>/`, fuera de `AUDIO_STORAGE_DIR`, y se borran al finalizar cada intento, acabe bien o mal; al arrancar, el worker vacía `WORK_DIR` antes de reclamar trabajos. Retención de transcripciones, revisiones, auditoría y backups pendiente de Lay: no adoptar conservación indefinida por defecto ni introducir un plazo ficticio. Backups cifrados de base de datos y prueba de restauración con política de borrado acordada.
 
 Configuración candidata: REVIEW_WINDOW_HOURS (24 provisional), límites de carga, MAX_ATTEMPTS, rutas/modelos/revisiones, dispositivos y concurrencia. Credenciales DB, firma y descarga de modelos solo en servidor mediante secretos; ejemplos inocuos versionados. Logs excluyen audio, nombres, transcripciones, tokens y prompts.
 
@@ -155,7 +155,7 @@ Puertos en local, publicados solo en 127.0.0.1: API 8000 (`BACKEND_PORT`) y web 
 
 `make up` levanta los cinco servicios; el worker espera a que `backend` esté sano (`/ready`), porque es la API la que aplica las migraciones al arrancar. Con `make up-prod`, el emisor de pruebas está apagado salvo con `AUTH_DEV_ISSUER=true` para una demo local. `make e2e` ejecuta Playwright en el equipo contra lo levantado; no corre en el CI. Todos los comandos están en `make help`.
 
-El audio original vive en el volumen con nombre `audio-data`, montado en `/app/data/audio` en `backend`, `worker` y `maintenance` tanto con `make up` como con `make up-prod`. `AUDIO_STORAGE_DIR`, en el `.env` de la raíz y como ruta absoluta dentro del contenedor, fija a la vez la ruta del montaje y la variable de los tres servicios; el plazo de conservación se configura con `AUDIO_RETENTION_DAYS` en `backend/.env`. El volumen y sus archivos quedan fuera de Git y de copias de seguridad ([ADR-0004](ADR/0004-access-and-retention.md)): sin el volumen compartido, cada contenedor tendría su propia capa y la purga no podría borrar lo que otro servicio escribió.
+El audio original vive en el volumen con nombre `audio-data`, montado en `/app/data/audio` en `backend`, `worker` y `maintenance` tanto con `make up` como con `make up-prod`. `AUDIO_STORAGE_DIR`, en el `.env` de la raíz y como ruta absoluta dentro del contenedor, fija a la vez la ruta del montaje y la variable de los tres servicios; el plazo de conservación se configura con `AUDIO_RETENTION_DAYS` en `backend/.env`. Las copias de trabajo de cada intento van en `WORK_DIR` (por defecto `data/work`, configurado en `backend/.env`), fuera del volumen del audio y de Git. El volumen y sus archivos quedan fuera de Git y de copias de seguridad ([ADR-0004](ADR/0004-access-and-retention.md)): sin el volumen compartido, cada contenedor tendría su propia capa y la purga no podría borrar lo que otro servicio escribió.
 
 | Modalidad | Ventajas | Límites y costes | Uso propuesto |
 |---|---|---|---|

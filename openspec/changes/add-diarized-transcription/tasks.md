@@ -14,13 +14,13 @@ Plan de la funcionalidad `add-diarized-transcription` (E3, épica #3). Una secci
 
 **Depende de:** —
 
-- [ ] 1.1 Declarar en `app/inference/` los tipos de frases, palabras y turnos, las interfaces `Normalizer`, `Transcriber`, `Diarizer` y `Analyzer`, y el analizador vacío, con tests de sus invariantes.
-- [ ] 1.2 Implementar `assign_speakers` con las reglas del diseño, con un test por escenario de «Intervenciones por persona hablante» y el de «Audio sin voz».
-- [ ] 1.3 Implementar `StagedPipeline`: avisa de cada etapa, carga y libera el modelo de cada adaptador, pasa el máximo de voces y propaga `PipelineError`; tests con adaptadores falsos y la salida validada contra el contrato.
-- [ ] 1.4 Pasar al pipeline la ruta del audio guardado (`JobStore.get_audio` y `AudioStorage.path`), con `processing_failed` si el archivo falta sin haber caducado; tests del worker.
-- [ ] 1.5 Añadir `WORK_DIR` a `Settings`: un directorio privado por intento que se borra al terminar, bien o mal, y que el worker vacía al arrancar; tests de los dos escenarios de «Copias de trabajo efímeras».
-- [ ] 1.6 Crear `backend/requirements-inference.txt`, el marcador de pytest de los tests con modelos y los objetivos `models`, `test-models` y `measure`, con un registro al que cada adaptador añade su descarga y su medición; comprobar que `make backend-test` no los ejecuta.
-- [ ] 1.7 Actualizar la ficha del contrato (skill `contracts`, sin cambiar la versión), ARCHITECTURE §4 (`app/inference/`) y §5 (combinación, solapamientos y copias de trabajo) y `backend/.env.example` (`WORK_DIR`).
+- [x] 1.1 Declarar en `app/inference/` los tipos de frases, palabras y turnos, las interfaces `Normalizer`, `Transcriber`, `Diarizer` y `Analyzer`, y el analizador vacío, con tests de sus invariantes.
+- [x] 1.2 Implementar `assign_speakers` con las reglas del diseño, con un test por escenario de «Intervenciones por persona hablante» y el de «Audio sin voz».
+- [x] 1.3 Implementar `StagedPipeline`: avisa de cada etapa, carga y libera el modelo de cada adaptador, pasa el máximo de voces y propaga `PipelineError`; tests con adaptadores falsos y la salida validada contra el contrato.
+- [x] 1.4 Pasar al pipeline la ruta del audio guardado (`JobStore.get_audio` y `AudioStorage.path`), con `processing_failed` si el archivo falta sin haber caducado; tests del worker.
+- [x] 1.5 Añadir `WORK_DIR` a `Settings`: un directorio privado por intento que se borra al terminar, bien o mal, y que el worker vacía al arrancar; tests de los dos escenarios de «Copias de trabajo efímeras».
+- [x] 1.6 Crear `backend/requirements-inference.txt`, el marcador de pytest de los tests con modelos y los objetivos `models`, `test-models` y `measure`, con un registro al que cada adaptador añade su descarga y su medición; comprobar que `make backend-test` no los ejecuta.
+- [x] 1.7 Actualizar la ficha del contrato (skill `contracts`, sin cambiar la versión), ARCHITECTURE §4 (`app/inference/`) y §5 (combinación, solapamientos y copias de trabajo) y `backend/.env.example` (`WORK_DIR`).
 
 ## 2. Normalización y transcripción con faster-whisper (inferencia) · #56
 
