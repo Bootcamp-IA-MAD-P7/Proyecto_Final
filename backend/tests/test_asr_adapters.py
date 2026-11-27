@@ -235,6 +235,10 @@ def test_language_comparison_uses_multilingual_on_phrase_excerpts(tmp_path: Path
     class LanguageModel:
         def __init__(self) -> None:
             self.calls: list[bool] = []
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
 
         def transcribe(self, audio: str, **kwargs: object) -> tuple[list[TimedSegment], object]:
             multilingual = bool(kwargs.get("multilingual", False))
@@ -248,3 +252,4 @@ def test_language_comparison_uses_multilingual_on_phrase_excerpts(tmp_path: Path
 
     assert result == {"language_single": "en", "language_per_phrase": "es"}
     assert model.calls == [False, True]
+    assert model.closed is True
