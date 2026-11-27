@@ -1,6 +1,34 @@
 import pytest
 
-from app.settings import Settings
+from app.settings import DEVELOPMENT_AUTH_SECRET, MIN_AUTH_SECRET_LENGTH, Settings
+
+
+@pytest.mark.parametrize(
+    "secret",
+    [None, "", "   ", "a" * (MIN_AUTH_SECRET_LENGTH - 1), DEVELOPMENT_AUTH_SECRET],
+)
+def test_production_rejects_missing_short_or_development_auth_secrets(secret):
+    with pytest.raises(ValueError) as error:
+        Settings(app_env="production", auth_secret=secret)
+
+    assert "AUTH_SECRET" in str(error.value)
+    if secret:
+        assert secret not in str(error.value)
+
+
+def test_production_accepts_a_custom_auth_secret():
+    secret = "custom-production-secret-with-at-least-32-characters"
+
+    settings = Settings.from_env({"APP_ENV": "production", "AUTH_SECRET": secret})
+
+    assert (settings.app_env, settings.auth_secret) == ("production", secret)
+
+
+def test_development_does_not_require_a_production_auth_secret():
+    settings = Settings.from_env({})
+
+    assert settings.app_env == "development"
+    assert settings.auth_secret is None
 
 
 def test_background_settings_come_from_the_environment():

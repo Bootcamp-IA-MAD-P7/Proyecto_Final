@@ -90,10 +90,10 @@ make help    # todos los comandos
 
 `make up` levanta `backend`, `worker`, `maintenance`, `frontend` y `db` en modo desarrollo. La web queda en <http://localhost:5173> y la API en <http://localhost:8000>. Entra con un usuario de prueba (el docente puede subir clases), sube un audio admitido por el [contrato](docs/CONTRACTS/coteach-ai-api.md) y sigue su avance hasta el resultado sintético, que de momento genera un pipeline simulado.
 
-Con la configuración de producción, el emisor de tokens de prueba está apagado. Para una demo local, actívalo de forma explícita al levantarla. La web queda en el puerto `FRONTEND_PORT` del `.env` de la raíz (5173 en el de ejemplo; 8080 si no está):
+Con la configuración de producción, backend, worker y maintenance requieren un `AUTH_SECRET` propio de al menos 32 caracteres; no aceptan el secreto documentado para desarrollo. Guárdalo solo en el `.env` sin versionar de este clon o pásalo desde la shell. Puedes generar uno localmente sin mostrarlo con `openssl rand -hex 32`. El emisor de tokens de prueba está apagado; para una demo local, actívalo de forma explícita al levantarla. La web queda en el puerto `FRONTEND_PORT` del `.env` de la raíz (5173 en el de ejemplo; 8080 si no está):
 
 ```sh
-AUTH_DEV_ISSUER=true make up-prod   # o AUTH_DEV_ISSUER=true en el .env de la raíz
+AUTH_SECRET="$(openssl rand -hex 32)" AUTH_DEV_ISSUER=true make up-prod
 make down-prod
 ```
 

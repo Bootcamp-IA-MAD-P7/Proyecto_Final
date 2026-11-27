@@ -7,11 +7,9 @@ from datetime import UTC, datetime, timedelta
 import jwt
 
 from app.auth.principal import Principal, Role
-from app.settings import Settings
+from app.settings import MIN_AUTH_SECRET_LENGTH, Settings
 
 ALGORITHM = "HS256"
-MIN_SECRET_LENGTH = 32
-"""Shorter keys are refused: HS256 needs at least 256 bits (RFC 7518 §3.2)."""
 
 
 class InvalidTokenError(Exception):
@@ -19,7 +17,7 @@ class InvalidTokenError(Exception):
 
 
 def _secret(settings: Settings) -> str:
-    if not settings.auth_secret or len(settings.auth_secret) < MIN_SECRET_LENGTH:
+    if not settings.auth_secret or len(settings.auth_secret) < MIN_AUTH_SECRET_LENGTH:
         raise InvalidTokenError("AUTH_SECRET is missing or too short")
     return settings.auth_secret
 

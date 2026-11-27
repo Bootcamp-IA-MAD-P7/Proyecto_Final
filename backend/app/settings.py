@@ -11,6 +11,10 @@ from pathlib import Path
 from app.auth.principal import Role
 
 DEFAULT_DEV_USERS = "demo-teacher:teacher,demo-student:student,coteach-service:service"
+DEVELOPMENT_AUTH_SECRET = "dev-only-secret-change-me-0123456789abcdef"
+MIN_AUTH_SECRET_LENGTH = 32
+"""Minimum HS256 secret length, as required by RFC 7518 §3.2."""
+PRODUCTION_APP_ENV = "production"
 
 
 def _flag(value: str | None) -> bool:
@@ -53,6 +57,8 @@ def _dev_users(value: str) -> dict[str, Role]:
 
 @dataclass(frozen=True)
 class Settings:
+    app_env: str = "development"
+    """Runtime environment. Production enables startup validation for authentication secrets."""
     database_url: str | None = None
     """SQLAlchemy URL of PostgreSQL. Without it, /ready reports the database as unavailable."""
     auth_secret: str | None = None
@@ -105,6 +111,8 @@ class Settings:
     """Forced language; empty detects it per phrase."""
 
     def __post_init__(self) -> None:
+        if self.app_env == PRODUCTION_APP_ENV:
+            self._validate_production_auth_secret()
         if self.upload_min_seconds > self.upload_max_seconds:
             raise ValueError("UPLOAD_MIN_SECONDS cannot be above UPLOAD_MAX_SECONDS")
         work = Path(self.work_dir).resolve()
@@ -114,11 +122,25 @@ class Settings:
         if self.asr_model != "small":
             raise ValueError("ASR_MODEL only supports 'small'")
 
+    def _validate_production_auth_secret(self) -> None:
+        secret = self.auth_secret
+        if (
+            not secret
+            or not secret.strip()
+            or len(secret) < MIN_AUTH_SECRET_LENGTH
+            or secret == DEVELOPMENT_AUTH_SECRET
+        ):
+            raise ValueError(
+                "AUTH_SECRET must be a non-development secret with at least 32 characters "
+                "when APP_ENV=production"
+            )
+
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
         env = os.environ if env is None else env
         defaults = cls()
         return cls(
+            app_env=env.get("APP_ENV") or defaults.app_env,
             database_url=env.get("DATABASE_URL") or None,
             auth_secret=env.get("AUTH_SECRET") or None,
             auth_audience=env.get("AUTH_AUDIENCE") or defaults.auth_audience,
