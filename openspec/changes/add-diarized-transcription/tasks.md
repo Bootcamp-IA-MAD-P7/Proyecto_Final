@@ -33,11 +33,11 @@ Plan de la funcionalidad `add-diarized-transcription` (E3, épica #3). Una secci
 
 **Depende de:** 1
 
-- [ ] 2.1 Implementar el normalizador con FFmpeg, limitado a archivos locales y a los formatos de la recepción, con tests sobre audios sintéticos generados al ejecutarse.
-- [ ] 2.2 Fijar faster-whisper en `requirements-inference.txt` e implementar el transcriptor (importación al cargar, marcas por palabra, filtro de voz, `ASR_MODEL`, `ASR_DEVICE`, `ASR_COMPUTE_TYPE` y `ASR_LANGUAGE`), con tests con dobles que cubren la traducción de errores.
-- [ ] 2.3 Registrar la descarga de la revisión fijada en `models` y un test marcado con el modelo real sobre un audio con voz sintética generada al ejecutarse.
-- [ ] 2.4 Registrar la medición de normalizar y transcribir en `measure`, con WER si hay referencia, y comparar con una muestra que mezcle idiomas la detección por frase (`multilingual`) con la detección única; anotar el resultado en el PR.
-- [ ] 2.5 Añadir las variables `ASR_*` y `MODELS_DIR` a `Settings` y a `backend/.env.example`.
+- [x] 2.1 Implementar el normalizador con FFmpeg, limitado a archivos locales y a los formatos de la recepción, con tests sobre audios sintéticos generados al ejecutarse.
+- [x] 2.2 Fijar faster-whisper en `requirements-inference.txt` e implementar el transcriptor (importación al cargar, marcas por palabra, filtro de voz, `ASR_MODEL`, `ASR_DEVICE`, `ASR_COMPUTE_TYPE` y `ASR_LANGUAGE`), con tests con dobles que cubren la traducción de errores.
+- [x] 2.3 Registrar la descarga de la revisión fijada en `models` y un test marcado con el modelo real sobre un audio con voz sintética generada al ejecutarse.
+- [x] 2.4 Registrar la medición de normalizar y transcribir en `measure`, con WER si hay referencia, y comparar con una muestra que mezcle idiomas la detección por frase (`multilingual`) con la detección única; anotar el resultado en el PR.
+- [x] 2.5 Añadir las variables `ASR_*` y `MODELS_DIR` a `Settings` y a `backend/.env.example`.
 
 ## 3. Diarización con pyannote (inferencia) · #57
 

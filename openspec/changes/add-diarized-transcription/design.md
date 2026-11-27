@@ -57,6 +57,8 @@ FFmpeg lee solo el archivo local con los demuxers que admite la recepción (E2) 
 
 faster-whisper con Whisper `small` multilingüe (ADR-0003), en CPU con `int8`, marcas por palabra y filtro de actividad de voz para no transcribir los silencios. Variables: `ASR_MODEL` (`small`), `ASR_DEVICE` (`cpu`), `ASR_COMPUTE_TYPE` (`int8`) y `ASR_LANGUAGE` (vacía: el idioma se detecta). Las clases de idiomas mezclan lengua vehicular y lengua meta: la medición comprueba también la detección de idioma por frase de faster-whisper (`multilingual`) y decide el valor por defecto.
 
+`make -C backend measure` mide normalizar y transcribir juntos con `ASR_MEASURE_AUDIO` (WAV mono de 16 kHz). `ASR_REFERENCE` aporta el texto esperado en JSON `{"text": "..."}` para calcular el WER, y `ASR_MULTILINGUAL_SAMPLE` permite comparar la detección de idioma por frase con la del archivo completo. Ninguna medición usa datos de clase: las muestras son sintéticas.
+
 ### Diarización
 
 pyannote.audio 4 con `pyannote/speaker-diarization-community-1` (ADR-0003), en CPU, usando su salida exclusiva, pensada para cruzarla con las marcas de la transcripción. El adaptador le pasa el audio ya cargado del WAV normalizado, sin depender de los decodificadores de cada plataforma.
