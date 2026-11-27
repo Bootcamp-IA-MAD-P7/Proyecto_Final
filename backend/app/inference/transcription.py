@@ -12,6 +12,7 @@ import os
 import tempfile
 import time
 import tracemalloc
+import wave
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from app.settings import Settings
 
 MODEL_ID = "Systran/faster-whisper-small"
 MODEL_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
+SUPPORTED_MODELS = {"small": (MODEL_ID, MODEL_REVISION)}
 UNAVAILABLE_MESSAGE = "El modelo de transcripción no está disponible."
 INVALID_OUTPUT_MESSAGE = "La transcripción devuelta no es válida."
 DEFAULT_MODELS_DIR = "data/models"
@@ -57,7 +59,9 @@ class FasterWhisperTranscriber(Transcriber):
         self._engine: object | None = None
 
     def _local_model(self) -> object:
-        local = self._models_dir / MODEL_ID
+        if self._model not in SUPPORTED_MODELS:
+            raise ValueError(f"ASR_MODEL only supports 'small': {self._model}")
+        local = self._models_dir / SUPPORTED_MODELS[self._model][0]
         if not local.is_dir():
             raise FileNotFoundError(str(local))
         from faster_whisper import WhisperModel
@@ -115,19 +119,21 @@ class FasterWhisperTranscriber(Transcriber):
 
 
 def download_whisper_small(
-    *, models_dir: Path | None = None, snapshot: Callable[..., object] | None = None
+    *,
+    model: str = "small",
+    models_dir: Path | None = None,
+    snapshot: Callable[..., object] | None = None,
 ) -> None:
     """Download the pinned CTranslate2 weights to the private models directory."""
+    if model not in SUPPORTED_MODELS:
+        raise ValueError(f"ASR_MODEL only supports 'small': {model}")
+    repo_id, revision = SUPPORTED_MODELS[model]
     if snapshot is None:
         from huggingface_hub import snapshot_download
 
         snapshot = snapshot_download
     target = Path(models_dir or os.getenv("MODELS_DIR", DEFAULT_MODELS_DIR))
-    snapshot(
-        repo_id=MODEL_ID,
-        revision=MODEL_REVISION,
-        local_dir=str(target / MODEL_ID),
-    )
+    snapshot(repo_id=repo_id, revision=revision, local_dir=str(target / repo_id))
 
 
 def word_error_rate(reference: str, hypothesis: str) -> float:
@@ -160,26 +166,52 @@ def _peak_memory_mib() -> float:
         return tracemalloc.get_traced_memory()[1] / (1024 * 1024)
 
 
+def _phrase_excerpt(audio: Path, target: Path, start: float, end: float) -> Path:
+    """Cut a phrase into its own WAV: language detection must not see the rest of the file."""
+    with wave.open(str(audio), "rb") as source:
+        rate = source.getframerate()
+        source.setpos(int(start * rate))
+        frames = source.readframes(max(1, int((end - start) * rate)))
+        params = source.getparams()
+    with wave.open(str(target), "wb") as excerpt:
+        excerpt.setnchannels(params.nchannels)
+        excerpt.setsampwidth(params.sampwidth)
+        excerpt.setframerate(rate)
+        excerpt.writeframes(frames)
+    return target
+
+
 def compare_language_detection(
-    audio: Path, model_factory: Callable[[], object]
+    audio: Path, model_factory: Callable[[], object], *, close_engine: bool = True
 ) -> Mapping[str, str]:
-    """Compare whole-file language detection with a detection per transcribed phrase."""
+    """Compare whole-file detection with detection on each phrase, using `multilingual`."""
     engine = model_factory()
-    segments, info = engine.transcribe(str(audio), vad_filter=True)
-    per_phrase: list[str] = []
-    for segment in list(segments):
-        start = getattr(segment, "start", None)
-        end = getattr(segment, "end", None)
-        if start is None or end is None:
-            continue
-        _, phrase_info = engine.transcribe(str(audio), clip_timestamps=[start, end])
-        detected = getattr(phrase_info, "language", "")
-        if detected and detected not in per_phrase:
-            per_phrase.append(str(detected))
-    return {
-        "language_single": str(getattr(info, "language", "")),
-        "language_per_phrase": ",".join(per_phrase),
-    }
+    try:
+        segments, info = engine.transcribe(str(audio), multilingual=False)
+        single = str(getattr(info, "language", ""))
+        per_phrase: list[str] = []
+        with tempfile.TemporaryDirectory() as temporary:
+            for index, segment in enumerate(list(segments)):
+                start = getattr(segment, "start", None)
+                end = getattr(segment, "end", None)
+                if start is None or end is None or end <= start:
+                    continue
+                excerpt = _phrase_excerpt(
+                    audio, Path(temporary) / f"phrase-{index}.wav", start, end
+                )
+                _, phrase_info = engine.transcribe(str(excerpt), multilingual=True)
+                detected = str(getattr(phrase_info, "language", ""))
+                if detected and detected not in per_phrase:
+                    per_phrase.append(detected)
+        return {
+            "language_single": single,
+            "language_per_phrase": ",".join(per_phrase),
+        }
+    finally:
+        if close_engine:
+            close = getattr(engine, "close", None)
+            if close is not None:
+                close()
 
 
 def measure_transcription(
@@ -191,8 +223,6 @@ def measure_transcription(
     settings: Settings | None = None,
 ) -> Mapping[str, str]:
     """Seconds per minute, peak memory, WER and the multilingual comparison."""
-    import wave
-
     config = settings or Settings.from_env()
 
     transcriber = FasterWhisperTranscriber(

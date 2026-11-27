@@ -87,17 +87,21 @@ def test_asr_settings_have_cpu_int8_defaults():
 def test_asr_settings_come_from_the_environment():
     settings = Settings.from_env(
         {
-            "ASR_MODEL": "large-v3",
             "ASR_DEVICE": "cuda",
             "ASR_COMPUTE_TYPE": "int8_float16",
             "ASR_LANGUAGE": "es",
         }
     )
 
-    assert settings.asr_model == "large-v3"
+    assert settings.asr_model == "small"
     assert settings.asr_device == "cuda"
     assert settings.asr_compute_type == "int8_float16"
     assert settings.asr_language == "es"
+
+
+def test_only_the_pinned_whisper_model_is_supported():
+    with pytest.raises(ValueError, match="ASR_MODEL"):
+        Settings.from_env({"ASR_MODEL": "large-v3"})
 
 
 def test_model_settings_come_from_the_environment():
