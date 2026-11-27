@@ -9,7 +9,7 @@ Convenciones en [CONTRIBUTING §7](../../../CONTRIBUTING.md#7-pull-requests); el
 
 ## Publicar
 
-1. `openspec validate --all`, `make test` y `make lint`.
+1. `openspec validate --all`, `make test` y `make lint`. En la sección de integración, además, la prueba E2E en local: `make up`, `make e2e-install` (una vez por equipo) y `make e2e` ([CONTRIBUTING §8](../../../CONTRIBUTING.md#prueba-de-extremo-a-extremo)); el resultado va en la «Validación» del PR.
 2. Actualiza la documentación afectada según la tabla «Qué actualizar cuando algo cambia» de WORKFLOW §2.
 3. Commits con la skill `commits`, incluido el de las casillas marcadas en `tasks.md`.
 4. Push de la rama y PR a `dev` con la plantilla de PR, en español. El cuerpo lleva `Closes #N`, el cambio y la sección de `tasks.md` (o `no-spec`) y los hallazgos del reviewer.
