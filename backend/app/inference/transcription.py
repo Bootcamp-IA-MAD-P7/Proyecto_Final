@@ -184,10 +184,15 @@ def _phrase_excerpt(audio: Path, target: Path, start: float, end: float) -> Path
 def compare_language_detection(
     audio: Path, model_factory: Callable[[], object], *, close_engine: bool = True
 ) -> Mapping[str, str]:
-    """Compare whole-file detection with detection on each phrase, using `multilingual`."""
+    """Compare whole-file detection with detection on each phrase, using `multilingual`.
+
+    WhisperModel has no explicit `close()`: with the real engine the reference is released by
+    garbage collection when this function returns. The `close()` hook exists for adapters that
+    own resources and need to free them.
+    """
     engine = model_factory()
     try:
-        segments, info = engine.transcribe(str(audio), multilingual=False)
+        segments, info = engine.transcribe(str(audio), multilingual=False, vad_filter=True)
         single = str(getattr(info, "language", ""))
         per_phrase: list[str] = []
         with tempfile.TemporaryDirectory() as temporary:
