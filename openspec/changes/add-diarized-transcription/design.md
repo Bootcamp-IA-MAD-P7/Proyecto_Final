@@ -71,6 +71,10 @@ pyannote.audio 4 con `pyannote/speaker-diarization-community-1` (ADR-0003), en C
 - La descarga va separada del procesamiento (ARCHITECTURE §6): `make -C backend models` descarga las revisiones fijadas de cada modelo. El worker trabaja sin red hacia Hugging Face (`HF_HUB_OFFLINE=1`) y, si falta un modelo, la etapa falla con `processing_unavailable` (spec `diarized-transcription`, «Modelos preparados antes de procesar»).
 - Al arrancar, el worker registra el modelo, la revisión, el dispositivo y el tipo de cálculo de cada etapa (ADR-0003), sin datos de clases.
 
+### Medición de la diarización
+
+`make -C backend measure` solo mide diarización cuando se configura `DIARIZATION_MEASURE_AUDIO` con un WAV mono de 16 kHz; sin esa variable informa de que no hay audio configurado. Devuelve segundos por minuto de audio, pico de memoria y número de turnos. Si se configura `DIARIZATION_REFERENCE`, calcula también el DER contra un JSON de turnos esperados con el formato `{"turns": [{"start_s": 0, "end_s": 1, "speaker": "A"}]}`. `DIARIZATION_MAX_SPEAKERS` fija el máximo de voces de la medición. Ninguna medición incluye datos de clase: el audio y la referencia son sintéticos.
+
 ### Dependencias e imagen del worker
 
 - Las dependencias de inferencia (faster-whisper, pyannote.audio y PyTorch para CPU) van en `backend/requirements-inference.txt`, aparte de `requirements.txt`, para que la API y `maintenance` sigan ligeras.
