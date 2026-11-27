@@ -155,3 +155,10 @@ def test_the_command_line_sees_the_registered_models(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert "faster-whisper-small" in result.stderr
+
+
+def test_a_model_without_a_readiness_check_counts_as_missing() -> None:
+    registry = ModelRegistry()
+    registry.add(spec("llm", []))
+
+    assert registry.missing() == ["llm"]
