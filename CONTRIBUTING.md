@@ -127,7 +127,7 @@ Cada commit es un bloque lógico que se entiende y se revisa por sí solo. No me
 
 ### Plan de una funcionalidad → `dev`
 
-- Un PR por funcionalidad, desde la rama `docs/<épica>-<cambio>`, con el cambio de OpenSpec recién propuesto y su enlace en el ROADMAP ([WORKFLOW §5](WORKFLOW.md#5-fase-2--planificación-de-una-funcionalidad)).
+- Un PR por funcionalidad, desde la rama `docs/<épica>-<cambio>`, con el cambio de OpenSpec recién propuesto y su enlace en el ROADMAP ([WORKFLOW §5](WORKFLOW.md#trabajo-por-capas)).
 - Lleva `Refs #E`: la épica sigue abierta hasta el PR de integración de su última funcionalidad. La revisión del plan ya se hizo en la Parada 2; la persona lo mergea con el CI en verde.
 
 ### Historia → `dev`
@@ -157,7 +157,7 @@ La versión de OpenSpec está fijada en `ci.yml` (`OPENSPEC_VERSION`) y en el [R
 
 ### Prueba de extremo a extremo
 
-La prueba E2E (Playwright contra lo levantado, con los modelos reales) no corre en el CI: necesita los modelos, un navegador y varios minutos de CPU por clase. Por eso la sección de integración de cada cambio ([WORKFLOW §5](WORKFLOW.md#5-fase-2--planificación-de-una-funcionalidad)) la ejecuta en local antes de abrir su PR: `make up`, `make e2e-install` una vez por equipo y `make e2e`. El resultado va en la «Validación» del PR. Cómo prepararla (modelos, audio sintético y puertos): [README](README.md#prueba-de-extremo-a-extremo).
+La prueba E2E (Playwright contra lo levantado, con los modelos reales) no corre en el CI: necesita los modelos, un navegador y varios minutos de CPU por clase. Por eso la sección de integración de cada cambio ([WORKFLOW §5](WORKFLOW.md#trabajo-por-capas)) la ejecuta en local antes de abrir su PR: `make up`, `make e2e-install` una vez por equipo y `make e2e`. El resultado va en la «Validación» del PR. Cómo prepararla (modelos, audio sintético y puertos): [README](README.md#prueba-de-extremo-a-extremo).
 
 ## 9. Versiones y releases
 
