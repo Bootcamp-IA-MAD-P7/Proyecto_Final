@@ -1,7 +1,8 @@
 """Inference: staged pipeline, adapter interfaces and the worker's pipeline contract."""
 
-# Importing the adapter registers its download and measurement in the model registry.
-import app.inference.diarization  # noqa: F401
+# Importing the adapters registers their downloads and measurements in the model registry.
+import app.inference.diarization
+import app.inference.transcription  # noqa: F401
 from app.inference.adapters import EmptyAnalyzer
 from app.inference.fake import FakePipeline
 from app.inference.pipeline import (
