@@ -14,6 +14,6 @@ it("localizes pedagogical categories without changing API values", () => {
   expect(formatAnalysisCategory("grammar")).toBe("Gramática y construcciones");
   expect(formatAnalysisCategory("errors_corrections")).toBe("Errores y correcciones");
   expect(formatAnalysisCategory("reinforced_successes")).toBe("Aciertos reforzados");
-  expect(formatAnalysisCategory("key_concepts")).toBe("Conceptos clave");
+  expect(formatAnalysisCategory("key_concepts")).toBe("Explicaciones o conceptos clave");
   expect(formatAnalysisCategory("resolved_questions")).toBe("Dudas resueltas");
 });

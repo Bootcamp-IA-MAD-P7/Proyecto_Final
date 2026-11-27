@@ -9,6 +9,7 @@ import { FilePicker } from "./ui/FilePicker/FilePicker";
 import { StatusBadge } from "./ui/StatusBadge/StatusBadge";
 import { TopBar } from "./navigation/TopBar/TopBar";
 import { TranscriptPanel } from "./results/TranscriptPanel/TranscriptPanel";
+import { AnalysisPanel } from "./results/AnalysisPanel/AnalysisPanel";
 
 it("renders button variants as accessible buttons", () => {
   render(<><Button>Continuar</Button><Button disabled variant="secondary">Cancelar</Button><Button variant="text">Volver</Button></>);
@@ -65,6 +66,28 @@ it("groups consecutive segments by speaker and formats timestamps", () => {
 it("explains when a transcript has no detected voice", () => {
   render(<TranscriptPanel transcript={{ speakers: [], segments: [] }} />);
   expect(screen.getByText(/no se ha detectado voz/i)).toBeVisible();
+});
+
+it("presents the summary before all six pedagogical categories", () => {
+  render(<AnalysisPanel analysis={{ general_summary: "Resumen sintético de la sesión.", items: [
+    { item_id: "item-01", category: "vocabulary", content: "saludo" },
+    { item_id: "item-02", category: "grammar", content: "pregunta corta" }
+  ] }} />);
+  const summary = screen.getByRole("heading", { name: "Resumen de la clase" });
+  const vocabulary = screen.getByRole("heading", { name: "Vocabulario" });
+  expect(summary.compareDocumentPosition(vocabulary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  for (const category of ["Vocabulario", "Gramática y construcciones", "Errores y correcciones", "Aciertos reforzados", "Explicaciones o conceptos clave", "Dudas resueltas"]) {
+    expect(screen.getByRole("heading", { name: category })).toBeVisible();
+  }
+  expect(screen.getByText("saludo")).toBeVisible();
+  expect(screen.getAllByText("Sin elementos identificados en esta categoría.")).toHaveLength(4);
+});
+
+it("makes an empty analysis explicit without inventing pedagogical items", () => {
+  render(<AnalysisPanel analysis={{ general_summary: "", items: [] }} />);
+  expect(screen.getByText(/todavía no contiene elementos/i)).toBeVisible();
+  expect(screen.getByText(/no hay resumen general disponible/i)).toBeVisible();
+  expect(screen.getAllByText("Sin elementos identificados en esta categoría.")).toHaveLength(6);
 });
 
 it("uses router navigation for the signed-in brand", () => {

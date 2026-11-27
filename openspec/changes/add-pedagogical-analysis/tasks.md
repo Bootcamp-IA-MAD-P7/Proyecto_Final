@@ -41,10 +41,10 @@ Plan de la funcionalidad `add-pedagogical-analysis` (E4, épica #4). La evaluaci
 
 **Depende de:** —
 
-- [ ] 3.1 Diseñar e implementar los componentes presentacionales de resumen, categorías e ítems reutilizando el sistema de diseño existente; verificar sus pruebas unitarias, etiquetas accesibles y orden de teclado.
-- [ ] 3.2 Integrar la composición en la vista de resultado sin alterar autorización, rutas, caché de sesión, transcripción ni controles de E5; verificar en pruebas de integración de React la agrupación, localización y estados vacíos.
-- [ ] 3.3 Ampliar los escenarios MSW con análisis sintéticos de varias y ninguna categoría, y verificar que el cliente usa sin cambios `backend/openapi.json` y que no aparecen datos de capacidades fuera del MVP.
-- [ ] 3.4 Verificar responsividad y contraste de la composición de análisis en escritorio, tableta y móvil mediante las pruebas o comprobaciones del frontend establecidas en el repositorio.
+- [x] 3.1 Diseñar e implementar los componentes presentacionales de resumen, categorías e ítems reutilizando el sistema de diseño existente; verificar sus pruebas unitarias, etiquetas accesibles y orden de teclado.
+- [x] 3.2 Integrar la composición en la vista de resultado sin alterar autorización, rutas, caché de sesión, transcripción ni controles de E5; verificar en pruebas de integración de React la agrupación, localización y estados vacíos.
+- [x] 3.3 Ampliar los escenarios MSW con análisis sintéticos de varias y ninguna categoría, y verificar que el cliente usa sin cambios `backend/openapi.json` y que no aparecen datos de capacidades fuera del MVP.
+- [x] 3.4 Verificar responsividad y contraste de la composición de análisis en escritorio, tableta y móvil mediante las pruebas o comprobaciones del frontend establecidas en el repositorio.
 
 ## 4. Integración y evidencia de repaso pedagógico (integración) · #77
 

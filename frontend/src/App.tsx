@@ -11,9 +11,10 @@ import { Card } from "./components/ui/Card/Card";
 import { FilePicker } from "./components/ui/FilePicker/FilePicker";
 import { Icon } from "./components/ui/Icon/Icon";
 import { StatusBadge } from "./components/ui/StatusBadge/StatusBadge";
+import { AnalysisPanel } from "./components/results/AnalysisPanel/AnalysisPanel";
 import { TranscriptPanel } from "./components/results/TranscriptPanel/TranscriptPanel";
 import { AppShell } from "./layouts/AppShell/AppShell";
-import { formatAnalysisCategory, formatProcessingStage } from "./presentation";
+import { formatProcessingStage } from "./presentation";
 
 function Layout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
@@ -66,8 +67,7 @@ function Result() {
   if (result.isPending) return <Layout><p>Cargando resultado…</p></Layout>;
   if (result.isError) return <Layout><InlineNotice tone="error">{result.error.message}</InlineNotice></Layout>;
   const isPublished = result.data.publication.status === "published" || approve.data?.publication.status === "published";
-  const emptyAnalysis = !result.data.analysis.general_summary.trim() && result.data.analysis.items.length === 0;
-  return <Layout><section aria-labelledby="result-title" className="result"><p className="eyebrow">Resultado · v{result.data.result_version}</p><h1 id="result-title">Repaso de la clase</h1><div className="columns"><TranscriptPanel transcript={result.data.transcript} /><Card aria-labelledby="analysis-title"><h2 id="analysis-title"><Icon name="check" />Repaso pedagógico</h2>{emptyAnalysis ? <p>El repaso pedagógico todavía no contiene elementos para esta clase.</p> : <><p>{result.data.analysis.general_summary}</p>{result.data.analysis.items.map((item) => <p key={item.item_id}><strong>{formatAnalysisCategory(item.category)}</strong> · {item.content}</p>)}</>}</Card></div>{user?.role === "teacher" && <div className="actions">{isPublished ? <StatusBadge tone="success">Resultado aprobado y publicado.</StatusBadge> : <Button disabled={approve.isPending} onClick={() => approve.mutate()}><Icon name="check" />Aprobar resultado</Button>}</div>}<Button onClick={() => navigate(user?.role === "teacher" ? "/upload" : "/")} variant="secondary">{user?.role === "teacher" ? "Subir otra clase" : "Volver a mi espacio"}</Button></section></Layout>;
+  return <Layout><section aria-labelledby="result-title" className="result"><p className="eyebrow">Resultado · v{result.data.result_version}</p><h1 id="result-title">Repaso de la clase</h1><div className="result-columns"><TranscriptPanel transcript={result.data.transcript} /><AnalysisPanel analysis={result.data.analysis} /></div>{user?.role === "teacher" && <div className="actions">{isPublished ? <StatusBadge tone="success">Resultado aprobado y publicado.</StatusBadge> : <Button disabled={approve.isPending} onClick={() => approve.mutate()}><Icon name="check" />Aprobar resultado</Button>}</div>}<Button onClick={() => navigate(user?.role === "teacher" ? "/upload" : "/")} variant="secondary">{user?.role === "teacher" ? "Subir otra clase" : "Volver a mi espacio"}</Button></section></Layout>;
 }
 
 export function App() { return <Routes><Route element={<Login />} path="/" /><Route element={<Upload />} path="/upload" /><Route element={<Job />} path="/jobs/:jobId" /><Route element={<Result />} path="/classes/:classId/result" /><Route element={<Navigate replace to="/" />} path="*" /></Routes>; }

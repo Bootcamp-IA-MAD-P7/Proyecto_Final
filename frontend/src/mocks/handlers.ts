@@ -1,20 +1,42 @@
 import { http, HttpResponse } from "msw";
+import type { components } from "../api/schema";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const accepted = { class_id: "class-demo-01", job_id: "job-demo-01", state: "queued" } as const;
-const result = {
-  schema_version: "0.1.0", class_id: "class-demo-01", result_version: 1,
+export const allCategoriesResult = {
+  schema_version: "0.2.0", class_id: "class-demo-01", result_version: 1,
   transcript: { speakers: [{ speaker_id: "speaker-01", participant_id: null }], segments: [{ segment_id: "segment-01", start_ms: 0, end_ms: 2000, speaker_id: "speaker-01", text: "Hoy practicamos saludos." }] },
-  analysis: { general_summary: "La clase practica saludos.", items: [{ item_id: "item-01", category: "vocabulary", content: "Saludos" }] },
+  analysis: { general_summary: "La clase practicó estructuras para saludar y responder en una conversación breve.", items: [
+    { item_id: "item-vocabulary", category: "vocabulary", content: "Saludos y despedidas para conversaciones cotidianas." },
+    { item_id: "item-grammar", category: "grammar", content: "Uso de preguntas cortas con el verbo to be." },
+    { item_id: "item-errors", category: "errors_corrections", content: "Se corrigió el orden de una pregunta de presentación." },
+    { item_id: "item-successes", category: "reinforced_successes", content: "Se reforzó la pronunciación clara de los saludos." },
+    { item_id: "item-concepts", category: "key_concepts", content: "Diferencia entre un saludo formal y uno informal." },
+    { item_id: "item-questions", category: "resolved_questions", content: "Se resolvió cuándo usar good evening." }
+  ] },
   review: { status: "pending", review_due_at: "2026-12-11T10:00:00Z" },
   publication: { status: "unpublished", result_version: null, published_at: null, mode: null }
-} as const;
+} as const satisfies components["schemas"]["Result"];
+export const partialCategoriesResult = {
+  ...allCategoriesResult,
+  analysis: {
+    general_summary: "La clase practicó saludos y respuestas breves.",
+    items: [
+      { item_id: "partial-vocabulary", category: "vocabulary", content: "Saludos para iniciar una conversación." },
+      { item_id: "partial-success", category: "reinforced_successes", content: "Se reforzó una respuesta fluida." }
+    ]
+  }
+} as const satisfies components["schemas"]["Result"];
+export const emptyCategoriesResult = {
+  ...allCategoriesResult,
+  analysis: { general_summary: "La sesión no aportó contenidos pedagógicos clasificables.", items: [] }
+} as const satisfies components["schemas"]["Result"];
 export const diarizedResult = {
-  ...result,
+  ...allCategoriesResult,
   transcript: { speakers: [{ speaker_id: "speaker-01", participant_id: null }, { speaker_id: "speaker-02", participant_id: null }], segments: [{ segment_id: "segment-01", start_ms: 62000, end_ms: 64000, speaker_id: "speaker-01", text: "Buenos" }, { segment_id: "segment-02", start_ms: 64000, end_ms: 66000, speaker_id: "speaker-01", text: "días." }, { segment_id: "segment-03", start_ms: 3723000, end_ms: 3725000, speaker_id: "speaker-02", text: "Hola." }] },
   analysis: { general_summary: "", items: [] }
-} as const;
-export const noVoiceResult = { ...diarizedResult, transcript: { speakers: [], segments: [] } } as const;
+} as const satisfies components["schemas"]["Result"];
+export const noVoiceResult = { ...diarizedResult, transcript: { speakers: [], segments: [] }, analysis: { general_summary: "", items: [] } } as const satisfies components["schemas"]["Result"];
 let polls = 0;
 const classSubmitters = new Set(["Bearer synthetic-demo-teacher", "Bearer synthetic-coteach-service"]);
 
@@ -59,6 +81,6 @@ export const handlers = [
     polls += 1;
     return HttpResponse.json({ ...accepted, state: polls < 2 ? "analyzing" : "ready_for_review", stage: polls < 2 ? "analyzing" : null, attempt: 1, error: null });
   }),
-  http.get(`${apiUrl}/v1/classes/:classId/result`, () => HttpResponse.json(result)),
+  http.get(`${apiUrl}/v1/classes/:classId/result`, () => HttpResponse.json(allCategoriesResult)),
   http.post(`${apiUrl}/v1/classes/:classId/approve`, () => HttpResponse.json({ class_id: "class-demo-01", publication: { status: "published", result_version: 1, published_at: "2026-12-10T12:00:00Z", mode: "teacher_approved" } }))
 ];
