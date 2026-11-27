@@ -1,7 +1,7 @@
 # class-processing Specification
 
 ## Purpose
-Que una clase enviada a la API se procese de forma diferida, por etapas, y su resultado estructurado se pueda consultar al terminar. En este cambio el procesamiento es simulado y el resultado, sintético: los modelos reales llegan en E3 y E4, y la recepción completa del audio en E2. El contrato está en [CONTRACTS](../../../docs/CONTRACTS/README.md).
+Que una clase enviada a la API se procese de forma diferida, por etapas, y su resultado estructurado se pueda consultar al terminar. Desde E3, el procesamiento transcribe y diariza el audio con modelos locales; el análisis pedagógico llega en E4. El contrato está en [CONTRACTS](../../../docs/CONTRACTS/README.md).
 
 ## Requirements
 
@@ -41,23 +41,35 @@ La API SHALL aceptar el envío de una clase con audio y metadatos válidos segú
 - **THEN** recibe 422 `invalid_audio_duration`, no se crea ningún trabajo y no queda ningún archivo guardado.
 
 ### Requirement: Seguimiento del trabajo por etapas
-El servicio SHALL procesar cada trabajo de forma diferida, recorriendo las etapas del contrato hasta `ready_for_review` o `failed`, y SHALL permitir consultar en cualquier momento su estado y su etapa (RNF-05).
+El servicio SHALL procesar cada trabajo de forma diferida, recorriendo las etapas del contrato hasta `ready_for_review` o `failed`, y SHALL permitir consultar en cualquier momento su estado, su etapa y su intento. Un fallo transitorio SHALL dejar el trabajo en `retry_wait` y SHALL reintentarse solo, tras una espera que crece con cada intento, hasta el número máximo de intentos configurado; un fallo que no es transitorio, o el último intento fallido, SHALL dejarlo en `failed` (RNF-05, ADR-0002).
 
 #### Scenario: Trabajo en curso
 - **WHEN** una persona autorizada consulta un trabajo que se está procesando
-- **THEN** recibe su estado y su etapa actuales.
+- **THEN** recibe su estado, su etapa y su intento actuales.
 
 #### Scenario: Trabajo terminado
 - **WHEN** el procesamiento termina sin errores
 - **THEN** el trabajo pasa a `ready_for_review`.
 
+#### Scenario: Fallo transitorio
+- **WHEN** una etapa falla por un error transitorio, como un modelo que no está disponible, y al trabajo le quedan intentos
+- **THEN** el trabajo pasa a `retry_wait` con la etapa que falló y un error del contrato marcado como reintentable, y vuelve a procesarse cuando pasa la espera.
+
+#### Scenario: Intentos agotados
+- **WHEN** falla por un error transitorio el último intento permitido de un trabajo
+- **THEN** el trabajo pasa a `failed` con un código de error del contrato que ya no es reintentable, y no queda ningún resultado consultable.
+
 #### Scenario: Fallo de una etapa
-- **WHEN** una etapa del procesamiento falla
-- **THEN** el trabajo pasa a `failed` con un código de error del contrato y no queda ningún resultado consultable.
+- **WHEN** una etapa falla por un error que no se arregla reintentando, como un audio que no se puede decodificar
+- **THEN** el trabajo pasa a `failed` sin reintentarse, con un código de error del contrato, y no queda ningún resultado consultable.
 
 #### Scenario: Reinicio del worker
-- **WHEN** el worker se reinicia con un trabajo a medias
+- **WHEN** el worker se reinicia con un trabajo a medias al que le quedan intentos
 - **THEN** el trabajo vuelve a la cola y termina de procesarse, sin quedarse bloqueado (ADR-0002).
+
+#### Scenario: Trabajo que tumba el worker
+- **WHEN** el worker se reinicia con un trabajo a medias que ya ha agotado los intentos permitidos
+- **THEN** el trabajo pasa a `failed` en lugar de volver a la cola.
 
 ### Requirement: Resultado estructurado al terminar
 Cuando el trabajo está en `ready_for_review`, la API SHALL devolver a la docente de la clase un resultado que cumple el contrato, con la transcripción y el análisis separados; antes de ese momento SHALL indicar que el resultado aún no está listo (RF-04).

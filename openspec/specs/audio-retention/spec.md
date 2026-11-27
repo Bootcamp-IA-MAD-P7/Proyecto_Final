@@ -29,10 +29,10 @@ El servicio SHALL eliminar el audio original y sus copias de trabajo cuando venc
 - **THEN** el audio se purga igualmente y el resultado que llegue después se descarta.
 
 ### Requirement: Trabajos caducados
-Cuando vence el plazo de un audio cuyo trabajo no ha terminado, el servicio SHALL dejar el trabajo en `expired` y no SHALL procesarlo más. Los resultados ya terminados se conservan: solo se purga el audio (RNF-02).
+Cuando vence el plazo de un audio cuyo trabajo no ha terminado, también si está en espera de reintento, el servicio SHALL dejar el trabajo en `expired` y no SHALL procesarlo más. Los resultados ya terminados se conservan: solo se purga el audio (RNF-02).
 
 #### Scenario: Trabajo sin terminar
-- **WHEN** vence el plazo de un audio cuyo trabajo está en cola o en curso
+- **WHEN** vence el plazo de un audio cuyo trabajo está en cola, en curso o en espera de reintento
 - **THEN** el trabajo pasa a `expired`, se consulta con ese estado y no se reclama de nuevo.
 
 #### Scenario: Resultado ya listo
