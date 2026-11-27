@@ -121,7 +121,7 @@ Alternativa descartada: subir a 0.3.0 solo por estas aclaraciones. Los tipos de 
 
 ### Medición (RNF-04)
 
-`make -C backend measure` ejecuta los adaptadores reales sobre audios locales que no se versionan (grabaciones autorizadas o simuladas) y da, por etapa, los segundos de cálculo por minuto de audio, el pico de memoria y el modelo usado, y el WER y el DER si se le pasa una referencia anotada. Los resultados, sin audio ni texto de las clases, van a ARCHITECTURE §2 y §7. No hay umbral de aceptación (PRD §14): el equipo decide con los números.
+`make -C backend measure` ejecuta los adaptadores reales sobre audios locales que no se versionan (grabaciones autorizadas o simuladas) y da, por etapa, los segundos de cálculo por minuto de audio, el pico de memoria y el modelo usado, y el WER y el DER si se le pasa una referencia anotada. La sección 6 añade `make measure-stages AUDIO=<archivo>`, que ejecuta cada etapa en su propio proceso dentro de la imagen del worker para que el pico de memoria sea el de esa etapa; es la que dio los números de ARCHITECTURE §7. Los resultados, sin audio ni texto de las clases, van a ARCHITECTURE §2 y §7. No hay umbral de aceptación (PRD §14): el equipo decide con los números.
 
 ### Interfaces internas
 
@@ -149,5 +149,5 @@ Alternativa descartada: subir a 0.3.0 solo por estas aclaraciones. Los tipos de 
 ## Open Questions
 
 - Idiomas de la demo y umbrales de WER y DER (PRD §14): no cambian el plan; la medición da los números.
-- Detección de idioma por frase (`multilingual`): la decide la medición.
+- Detección de idioma por frase (`multilingual`): la sección 6 midió solo recursos, sin muestra multilingüe de referencia, así que queda aplazada como pregunta abierta en ARCHITECTURE §11; mientras, `ASR_LANGUAGE` vacía detecta el idioma.
 - Equipo de la demo y su GPU (ARCHITECTURE §11): el plan funciona en CPU; si el equipo tiene una GPU NVIDIA usable desde Docker, añadirla es una mejora posterior.
