@@ -12,6 +12,8 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.settings import Settings
+
 
 @dataclass(frozen=True)
 class ModelSpec:
@@ -19,6 +21,8 @@ class ModelSpec:
     revision: str
     download: Callable[[], None]
     measure: Callable[[], Mapping[str, str]]
+    ready: Callable[[], bool] = lambda: True
+    """Whether the prepared copy is in MODELS_DIR, without loading it."""
 
 
 class ModelRegistry:
@@ -42,6 +46,9 @@ class ModelRegistry:
     def measure_all(self) -> dict[str, Mapping[str, str]]:
         return {spec.name: spec.measure() for spec in self.entries()}
 
+    def missing(self) -> list[str]:
+        return [spec.name for spec in self.entries() if not spec.ready()]
+
 
 registry = ModelRegistry()
 
@@ -56,6 +63,19 @@ def download_all() -> None:
 
 def measure_all() -> dict[str, Mapping[str, str]]:
     return registry.measure_all()
+
+
+def missing() -> list[str]:
+    return registry.missing()
+
+
+def check() -> None:
+    """Exit with an error unless the worker runs the real models and all of them are prepared."""
+    if Settings.from_env().inference_pipeline != "models":
+        raise SystemExit("INFERENCE_PIPELINE is not 'models' in backend/.env")
+    absent = missing()
+    if absent:
+        raise SystemExit("models not downloaded: " + ", ".join(absent))
 
 
 def load_dotenv(path: Path = Path(".env")) -> None:
@@ -78,13 +98,19 @@ def main(command: str) -> None:
     load_dotenv()
     if command == "download":
         download_all()
+    elif command == "check":
+        check()
     elif command == "measure":
         print(json.dumps(measure_all(), sort_keys=True))
     else:
-        raise SystemExit("usage: python -m app.inference.models download|measure")
+        raise SystemExit("usage: python -m app.inference.models download|check|measure")
 
 
 if __name__ == "__main__":
     import sys
 
-    main(sys.argv[1] if len(sys.argv) > 1 else "")
+    # `python -m` runs this file as `__main__`, a second copy with an empty registry: the adapters
+    # registered their models in `app.inference.models` when the package was imported.
+    from app.inference.models import main as registered_main
+
+    registered_main(sys.argv[1] if len(sys.argv) > 1 else "")

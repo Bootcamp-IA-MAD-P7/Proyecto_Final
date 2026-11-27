@@ -136,6 +136,13 @@ def download_whisper_small(
     snapshot(repo_id=repo_id, revision=revision, local_dir=str(target / repo_id))
 
 
+def whisper_small_ready(*, model: str = "small", models_dir: Path | None = None) -> bool:
+    """The CTranslate2 weights are in the private models directory (`model.bin`)."""
+    repo_id = SUPPORTED_MODELS[model][0]
+    target = Path(models_dir or os.getenv("MODELS_DIR", DEFAULT_MODELS_DIR))
+    return (target / repo_id / "model.bin").is_file()
+
+
 def word_error_rate(reference: str, hypothesis: str) -> float:
     """Word-level Levenshtein distance divided by the number of reference words."""
     expected = reference.split()
@@ -294,5 +301,6 @@ register(
         revision=MODEL_REVISION,
         download=download_whisper_small,
         measure=measure_whisper,
+        ready=whisper_small_ready,
     )
 )

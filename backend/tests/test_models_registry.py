@@ -100,3 +100,58 @@ def test_default_suite_excludes_the_models_marker() -> None:
 @pytest.mark.models
 def test_model_tests_are_selected_by_their_marker(request) -> None:
     assert any(marker.name == "models" for marker in request.node.iter_markers())
+
+
+def test_registry_lists_the_models_not_prepared() -> None:
+    registry = ModelRegistry()
+    registry.add(ModelSpec("whisper", "rev-1", lambda: None, lambda: {}, ready=lambda: True))
+    registry.add(ModelSpec("diarization", "rev-1", lambda: None, lambda: {}, ready=lambda: False))
+
+    assert registry.missing() == ["diarization"]
+
+
+def test_check_fails_when_a_model_is_missing(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MODELS_DIR", str(tmp_path / "models"))
+    monkeypatch.setenv("INFERENCE_PIPELINE", "models")
+
+    with pytest.raises(SystemExit, match=r"models not downloaded: .*community-1"):
+        main("check")
+
+
+def test_check_passes_when_every_model_is_prepared(tmp_path: Path, monkeypatch) -> None:
+    from app.inference import diarization, transcription
+
+    models = tmp_path / "models"
+    (models / transcription.MODEL_ID).mkdir(parents=True)
+    (models / transcription.MODEL_ID / "model.bin").write_bytes(b"weights")
+    (models / diarization.MODEL_ID).mkdir(parents=True)
+    (models / diarization.MODEL_ID / "config.yaml").write_text("pipeline: {}", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MODELS_DIR", str(models))
+    monkeypatch.setenv("INFERENCE_PIPELINE", "models")
+
+    main("check")
+
+
+def test_check_fails_when_the_worker_runs_the_fake_pipeline(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("INFERENCE_PIPELINE", "fake")
+
+    with pytest.raises(SystemExit, match="INFERENCE_PIPELINE"):
+        main("check")
+
+
+def test_the_command_line_sees_the_registered_models(tmp_path: Path) -> None:
+    backend = Path(__file__).resolve().parents[1]
+    env = {**os.environ, "MODELS_DIR": str(tmp_path), "INFERENCE_PIPELINE": "models"}
+    result = subprocess.run(
+        [sys.executable, "-m", "app.inference.models", "check"],
+        cwd=backend,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "faster-whisper-small" in result.stderr
