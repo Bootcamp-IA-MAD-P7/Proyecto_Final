@@ -27,7 +27,7 @@ test("a teacher uploads a class of two voices and sees its transcript by speaker
   expect(existsSync(twoVoices), "run the tests with make e2e, which generates the audio").toBe(true);
 
   await uploadAsTeacher(page, twoVoices);
-  await expect(page.getByText(/etapa actual: (normalizing|transcribing|diarizing|analyzing)/i)).toBeVisible();
+  await expect(page.getByText(/preparando el audio|transcribiendo|identificando voces|analizando el contenido/i).first()).toBeVisible();
 
   await expect(page.getByRole("heading", { name: /repaso de la clase/i })).toBeVisible({ timeout: PROCESSING_TIMEOUT });
   await expect(page.getByRole("heading", { name: "Transcripción" })).toBeVisible();
