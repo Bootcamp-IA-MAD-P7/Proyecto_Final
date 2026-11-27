@@ -11,6 +11,6 @@
 
 **Depende de:** —
 
-- [ ] 1.1 Añadir la casilla E2E a la «Validación» de la plantilla de PR.
-- [ ] 1.2 Añadir a la skill `pull-requests` el paso de `make e2e` en la sección de integración, con enlace a CONTRIBUTING §8; verificar que el enlace resuelve.
-- [ ] 1.3 Ejecutar `openspec validate remind-e2e-in-pr --strict` y `git diff --check`.
+- [x] 1.1 Añadir la casilla E2E a la «Validación» de la plantilla de PR.
+- [x] 1.2 Añadir a la skill `pull-requests` el paso de `make e2e` en la sección de integración, con enlace a CONTRIBUTING §8; verificar que el enlace resuelve.
+- [x] 1.3 Ejecutar `openspec validate remind-e2e-in-pr --strict` y `git diff --check`.
