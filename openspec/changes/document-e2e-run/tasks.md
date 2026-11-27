@@ -12,5 +12,5 @@
 
 **Depende de:** —
 
-- [ ] 1.1 Añadir a CONTRIBUTING §8 la regla de la prueba E2E y a §10 sus objetivos; verificar que los enlaces al README y a WORKFLOW resuelven.
-- [ ] 1.2 Ejecutar `openspec validate document-e2e-run --strict` y `git diff --check`.
+- [x] 1.1 Añadir a CONTRIBUTING §8 la regla de la prueba E2E y a §10 sus objetivos; verificar que los enlaces al README y a WORKFLOW resuelven.
+- [x] 1.2 Ejecutar `openspec validate document-e2e-run --strict` y `git diff --check`.
