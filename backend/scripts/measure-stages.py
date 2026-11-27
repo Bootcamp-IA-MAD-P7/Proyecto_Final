@@ -12,6 +12,7 @@ of the worker. Only numbers are printed, one JSON line per stage: never text, tu
 from __future__ import annotations
 
 import json
+import os
 import resource
 import subprocess
 import sys
@@ -65,7 +66,7 @@ def run_stage(stage: str, wav: Path) -> None:
     else:
         diarizer = PyannoteDiarizer(models_dir=models_dir)
         diarizer.load()
-        diarizer.diarize(wav, 2)
+        diarizer.diarize(wav, int(os.getenv("DIARIZATION_MAX_SPEAKERS", "2")))
         diarizer.close()
     _report(stage, time.perf_counter() - started, minutes, _peak_mib(resource.RUSAGE_SELF))
 
