@@ -37,26 +37,26 @@ RF-01 a RF-05 incluyen revisión y publicación. RF-06 (resumen individual grupa
 | API y dominio | Python 3.11, FastAPI, Pydantic 2; validación y OpenAPI, sin inferencia dentro de peticiones HTTP | Actual | [ADR-0001](ADR/0001-modular-backend.md) |
 | Persistencia | PostgreSQL 17, SQLAlchemy 2, Alembic; mismo motor en desarrollo y producción | Actual | [ADR-0002](ADR/0002-durable-jobs.md) |
 | Interfaz de demostración | React, TypeScript y Vite; cliente web separado, tipos alineados con el contrato y autorización siempre en FastAPI | Actual | ADR-0001 |
-| Audio | FFmpeg para normalización (Objetivo); faster-whisper con Whisper small multilingüe como primera evaluación | Candidata: modelo por medir | [ADR-0003](ADR/0003-private-inference.md) |
-| Diarización | pyannote.audio con speaker-diarization-community-1; evaluar errores y acceso a pesos | Candidata: modelo por medir | ADR-0003 |
+| Audio | FFmpeg para normalizar a WAV mono de 16 kHz; faster-whisper 1.2 con Whisper small multilingüe (`Systran/faster-whisper-small`, revisión fijada) en CPU con int8 | Actual en CPU, medido (§7); calidad por evaluar | [ADR-0003](ADR/0003-private-inference.md) |
+| Diarización | pyannote.audio 4 con `speaker-diarization-community-1` (revisión fijada, condiciones aceptadas en Hugging Face) en CPU; la voz dominante se queda los solapamientos | Actual en CPU, medido (§7); DER por evaluar | ADR-0003 |
 | Análisis | Qwen3-8B cuantizado mediante llama.cpp, modo sin razonamiento extendido, salida JSON validada | Candidata: modelo por medir | ADR-0003 |
 | Operación | Docker Compose y volúmenes privados, solo en local mientras no haya servidor; proxy Caddy con TLS cuando lo haya | Actual: Compose local. Objetivo: volúmenes privados y Caddy | [ADR-0004](ADR/0004-access-and-retention.md), [ADR-0005](ADR/0005-local-only-environment.md) |
 | Calidad | pytest, Ruff, HTTPX y pruebas de contrato; reloj controlable para publicación/purga | Actual. Objetivo: reloj controlable | ADR-0001 |
 
-Las versiones menores, imágenes y revisiones de pesos se fijarán tras una prueba de compatibilidad, sin usar etiquetas flotantes en entrega. No se ha ejecutado ningún benchmark. No se garantiza calidad multilingüe ni capacidad con este tamaño de modelo.
+Las revisiones de los pesos de ASR y diarización están fijadas en el código de sus adaptadores, y sus dependencias en `backend/requirements-inference.txt`, sin etiquetas flotantes. Los recursos se han medido en CPU (§7); la calidad (WER, DER y multilingüe) sigue sin evaluarse con audio de referencia, así que no se garantiza.
 
 ## 3. Componentes
 
 | Componente | Responsabilidad | Datos que posee | Depende de | Estado |
 |---|---|---|---|---|
 | api | Recepción, autorización por clase, validación, consulta, edición y aprobación | Clases, permisos, revisiones y resultados publicados | PostgreSQL, almacenamiento | Actual |
-| worker | Normalizar, transcribir, diarizar, combinar intervenciones, analizar | Artefactos por etapa y metadatos de ejecución | Cola PostgreSQL, audio, modelos | Actual |
+| worker | Normalizar, transcribir, diarizar, combinar intervenciones, analizar | Artefactos por etapa y metadatos de ejecución | Cola PostgreSQL, audio, volumen de modelos | Actual |
 | maintenance | Publicar vencidos y purgar audio | Vencimientos, auditoría de publicaciones y borrados | PostgreSQL, almacenamiento | Actual |
 | frontend | Vistas React para docente/alumnado, carga y seguimiento de trabajos | Solo estado de interfaz; nunca copia autoritativa de resultados | API REST FastAPI | Actual |
 
-Los cuatro funcionan de extremo a extremo desde el walking skeleton ([add-walking-skeleton](../openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md)), aún con responsabilidades parciales: el worker procesa con `FakePipeline`, que devuelve un resultado sintético, hasta que E3 y E4 traigan los modelos. Maintenance ya purga el audio vencido y caduca los trabajos sin terminar (E2); la publicación automática al vencer llega en E5.
+Los cuatro funcionan de extremo a extremo desde el walking skeleton ([add-walking-skeleton](../openspec/changes/archive/2026-11-25-add-walking-skeleton/design.md)), aún con responsabilidades parciales. Desde E3, el worker procesa con `StagedPipeline` y los modelos reales (`INFERENCE_PIPELINE=models`): normaliza, transcribe y diariza, y deja el análisis vacío hasta E4; con `INFERENCE_PIPELINE=fake` devuelve el resultado sintético del walking skeleton. Maintenance ya purga el audio vencido y caduca los trabajos sin terminar (E2); la publicación automática al vencer llega en E5.
 
-API, worker y maintenance comparten paquete de dominio y migraciones; no son microservicios independientes. La IA se encapsula en adaptadores para sustituir modelos sin cambiar la API pública. Ningún modelo decide permisos ni ejecuta instrucciones contenidas en el audio.
+API, worker y maintenance comparten paquete de dominio y migraciones; no son microservicios independientes. El worker usa su propia imagen (objetivos `worker-dev` y `worker` del `Dockerfile` de `backend`): el mismo código más `requirements-inference.txt`, con PyTorch para CPU, unos 3,4 GB. La API y maintenance siguen con la imagen ligera de `backend`, sin dependencias de inferencia. La IA se encapsula en adaptadores para sustituir modelos sin cambiar la API pública. Ningún modelo decide permisos ni ejecuta instrucciones contenidas en el audio.
 
 Reparto propuesto entre tres personas, sin crear aún historias: persona A, API/persistencia/autorización/maintenance; B, inferencia y evaluación; C, interfaz/revisión y pruebas de extremo a extremo. A y C comparten la validación de RF-05. Primero acordar contratos y ejemplos sintéticos; B y C desarrollan contra ellos con dobles mientras A construye persistencia. La integración y revisión son responsabilidad conjunta. El reparto se formalizará en fase 2, con contrato primero e integración al final.
 
@@ -143,6 +143,8 @@ Los temporales de inferencia viven en `WORK_DIR/<job_id>/`, fuera de `AUDIO_STOR
 
 Configuración candidata: REVIEW_WINDOW_HOURS (24 provisional), límites de carga, MAX_ATTEMPTS, rutas/modelos/revisiones, dispositivos y concurrencia. Credenciales DB, firma y descarga de modelos solo en servidor mediante secretos; ejemplos inocuos versionados. Logs excluyen audio, nombres, transcripciones, tokens y prompts.
 
+Los pesos fijados viven en el volumen privado `models-data` (`MODELS_DIR`, `/app/data/models`), que solo monta el worker y que queda fuera de Git, de las imágenes y de las copias de seguridad. `make models` los descarga una vez con `HF_TOKEN`, el token de lectura de una cuenta de Hugging Face que ha aceptado las condiciones de Community-1, guardado en `backend/.env` (sin versionar ni copiar a ninguna imagen). Compose da al worker `HF_TOKEN` vacío y `HF_HUB_OFFLINE=1`: procesa sin red y, si falta un modelo, la etapa falla con `processing_unavailable`. Al arrancar registra el modelo, la revisión, el dispositivo y el tipo de cálculo de cada etapa.
+
 Sin APIs públicas de inferencia por defecto. Descarga de pesos separada de ejecución; revisar licencias, atribución y telemetría de dependencias. GPU remota privada recibe solo lo imprescindible; transferencia, ubicación, acceso del operador, retención y borrado necesitan aprobación y comprobación. Alquiler privado no elimina por sí solo exposición a terceros.
 
 ## 7. Entorno local y operación
@@ -165,6 +167,17 @@ El audio original vive en el volumen con nombre `audio-data`, montado en `/app/d
 | API comercial de inferencia | Menor operación | Transferencias y dependencia; condiciones de privacidad/licencia por validar | No recomendada como base del MVP |
 
 Hipótesis de dimensionamiento, no mínimos comprobados: host de 32 GB RAM y GPU de 12–16 GB VRAM para ensayar modelos secuenciales cuantizados, sin mantener ASR, diarizador y LLM simultáneamente. CPU de 16 GB puede servir para pruebas reducidas, sujeta a medición. Antes de reservar recursos medir con clases de 30 y 60 minutos, individuales y grupales.
+
+**Recursos medidos (E3, 2026-11-27).** Equipo de referencia: el de desarrollo, Ryzen 5 5600 (6 núcleos, 12 hilos), 16 GB de RAM y Docker Desktop con 8 GB, solo CPU (su gráfica es AMD y Docker en Windows solo expone GPU NVIDIA). Dos grabaciones de clase autorizadas, de 31,6 y 57,6 minutos, con `make measure-stages AUDIO=<archivo>`: cada etapa en su propio proceso dentro de la imagen del worker. Solo se guardan los números; ni el audio ni su contenido salen del equipo (RNF-04).
+
+| Etapa | Modelo | 31,6 min: s por min de audio | 31,6 min: pico de memoria | 57,6 min: s por min de audio | 57,6 min: pico de memoria |
+|---|---|---|---|---|---|
+| Normalizar | FFmpeg | 0,08 | 58 MiB | 0,08 | 57 MiB |
+| Transcribir | Whisper small, int8 | 11,6 | 2,1 GiB | 11,8 | 3,6 GiB |
+| Diarizar | Community-1, float32 | 42,0 | 2,4 GiB | 42,1 | 2,4 GiB |
+| **Total** | | **≈ 54** (28 min) | | **≈ 54** (52 min) | |
+
+El tiempo crece de forma lineal con la duración, a unos 54 segundos de cálculo por minuto de audio: en este equipo, una clase tarda casi lo mismo que dura, y diez clases de una hora al día suponen unas 9 horas de CPU con un solo worker. La diarización se lleva el 78 % del tiempo. Las etapas cargan su modelo una a una, así que el pico del worker es el de la etapa mayor. El de la transcripción crece con la duración y el de la diarización no: extrapolando, una clase de dos horas rondaría los 7 GiB al transcribir, cerca del límite de 8 GB de Docker. No está medido. La demo enseñará clases ya procesadas, así que esta latencia no la bloquea; acelerar la diarización (ajustes de CPU, otro diarizador o GPU NVIDIA) queda como pregunta abierta (§11).
 
 Medir segundos de cómputo por minuto de audio, pico RAM/VRAM, tamaño de artefactos y energía si se dispone de contador. Coste diario estimado = horas GPU × tarifa + almacenamiento + transferencia; no hay presupuesto ni tarifa aprobados. Escoger el modelo más pequeño que alcance calidad acordada, cachear pesos y apagar GPU remota ociosa. Diez clases/día equivalen a 5–10 horas de audio; dimensionar desde esa carga y concurrencia real, no desde benchmarks publicados.
 
@@ -204,7 +217,8 @@ Fuentes técnicas consultadas: [faster-whisper](https://github.com/SYSTRAN/faste
 Las preguntas de producto (plazo de revisión, retención de derivados, idiomas, identidad de los usuarios, límites de calidad) están en el [PRD §14](PRD.md#14-preguntas-abiertas). Aquí solo las técnicas:
 
 - **Servidores de pruebas y producción** (equipo y Lay): dónde se despliega cada entorno, con qué recursos y dominios, y si hay presupuesto para GPU remota privada. **Bloquea:** el despliegue en pruebas y producción, que queda fuera hasta entonces ([ADR-0005](ADR/0005-local-only-environment.md)).
-- **Hardware del equipo** (equipo): RAM y GPU reales de cada equipo y si Docker con GPU funciona en ellos. **Bloquea:** la imagen del worker y la elección de modelos.
-- **Modelos** (equipo): ASR, diarizador y LLM definitivos, tras medir calidad y recursos con audio autorizado de 30 y 60 minutos. **Bloquea:** pasar a Objetivo las filas Candidata de [§2](#2-stack).
+- **Hardware del equipo** (equipo): el equipo de referencia está medido en CPU (§7) y su gráfica AMD no sirve con Docker en Windows; falta saber si habrá una GPU NVIDIA en algún equipo o servidor. **Bloquea:** una imagen del worker con GPU, que hoy no existe.
+- **Velocidad de la diarización** (equipo): en CPU tarda unos 42 s por minuto de audio, casi el 80 % del procesamiento. Opciones por medir: ajustar lotes e hilos de PyTorch, un diarizador ONNX más ligero (por ejemplo, sherpa-onnx) o GPU NVIDIA. **Bloquea:** procesar varias clases largas al día en un solo equipo.
+- **Modelos** (equipo): Whisper small y Community-1 están en uso y medidos en recursos (§7), pero falta medir su calidad (WER y DER) con audio de referencia, y elegir el LLM de E4. **Bloquea:** dar por definitivos los modelos de [§2](#2-stack).
 - **Emisor de identidad** (CoTeach): quién emite los tokens y cómo se resuelve la pertenencia a una clase. Mientras, la demo usa un emisor de pruebas aislado ([ADR-0004](ADR/0004-access-and-retention.md)). **Bloquea:** producción con usuarios reales.
 - **Licencias** (equipo y CoTeach): licencia del código y revisión de licencias de pesos y dependencias. **Bloquea:** el primer código publicado y aceptar los modelos.
