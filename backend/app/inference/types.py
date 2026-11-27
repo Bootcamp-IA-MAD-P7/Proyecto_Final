@@ -35,7 +35,7 @@ class Phrase:
             raise ValueError("phrase must have at least one word")
         if any(
             current.end_ms > following.start_ms
-            for current, following in zip(self.words, self.words[1:])
+            for current, following in zip(self.words, self.words[1:], strict=False)
         ):
             raise ValueError("phrase words must be ordered and not overlap")
 

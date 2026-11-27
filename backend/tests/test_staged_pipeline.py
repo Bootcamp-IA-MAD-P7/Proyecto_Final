@@ -75,7 +75,9 @@ class RecordingDiarizer:
         return [Turn(start_ms=0, end_ms=500, speaker_id="voice-a")]
 
 
-def pipeline() -> tuple[StagedPipeline, RecordingNormalizer, RecordingTranscriber, RecordingDiarizer]:
+def pipeline() -> tuple[
+    StagedPipeline, RecordingNormalizer, RecordingTranscriber, RecordingDiarizer
+]:
     normalizer = RecordingNormalizer()
     transcriber = RecordingTranscriber()
     diarizer = RecordingDiarizer()
