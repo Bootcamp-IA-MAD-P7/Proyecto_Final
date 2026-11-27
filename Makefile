@@ -86,9 +86,13 @@ ci-auth-secret-regression: ## Verify the CI-only authentication secret is epheme
 e2e-install: ## Install the browser of the end-to-end tests (once per machine)
 	$(MAKE) -C frontend e2e-install
 
-e2e: ## Run the end-to-end tests against `make up` (first time: make e2e-install)
+e2e: ## Run the end-to-end tests against `make up` with the models (first time: make e2e-install)
 	@curl -fsS -o /dev/null "http://localhost:$${BACKEND_PORT:-8000}/ready" || { echo "The API is not ready: run make up first."; exit 1; }
 	@curl -fsS -o /dev/null "http://localhost:$${FRONTEND_PORT:-5173}/" || { echo "The web is not up: run make up first."; exit 1; }
+	@$(COMPOSE) run --rm --no-deps -T worker sh -c 'test -d "$$MODELS_DIR/Systran/faster-whisper-small" && test -d "$$MODELS_DIR/pyannote/speaker-diarization-community-1"' \
+		|| { echo "The models are missing: run make models first (README, Modelos de inferencia)."; exit 1; }
+	@mkdir -p frontend/e2e/generated
+	$(COMPOSE) run --rm --no-deps -T worker sh scripts/two-voices.sh > frontend/e2e/generated/two-voices.ogg
 	$(MAKE) -C frontend e2e
 
 # --- Models: download once into the private volume of the worker ---

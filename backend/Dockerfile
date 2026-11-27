@@ -47,9 +47,12 @@ COPY requirements-inference.txt .
 RUN pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-inference.txt
 
 # Worker for development: the same tools as `dev`; the source is mounted by compose.override.yaml.
+# espeak-ng only generates the synthetic two-voice class of `make e2e` (scripts/two-voices.sh).
 FROM inference AS worker-dev
 ENV RUFF_NO_CACHE=true
-RUN apt-get update     && apt-get install -y --no-install-recommends make     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends make espeak-ng \
+    && rm -rf /var/lib/apt/lists/*
 COPY requirements-dev.txt .
 RUN pip install -r requirements-dev.txt
 COPY . .
@@ -59,6 +62,9 @@ CMD ["python", "-m", "app.worker"]
 # read from the private volume of MODELS_DIR, prepared beforehand with `make models`.
 FROM inference AS worker
 COPY app ./app
-RUN useradd --create-home --uid 10001 app     && mkdir -p data/audio data/work data/models     && chown -R app:app data     && chmod -R 700 data
+RUN useradd --create-home --uid 10001 app \
+    && mkdir -p data/audio data/work data/models \
+    && chown -R app:app data \
+    && chmod -R 700 data
 USER app
 CMD ["python", "-m", "app.worker"]
