@@ -23,7 +23,10 @@ def test_word_and_turn_require_positive_intervals() -> None:
 
 
 def test_phrase_requires_ordered_words_and_exposes_its_interval_and_text() -> None:
-    words = [Word(text="hola", start_ms=0, end_ms=100), Word(text="mundo", start_ms=100, end_ms=200)]
+    words = [
+        Word(text="hola", start_ms=0, end_ms=100),
+        Word(text="mundo", start_ms=100, end_ms=200),
+    ]
     phrase = Phrase(words=words)
 
     assert phrase.start_ms == 0

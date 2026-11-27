@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
 from typing import TypeVar
 
 from app.contract import JobErrorCode, JobStage
 from app.inference.pipeline import InferencePipeline, PipelineError, PipelineInput, PipelineOutput
 from app.inference.speakers import assign_speakers
-from app.inference.types import Analyzer, Diarizer, Normalizer, Transcriber
+from app.inference.types import Analyzer, Diarizer, ModelAdapter, Normalizer, Transcriber
 
 T = TypeVar("T")
 FAILED_MESSAGE = "No se ha podido procesar la clase."
@@ -29,10 +28,8 @@ class StagedPipeline(InferencePipeline):
         self._analyzer = analyzer
 
     @staticmethod
-    def _use(adapter: object, action: Callable[[], T]) -> T:
-        load = getattr(adapter, "load")
-        close = getattr(adapter, "close")
-        load()
+    def _use(adapter: ModelAdapter, action: Callable[[], T]) -> T:
+        adapter.load()
         try:
             return action()
         except PipelineError:
@@ -41,7 +38,7 @@ class StagedPipeline(InferencePipeline):
             # The adapter's message may carry class data; only a safe contract message is kept.
             raise PipelineError(JobErrorCode.PROCESSING_FAILED, FAILED_MESSAGE) from error
         finally:
-            close()
+            adapter.close()
 
     def run(self, job_input: PipelineInput, on_stage: Callable[[JobStage], None]) -> PipelineOutput:
         if job_input.audio_path is None:

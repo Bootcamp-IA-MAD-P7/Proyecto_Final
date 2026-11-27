@@ -31,7 +31,9 @@ def _voice_for(word: Word, turns: list[Turn], previous: str | None) -> str:
     if not turns:
         return NO_TURNS_VOICE
 
-    overlapping = [(_overlap(word, turn), index, turn.speaker_id) for index, turn in enumerate(turns)]
+    overlapping = [
+        (_overlap(word, turn), index, turn.speaker_id) for index, turn in enumerate(turns)
+    ]
     best_overlap = max(overlapping, default=None)
     if best_overlap is not None and best_overlap[0] > 0:
         return best_overlap[2]
@@ -47,7 +49,9 @@ def _voice_for(word: Word, turns: list[Turn], previous: str | None) -> str:
         return previous
 
     # The first word of a phrase far from every turn still belongs to a detected voice.
-    return min((_distance(word, turn), index, turn.speaker_id) for index, turn in enumerate(turns))[2]
+    return min((_distance(word, turn), index, turn.speaker_id) for index, turn in enumerate(turns))[
+        2
+    ]
 
 
 def _pieces(phrase: Phrase, turns: list[Turn]) -> list[_Piece]:

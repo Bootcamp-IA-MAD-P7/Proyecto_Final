@@ -1,5 +1,5 @@
-from app.inference import Phrase, Turn, Word, assign_speakers
 from app.contract import Transcript
+from app.inference import Phrase, Turn, Word, assign_speakers
 
 
 def phrase(*words: tuple[str, int, int]) -> Phrase:
